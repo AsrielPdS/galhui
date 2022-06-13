@@ -1,0 +1,19 @@
+{
+  "name": "galhui",
+  "version": "1.0.0",
+  "description": "",
+  "main": "galhui.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "sideEffects": false,
+  "dependencies": {
+    "csstype": "^3.0.11",
+    "dic": "file:../dic",
+    "galho": "file:../galho",
+    "handler": "file:../handler",
+    "inutil": "file:../inutil",
+    "orray": "file:../orray"
+  }
+}
