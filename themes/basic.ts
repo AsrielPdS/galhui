@@ -272,6 +272,11 @@ export function menu({ menu }: Context): css.Styles {
       },
       // display: "table",  
     },
+    "._.tip":{
+      position: "fixed",
+      background: menu,
+      padding: ".7em 1em",
+    }
   }
 }
 const panelHelper = () => ({});

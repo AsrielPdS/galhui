@@ -1,11 +1,11 @@
 import { clearEvent, div, E, g, S } from "galho";
-import { contains, vScroll } from "galho/s";
-import { byKey, isO, l, sub, t } from "inutil";
+import { contains, rect, vScroll } from "galho/s";
+import { byKey, call, isO, l, sub, t } from "inutil";
 import { Alias, bind, extend, L } from "orray";
 import { list as selected, move as moveSelection, tp as selectionType } from "orray/selector";
-import { $, body, C, close, fixed, fluid, icon, Icon, VAlign } from "./galhui";
-import { i as menuitem } from "./menu";
-
+import { $, body, C, close, hc, icon, Icon, VAlign } from "./galhui";
+import { fixedMenu, fluid } from "./hover";
+import { menu, menuitem } from "./menu";
 export interface IRoot {
 
   /**if should open when clicked 
@@ -148,7 +148,9 @@ export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
   return root;
 }
 function calcMenu(root: S, menu: S, fluidMenu?: bool) {
-  (fluidMenu ? fluid : fixed)(root, menu);
+  fluidMenu ?
+    fluid(rect(root), menu) :
+    fixedMenu(root, menu);
 }
 export function setValue<K extends Key = any>(me: Root & { value: K }, { root, options, menu, label, fluid }: { options: L, label: S, menu?: S, root?: S, fluid?: bool }) {
   if (me.value) {
@@ -214,6 +216,25 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open:
     return root;
   }
 
+}
+
+export function dropdown(label: any, items: any) {
+  return call(div(hc(C.dropdown), label), e => {
+    let mn = items instanceof S ? items : null, open: bool;
+    e.on("click", () => {
+      if (open)
+        mn.remove();
+      else {
+        (mn ||= menu(items)).addTo(e);
+        requestAnimationFrame(function _() {
+          fluid(rect(e), mn)
+          if (body.contains(mn))
+            requestAnimationFrame(_);
+        });
+      }
+      open = !open;
+    });
+  })
 }
 // export interface IOpenSelect<T extends Object = Dic, K extends Key = Key> extends ISelect<T, K> {
 //   input?: 'text' | 'number';

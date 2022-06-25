@@ -2,8 +2,8 @@ import { div, E, g, One, S } from "galho";
 import orray, { bind, L, remove, set } from "orray";
 import { ex, isS } from "inutil";
 import { $, C, Color, hc, Size, icon, Icon, w, close, ibutton, cancel, confirm, panel } from "./galhui";
-import { menubar, Items } from "./menubar";
-import { modal, openModal } from "./modal";
+import { menubar, MBItems } from "./menu";
+import { modal, openModal } from "./hover";
 
 export interface FilePath {
   path: string;
@@ -29,7 +29,7 @@ export interface IFileSelector {
   submit?: boolean;
   autosubmit?: boolean;
   accept?: string;
-  options?: Items;
+  options?: MBItems;
   icon?: Icon;
 }
 export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { input: Array<FSValue>, submit: string[]; }> {

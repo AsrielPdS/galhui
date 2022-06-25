@@ -1,6 +1,6 @@
-import { active, ANYElement, cl, clearEvent, div, g, Render, S, svg, toSVG, wrap } from "galho";
-import { contains, is, isSelection, rect } from "galho/s";
-import { call, isS } from "inutil";
+import { ANYElement, cl, div, g, Render, S, svg, toSVG, wrap } from "galho";
+import { isSelection } from "galho/s";
+import { isS } from "inutil";
 
 declare global {
   namespace GalhoUI {
@@ -174,7 +174,6 @@ export function icon(d: Icon, s?: Size) {
   }
 }
 
-
 export type click = (this: HTMLButtonElement, e: MouseEvent) => any;
 
 export type ButtonType = "button" | "submit" | "clear";
@@ -204,31 +203,9 @@ export const confirm = (click?: click) => positive("confirm", w.confirm, click, 
 
 export const buttons = (...buttons: S[]) => div(C.buttons, buttons);
 
-
-export function menu(items?: any) { return div(hc(C.menu), g("table", 0, items)); }
-export function dropdown(label: any, items: any) {
-  return call(div(hc(C.dropdown), label), e => {
-    let mn = items instanceof S ? items : null, open: bool;
-    e.on("click", () => {
-      if (open)
-        mn.remove();
-      else {
-        (mn ||= menu(items)).addTo(e);
-        requestAnimationFrame(function _() {
-          fluid(e, mn)
-          if (body.contains(mn))
-            requestAnimationFrame(_);
-        });
-      }
-      open = !open;
-    });
-  })
-}
 export const img = (src: str, cls?: str | str[]) => g("img", cls).prop("src", src)
 export const a = (href: str, content: any, cls?: str | str[]) => g("a", cls, content).prop("href", href)
 export const hr = (cls?: str | str[]) => g("hr", cls);
-
-
 
 export function logo(v: str | Icon) {
   if (v)
@@ -241,110 +218,6 @@ export function logo(v: str | Icon) {
           return toSVG(v).cls(C.icon);
       }
     } else return icon(v);
-}
-
-
-/**dropdown with width>=base.width  */
-export function fluid(base: S, menu: S, sub?: boolean, vAlign?: VAlign, hAlign?: HAlign) {
-  let
-    rct = rect(base),
-    wh = window.innerHeight,
-    ww = window.innerWidth;
-
-  if (!vAlign)
-    vAlign = (rct.top + rct.height / 2) > (wh / 2) ? VAlign.top : VAlign.bottom;
-
-  if (!hAlign)
-    hAlign = (rct.left + rct.width / 2) > (ww / 2) ? HAlign.left : HAlign.right;
-
-  menu.css('minWidth', rct.width + 'px');
-  if (vAlign == VAlign.top) {
-    menu
-      .uncss(['top'])
-      .css({
-        bottom: (wh - (sub ? rct.bottom : rct.top)) + 'px',
-        maxHeight: (sub ? rct.bottom : rct.top) + 'px'
-      })
-      .cls(VAlign.bottom, false);
-
-  } else {
-    menu
-      .uncss(['bottom'])
-      .css({
-        top: (sub ? rct.top : rct.bottom) + 'px',
-        maxHeight: (wh - (sub ? rct.top : rct.bottom)) + 'px'
-      })
-      .cls(VAlign.top, false);
-
-  }
-  if (hAlign == HAlign.left) {
-    menu
-      .uncss(['left'])
-      .css('right', (ww - (sub ? rct.left : rct.right)) + 'px')
-      .cls(HAlign.right, false);
-  } else {
-    menu
-      .uncss(['right'])
-      .css('left', (sub ? rct.right : rct.left) + 'px')
-      .cls(HAlign.left, false);
-  }
-  menu.cls([vAlign, hAlign]);
-
-}
-/**dropdown with width=base.width  */
-export function fixed(base: S, menu: S, align?: VAlign) {
-  let
-    rct = rect(base),
-    // h = menu.e.clientHeight,
-    wh = window.innerHeight;
-
-  if (wh / 2 - rct.top > 0) {
-    base.cls(VAlign.top, false).cls(VAlign.bottom);
-
-    menu.css({
-      left: rct.left + 'px',
-      top: rct.bottom + 'px',
-      maxHeight: (wh - rct.bottom) + 'px'
-    }).uncss(['bottom']);
-
-  } else {
-    base.cls(VAlign.bottom, false).cls(VAlign.top);
-
-    menu.css({
-      left: rct.left + 'px',
-      bottom: (wh - rct.top) + 'px',
-      maxHeight: rct.top + 'px'
-    }).uncss(['top']);
-  }
-  menu.css('width', rct.width + 'px');
-}
-export interface Popup { clientX: float, clientY: float }
-export function popup(div: S, opts: Popup) {
-  let
-    last = active(),
-    ctx = div.css({
-      left: opts.clientX + 'px',
-      top: opts.clientY + 'px'
-    }).prop("tabIndex", 0),
-    // isOut: bool,
-    wheelHandler = (e: Event) => clearEvent(e);
-  ctx.queryAll('button').on('click', function () { last.valid ? last.focus() : this.blur() });
-
-  ctx.on({
-    focusout: (e: FocusEvent) => contains(ctx, e.relatedTarget as Node) || (ctx.remove() && body.off("wheel", wheelHandler)),
-    keydown(e) {
-      if (e.key == "Escape") {
-        e.stopPropagation();
-        ctx.blur();
-      }
-    }
-  }).addTo(body).focus();
-  body.on("wheel", wheelHandler, { passive: false });
-}
-/**context menu */
-export async function ctx(e: MouseEvent, data: unk) {
-  clearEvent(e);
-  popup(menu(data), e);
 }
 
 export const panel = (hd: any, bd: any, ft?: any) => div("_ panel", [

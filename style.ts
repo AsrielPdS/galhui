@@ -1,8 +1,8 @@
 import { Property } from "csstype";
-import css = require("galho/css");
 import { def, ex, isA, isB, isN, isO, isV, toStr } from "inutil";
-import { valid } from "dic";
-import { $, cc, HAlign } from "./galhui";
+import { cc, HAlign } from "./galhui";
+import css = require("galho/css");
+import { filter } from "dic";
 
 export const enum ScreenSize {
   mobileS = 320,
@@ -46,7 +46,7 @@ export function center(): css.Style {
     transform: "translate(-50%,-50%)"
   }
 }
-export const block = (v: TBlock): css.Style => v && valid({
+export const block = (v: TBlock): css.Style => v && filter({
   color: v.fg,
   padding: spc(v.pad),
   margin: spc(v.mrg),
@@ -55,7 +55,7 @@ export const block = (v: TBlock): css.Style => v && valid({
   background: v.bg,
   ...font(v.f)
 });
-export const state = (v: Stateble): css.Style => v && valid({
+export const state = (v: Stateble): css.Style => v && filter({
   ...block(v),
   ":hover": v.h && block(v.h),
   ":visited": v.v && block(v.v),

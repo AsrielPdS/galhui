@@ -3,9 +3,10 @@ import { each as m_each } from "galho/m";
 import { rect } from "galho/s";
 import { call, delay, t, valid } from "inutil";
 import { Alias, bind, create as orray, extend, L, reloadAll, remove, sort } from "orray";
-import { $, body, C, doc, dropdown, hc, icon } from "./galhui";
+import { dropdown } from "./dropdown";
+import { $, body, C, doc, hc, icon } from "./galhui";
 import { crudHandler, FieldPlatform, ICrud, kbHandler, kbHTp, OutputCtx, RecordStyle } from "./list";
-import { cb } from "./menu";
+import { menucb } from "./menu";
 import { wait } from "./wait";
 
 export interface Sort {
@@ -133,7 +134,7 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
         return r ||= wait().add(side);
       },
       headerOptions = all && dropdown(null, all.map(c =>
-        cb(cols.includes(c), c.text, (v) => {
+        menucb(cols.includes(c), c.text, (v) => {
           if (v) {
             cols.push(c);
             sort(cols, (a, b) => all.indexOf(a) - all.indexOf(b));

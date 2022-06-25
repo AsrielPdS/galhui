@@ -2,8 +2,9 @@ import { clearEvent, div, g, One, S, wrap } from "galho";
 import { call, isF, t } from "inutil";
 import { bind, extend, getTag, L, ontag, remove, setTag } from "orray";
 import { add as addSelection, clear as clearSelection, list as selected, move as moveSelection, movePivot as moveSelectionPivot, pivot, SelectionTp, tp as selectionType } from "orray/selector";
-import { $, C, Child, close, ctx, icon, Icon } from "./galhui";
-import { Items } from "./menu";
+import { $, C, Child, close, icon, Icon } from "./galhui";
+import { ctx } from "./hover";
+import { MenuItems } from "./menu";
 
 
 export interface ICrud<T> {
@@ -14,7 +15,7 @@ export interface ICrud<T> {
    */
   focus?(item: T, state: bool): any;
   open?(...items: T[]): any;
-  menu?(...items: T[]): void | Task<Items>;
+  menu?(...items: T[]): void | MenuItems;
   remove?(...items: T[]): any | true;
   single?: boolean;
 }
