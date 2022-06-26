@@ -1,4 +1,4 @@
-import { active, cl, clearEvent, div, g, One, S, wrap } from "galho";
+import { active, cl, clearEvent, div, g, HSElement, One, S, wrap } from "galho";
 import { each } from "galho/m";
 import { contains, rect } from "galho/s";
 import { ex, t } from "inutil";
@@ -195,9 +195,9 @@ export function ctx(e: MouseEvent, data: MenuItems) {
   clearEvent(e);
   popup(div("_ menu", g("table", 0, data)), () => new DOMRect(e.clientX, e.clientY, 0, 0));
 }
-export function tip(root: S, div: any, vAlign?: VAlign, hAlign?: HAlign) {
+export function tip<T extends HSElement>(root: S<T>, div: any, vAlign?: VAlign, hAlign?: HAlign) {
   div = wrap(div).cls("_ tip");
-  return root.on({
+  return root?.on({
     mouseenter() {
       body.add(div);
       requestAnimationFrame(function _() {

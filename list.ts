@@ -1,5 +1,5 @@
 import { clearEvent, div, g, One, S, wrap } from "galho";
-import { call, isF, t } from "inutil";
+import { call, isF, t, arr } from "inutil";
 import { bind, extend, getTag, L, ontag, remove, setTag } from "orray";
 import { add as addSelection, clear as clearSelection, list as selected, move as moveSelection, movePivot as moveSelectionPivot, pivot, SelectionTp, tp as selectionType } from "orray/selector";
 import { $, C, Child, close, icon, Icon } from "./galhui";
@@ -125,12 +125,15 @@ export function kbHandler<T>(dt: L<T>, e: KeyboardEvent, i: ICrud<T>) {
   return true;
 }
 
+export type ListItem<T> = (value: T) => S<HTMLTableCellElement> | S<HTMLTableCellElement>[];
 export interface IList<T> extends ICrud<T> {
   data?: L<T>;
-  item(value: T): any;
-  options?: ((item: T, index: number) => One)[];
+  item: ListItem<T>;
+  // options?: ((item: T, index: number) => One)[];
   single?: boolean;
   enumarate?: boolean;
+  head?: S;
+  foot?: S;
 }
 export function list<T>(i: IList<T>, data: L<T> | T[]) {
   let
@@ -138,29 +141,32 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
       g: i.single ? null : ["on"],
       clear: true, key: i.key
     }),
-    opts = i.options,
+    // opts = i.options,
     e = t(i.enumarate);
-  return bind(dt, crudHandler(g("ol", "_ list"), dt, "i", i), {
-    insert(value, index) {
-      let item = div("i", [
-        div([C.side], e ? index + 1 : ' ').css('flexBasis', `${$.rem * 2.5}px`),
-        wrap(i.item(value)).cls([C.body]),
-        opts && div([C.extra], opts.map((fn) => fn && fn(value, index)))
-          .on('dblclick', (e) => { e.stopPropagation(); })
-      ]).d(value);
-      return item;
-    },
-    tag(s, active) {
-      s.cls(C.current, active).e.scrollIntoView({
-        block: "nearest",
-        inline: "nearest"
-      });
-      if (i.single) s.cls("on", active);
-    },
-    groups(s, on, _, key) {
-      s.cls(key, on);
-    }
-  });
+  return g("table", "_ list", [
+    i.head,
+    bind(dt, crudHandler(g("tbody"), dt, "i", i), {
+      insert(value, index) {
+        let item = g("tr", "i", [
+          g("td", C.side, e ? index + 1 : ' ').css('flexBasis', `${$.rem * 2.5}px`),
+          ...arr(i.item(value)),
+          // wrap().cls([C.body])
+          // opts && div([C.extra], opts.map((fn) => fn && fn(value, index)))
+          //   .on('dblclick', (e) => { e.stopPropagation(); })
+        ]).d(value);
+        return item;
+      },
+      tag(s, active) {
+        s.cls(C.current, active).e.scrollIntoView({
+          block: "nearest",
+          inline: "nearest"
+        });
+        if (i.single) s.cls("on", active);
+      },
+      groups(s, on, _, key) { s.cls(key, on) }
+    }),
+    i.foot && g("tfoot", 0, i.foot)
+  ]);
 }
 
 export type RecordStyle = ((row: S, value: Dic, index: int) => void);
