@@ -1,11 +1,11 @@
-import { div, g, S } from "galho";
+import { cl, div, g, Input, S, Tr } from "galho";
 import { is, rect } from "galho/s";
-import { call, uuid } from "inutil";
+import { call, isB, isO, uuid } from "inutil";
 import { C, click, HAlign, icon, Icon } from "./galhui";
 import { fluid } from "./hover";
 import { CB as WaitCB, tp as WaitTP, wait as _wait, waiter } from "./wait";
 
- type _MenuItems = Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems> | (() => MenuItems);
+type _MenuItems = Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems> | (() => MenuItems);
 export type MenuItems = Task<_MenuItems>;
 
 export function menu(items?: MenuItems) { return div("_ menu", g("table", 0, items)); }
@@ -14,7 +14,7 @@ export function menu(items?: MenuItems) { return div("_ menu", g("table", 0, ite
 export const wait = (callback?: WaitCB) =>
   call(g("tr", 0, g("td", 0, _wait(WaitTP.out)).prop("colSpan", 4)), tr => waiter(tr, callback));
 
-  /**menu item */
+/**menu item */
 export const menuitem = (i: Icon, text: any, action?: click, side?) => g("tr", C.item, [
   g("td", 0, icon(i)),
   g("td", 0, text),
@@ -22,15 +22,14 @@ export const menuitem = (i: Icon, text: any, action?: click, side?) => g("tr", C
   g("td")
 ]).on("click", action);
 
-/**check box */
-export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, id = uuid(4), side?: str) {
-  let input = g("input").props({ id, checked, indeterminate: checked == null, type: "checkbox" });
-  toggle && input.on("input", () => toggle.call(input, input.e.checked));
-  return g("tr", C.item, [
+/**checkbox */
+export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, disabled?: bool, id = uuid(4)) {
+  let input = g("input", { id, checked, disabled, indeterminate: checked == null, type: "checkbox" });
+  toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
+  return g("tr", cl("i", disabled && C.disabled), [
     g("td", 0, input.on("click", e => e.stopPropagation())),
     g("td", 0, g("label", 0, text).prop("htmlFor", id)),
-    side && div(C.side, side),
-    g("td"),
+    g("td"),  g("td")
   ]);
 }
 export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", C.item, [
@@ -42,11 +41,11 @@ export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", C.
   let mn: S;
   e.on("click", () => {
     is(e.tcls(C.on), '.' + C.on) ?
-      fluid(rect(e),  (mn ||= g("table", C.menu, items)).addTo(e)) :
+      fluid(rect(e), (mn ||= g("table", C.menu, items)).addTo(e)) :
       mn.remove();
   })
 });
-export const menusep =()=>g("tr").cls(C.separator);
+export const menusep = () => g("tr").cls(C.separator);
 
 export type MBItems = any;//Array<One | Array<Items>>;
 /** */
