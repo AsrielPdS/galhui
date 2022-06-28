@@ -23,7 +23,7 @@ export const menuitem = (i: Icon, text: any, action?: click, side?) => g("tr", C
 ]).on("click", action);
 
 /**checkbox */
-export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, disabled?: bool, id = uuid(4)) {
+export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, id = uuid(4), disabled?: bool) {
   let input = g("input", { id, checked, disabled, indeterminate: checked == null, type: "checkbox" });
   toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
   return g("tr", cl("i", disabled && C.disabled), [

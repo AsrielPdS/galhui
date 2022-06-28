@@ -1,5 +1,5 @@
 import { S } from "galho";
-import css = require("galho/css");
+import { css, Style, Styles } from "galho/css";
 import { C, Color, cc, HAlign, Size, VAlign } from "../galhui";
 import { bfg, block, border, box, max, min, rem, ScreenSize, spc, styleCtx, StyleCtx, vmarg, vpad, zIndex } from "../style";
 
@@ -39,7 +39,7 @@ export const enum consts {
   acentVMarg = .2,
   acentBorderRadius = .2
 }
-export function icon(): css.Styles {
+export function icon(): Styles {
   return {
     [`.${C.icon}`]: {
       height: "1em",
@@ -53,7 +53,7 @@ export function icon(): css.Styles {
     }
   }
 }
-export const button = (ctx: Context): css.Styles => ctx(icon) && ({
+export const button = (ctx: Context): Styles => ctx(icon) && ({
   //style
   ["." + C.link]: {
     color: ctx.a.n,
@@ -127,7 +127,7 @@ export const button = (ctx: Context): css.Styles => ctx(icon) && ({
 
   },
 });
-export function input(ctx: Context): css.Styles {
+export function input(ctx: Context): Styles {
   let { bg, fg, border } = ctx.in;
   return {
     "._.in": {
@@ -156,7 +156,7 @@ export function input(ctx: Context): css.Styles {
     }
   }
 }
-export const menubar = ({ menu }: Context): css.Styles => ({
+export const menubar = ({ menu }: Context): Styles => ({
   [cc(C.menubar)]: {
     display: "flex",
     height: consts.menuH + "em",
@@ -208,7 +208,7 @@ export const menubar = ({ menu }: Context): css.Styles => ({
     }
   },
 });
-export const menu = ({ menu }: Context): css.Styles => ({
+export const menu = ({ menu }: Context): Styles => ({
   [cc(C.menu)]: {
     background: menu,
     outline: "none",
@@ -294,7 +294,7 @@ export const menurow = ({ menu }: Context) => ({
   }
 });
 const panelHelper = () => ({});
-export function panel(ctx: Context): css.Styles {
+export function panel(ctx: Context): Styles {
   return {
     "._.panel": {
       display: "flex",
@@ -325,7 +325,7 @@ export function panel(ctx: Context): css.Styles {
     },
   }
 }
-export const modal = (ctx: Context): css.Styles =>
+export const modal = (ctx: Context): Styles =>
 (ctx(button)(panel) && {
   [cc(C.modalArea)]: {
     position: "fixed",
@@ -396,24 +396,25 @@ export const modal = (ctx: Context): css.Styles =>
     }
   }
 });
-export const index = (ctx: Context): css.Styles => ({
+export const index = (ctx: Context): Styles => ({
   "._.index": {
     display: "flex",
     flexDirection: "row",
     ".hd": {},
     ".bd": {
-      padding: "0 1em",
-      flex: 1,minWidth:0,
-      overflow:"auto"
+      padding: "1em",
+      flex: 1, minWidth: 0,
+      overflow: "auto",
+      ".hd": { margin: "1em 0 0" }
     }
   }
 });
-export function listHelper(_: ListState): css.Style {
+export function listHelper(_: ListState): Style {
   return {
     overflow: "hidden scroll",
   }
 }
-export function listItem({ o, n, h, a, v }: ListState): css.Style {
+export function listItem({ o, n, h, a, v }: ListState): Style {
   return {
     minHeight: "1.2em",
     background: n,
@@ -432,11 +433,11 @@ export function listItem({ o, n, h, a, v }: ListState): css.Style {
   }
 }
 
-export function list({ brd, list: l }: Context): css.Styles {
+export function list({ brd, list: l }: Context): Styles {
   return {
     "._._.list": {
       width: "100%",
-      height: "300px", 
+      height: "300px",
       tbody: {
         padding: 0,
         ...listHelper(l),
@@ -456,16 +457,56 @@ export function list({ brd, list: l }: Context): css.Styles {
     },
   };
 }
-export const table = ({ menu, fg, list: l, brd }: Context): css.Styles => ({
+export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
   [cc(C.table)]: {
     padding: 0,
-    //display: "flex",
+    display: "flex",
+    flexDirection: "column",
     outline: "none",
     overflow: "auto hidden",
+
+    ".bd": {
+      position: "relative",
+      minWidth: "100%",
+      height: `calc(100% - ${consts.menuH}em)`,
+      ...listHelper(l)
+    },
+
+    //line
+    " .tb-i": {
+      display: "flex",
+      flexDirection: "row",
+      width: "fit-content",
+      minHeight: "1.2em",
+      whiteSpace: "nowrap",
+      // paddingLeft: "2em",
+      ...listItem(l),
+      ["." + C.side]: {
+        // position: "absolute",
+        left: 0,
+        background: "inherit",
+        width: "2em",
+        borderRight: border(brd),
+      },
+      //cell
+      "*": {
+        padding: `${consts.acentVPad}em ${consts.acentHPad}em`,
+        borderRadius: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        margin: 0,
+        border: "none",
+        borderRight: border(brd),
+        borderBottom: border(brd),
+      }
+    },
     ".hd": {
       display: "flex",
+      flexShrink: 0,
+      flexGrow: 0,
       backgroundColor: menu,
       height: consts.menuH + "em",
+      overflowY: "scroll",
       //cell
       ".i": {
         background: "inherit",
@@ -495,39 +536,10 @@ export const table = ({ menu, fg, list: l, brd }: Context): css.Styles => ({
         width: "2em",
       },
     },
-
-    ".bd": {
-      position: "relative",
-      minWidth: "100%",
-      height: `calc(100% - ${consts.menuH}em)`,
-      ...listHelper(l)
-    },
-
-    //line
-    " .tb-i": {
-      display: "flex",
-      flexDirection: "row",
-      width: "fit-content",
-      minHeight: "1.2em",
-      whiteSpace: "nowrap",
-      // paddingLeft: "2em",
-      ...listItem(l),
-      ["." + C.side]: {
-        // position: "absolute",
-        left: 0,
-        background: "inherit",
-        width: "2em",
-        borderRight: border(brd),
-      },
-      //cell
-      ".i": {
-        padding: `${consts.acentVPad}em ${consts.acentHPad}em`,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        margin: 0,
-        borderRight: border(brd),
-        borderBottom: border(brd),
-      }
+    ".ft": {
+      overflowY: "scroll",
+      flexShrink: 0,
+      flexGrow: 0,
     },
     ["&." + C.bordered]: {
       ["." + C.head]: {
@@ -553,9 +565,15 @@ export const table = ({ menu, fg, list: l, brd }: Context): css.Styles => ({
       //   },
       // },
     },
+    "&.fill": {
+      " .tb-i": {
+        width: "unset",
+        ">:not(.sd)": { flexGrow: 1, flexShrink: 1 },
+      }
+    }
   }
 });
-export function tab({ menu }: Context): css.Styles {
+export function tab({ menu }: Context): Styles {
   return {
     [cc(C.tab)]: {
       [cc(C.menubar)]: {
@@ -580,7 +598,7 @@ export function tab({ menu }: Context): css.Styles {
     }
   }
 }
-export function output(): css.Styles {
+export function output(): Styles {
   // let { a } = theme;
   return {
     [cc(C.label)]: {
@@ -599,7 +617,7 @@ export function output(): css.Styles {
     },
   }
 }
-export function mobImgSelector(ctx: Context): css.Styles {
+export function mobImgSelector(ctx: Context): Styles {
   ctx(button);
   return {
     [cc(C.mobile, "imgsel")]: {
@@ -636,7 +654,7 @@ export function mobImgSelector(ctx: Context): css.Styles {
     },
   }
 }
-export function accordion(): css.Styles {
+export function accordion(): Styles {
   return {
     [cc(C.accordion)]: {
       ["." + C.body]: {
@@ -650,7 +668,7 @@ export function accordion(): css.Styles {
     }
   }
 }
-export function dropdown(ctx: Context): css.Styles {
+export function dropdown(ctx: Context): Styles {
   ctx(menu);
   return {
     [cc(C.dropdown)]: {
@@ -661,7 +679,7 @@ export function dropdown(ctx: Context): css.Styles {
     }
   }
 }
-export function select(add: Context): css.Styles {
+export function select(add: Context): Styles {
   add(menu);
   return {
     [cc(C.select)]: {

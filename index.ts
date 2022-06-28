@@ -9,12 +9,12 @@ export function indexItem(title: any, content: any): Item {
 
 export function index(...items: Item[]) {
   let bd = div("bd", items.map((e, i) => [
-    g("h2", { id: <any>i }, e.title),
+    g("h2", "hd", e.title).id("_" + i),
     e.content
   ]));
   return [
     div("_ menurow hd", items.map((e, i) =>
-      g("button", "i", e.title).on("click",()=>{}))),
+      g("a", "i", e.title).on("click", () => bd.child("#_" + i).e.scrollIntoView({ behavior: "smooth" })))),
     bd
   ];//div("_ index", );
 }

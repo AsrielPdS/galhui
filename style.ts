@@ -1,8 +1,8 @@
 import { Property } from "csstype";
 import { def, ex, isA, isB, isN, isO, isV, toStr } from "inutil";
 import { cc, HAlign } from "./galhui";
-import css = require("galho/css");
 import { filter } from "dic";
+import { css, Properties, Style, Styles } from "galho/css";
 
 export const enum ScreenSize {
   mobileS = 320,
@@ -30,7 +30,7 @@ export const italic = (v: bool | Property.FontStyle): any =>
 export function isDark() {
   return matchMedia && matchMedia('(prefers-color-scheme: dark)').matches
 }
-export function font(v: Font): css.Properties {
+export function font(v: Font): Properties {
   return v && (isN(v) ?
     { fontSize: v + "rem" } :
     v.f ?
@@ -38,7 +38,7 @@ export function font(v: Font): css.Properties {
       { fontSize: v.s && (v.s + "rem"), fontWeight: bold(v.b), fontStyle: italic(v.i) }
   )
 }
-export function center(): css.Style {
+export function center(): Style {
   return {
     position: "absolute",
     left: "50%",
@@ -46,7 +46,7 @@ export function center(): css.Style {
     transform: "translate(-50%,-50%)"
   }
 }
-export const block = (v: TBlock): css.Style => v && filter({
+export const block = (v: TBlock): Style => v && filter({
   color: v.fg,
   padding: spc(v.pad),
   margin: spc(v.mrg),
@@ -55,7 +55,7 @@ export const block = (v: TBlock): css.Style => v && filter({
   background: v.bg,
   ...font(v.f)
 });
-export const state = (v: Stateble): css.Style => v && filter({
+export const state = (v: Stateble): Style => v && filter({
   ...block(v),
   ":hover": v.h && block(v.h),
   ":visited": v.v && block(v.v),
@@ -78,7 +78,7 @@ export function tAlign(v: HAlign): Property.TextAlign {
   }
 }
 export const bord = (b: Border) => b && `${b.w || 1}px ${b.s || "solid"} ${b.c}`;
-export const bords = (b: Borders): css.Style => b &&
+export const bords = (b: Borders): Style => b &&
   (isA(b) ? {
     borderTop: bord(b[0]),
     borderRight: bord(b[1]),
@@ -91,33 +91,33 @@ export const hs = (v: SpaceFull) => isN(v) ? v : v[1];
 /**vertical space */
 export const vs = (v: SpaceFull) => isN(v) ? v : v[0];
 
-export const topRadius = (v: float, unit = "rem"): css.Style => ({
+export const topRadius = (v: float, unit = "rem"): Style => ({
   borderTopLeftRadius: v + unit,
   borderTopRightRadius: v + unit
 });
-export const vpad = (v: str | 0): css.Style => ({
+export const vpad = (v: str | 0): Style => ({
   paddingTop: v,
   paddingBottom: v
 });
-export const vmarg = (v: str | 0): css.Style => ({
+export const vmarg = (v: str | 0): Style => ({
   marginTop: v,
   marginBottom: v
 });
-export const bottomRadius = (v: float, unit = "rem"): css.Style => ({
+export const bottomRadius = (v: float, unit = "rem"): Style => ({
   borderBottomLeftRadius: v + unit,
   borderBottomRightRadius: v + unit
 });
 /**back & fore ground */
-export const bfg = (bg: Property.Background, fg: Property.Color): css.Style => ({
+export const bfg = (bg: Property.Background, fg: Property.Color): Style => ({
   background: bg, color: fg
 });
-export const box = (mrg: SpaceFull, pad: SpaceFull): css.Style => ({
+export const box = (mrg: SpaceFull, pad: SpaceFull): Style => ({
   margin: spc(mrg), padding: spc(pad)
 });
 
 
-export type StyleFnAdd<T> = (style?: StyleFn<T> | css.Styles) => StyleFnAdd<T>;
-export type StyleFn<T> = (ctx: StyleCtx<T>) => css.Styles;
+export type StyleFnAdd<T> = (style?: StyleFn<T> | Styles) => StyleFnAdd<T>;
+export type StyleFn<T> = (ctx: StyleCtx<T>) => Styles;
 export type StyleCtx<T> = T & StyleFnAdd<T>;
 export function styleCtx<T = any>(options: T, tag = css({})) {
   let

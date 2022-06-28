@@ -1,4 +1,4 @@
-import { clearEvent, div, E, g, One, S, wrap } from "galho";
+import { cl, clearEvent, div, E, g, M, One, S, wrap } from "galho";
 import { each as m_each } from "galho/m";
 import { rect } from "galho/s";
 import { call, delay, l, t, valid } from "inutil";
@@ -39,7 +39,6 @@ export const editing = Symbol();
 export interface OptionObj<T> {
   head?: any;
   item(item: T, index: number): One;
-  foot?(item: T, index: number): One;
 }
 export type Option<T> = OptionObj<T> | ((item: T, index: number) => One);
 export type ValueType = 's' | 'd' | 'b' | 'n';
@@ -74,15 +73,18 @@ export interface ITable<T extends Dic> extends ICrud<T> {
   sort?: Sort;
   corner?: any;
   p?: FieldPlatform;
+  fill?: bool;
+  foot?: Foot[];
 }
+export type Foot = (cols: L<Column>) => One;
 export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: never }>{
   // get data() { return this.i.data as L<T>; }
   // get footData() { return this.i.foot as L<T>; }
   get columns() { return this.i.columns; }
 
   data: L<T>;
-  foot: L<T>;
-  constructor(i: ITable<T>, data?: Alias<T>, foot?: Alias<T>) {
+  // foot: Foot[];
+  constructor(i: ITable<T>, data?: Alias<T>) {
     // i.data = data as L;
     super(i);
     this.data = extend(data, {
@@ -90,17 +92,16 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
       key: i.key,
       clear: true
     });
-    this.foot = foot && extend<T>(foot, {
-      key: i.key,
-      clear: true
-    });
+    // this.foot = foot && extend<T>(foot, {
+    //   key: i.key,
+    //   clear: true
+    // });
     let delayIndex: int;
-    i.columns = orray<Column>(i.columns, { g: i.sort && ["sort"] }).onupdate(() => {
-      delayIndex = delay(delayIndex, () => {
+    i.columns = orray<Column>(i.columns, { g: i.sort && ["sort"] })
+      .onupdate(() => delayIndex = delay(delayIndex, () => {
         reloadAll(this.data);
-        this.foot && reloadAll(this.foot);
-      })
-    });
+        i.foot && reloadAll(i.foot);
+      }));
 
     if (!i.head) i.head = (c) => c.text;
   }
@@ -113,34 +114,24 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
       req = i.reqColumns,
       opts = i.options && valid(i.options),
       data = this.data,
-      foot = this.foot,
-      insert = (value: T, j: int, e?: bool, foot?: bool) => {
-        let r: S, side = div(C.item, e ? j + 1 : ' ').cls(C.side);
-        (async () => {
-          for (var t = Array<any>(), k = 0; k < cols.length; k++) {
-            let c = cols[k], v = value[c.key];
-            c.fmt && (v = await c.fmt({ v, p: i.p }, c.opts));
-            t[k] = wrap(v, "i").css({ textAlign: c.align, width: c.size + 'px' });
-          }
-          let t2 = div("_ tb-i", [
-            side, t,
-            opts && opts.map((opt) => (!foot || (opt as OptionObj<T>).foot) && wrap((foot ? (opt as OptionObj<T>).foot : (opt as OptionObj<T>).item)(value, j), "td").on('dblclick', (e) => { e.stopPropagation(); }))
-          ]).d(value);
-          i.style && i.style(t2, value, j);
-          r ? r.replace(t2) : r = t2;
-        })();
-        return r ||= wait().add(side);
-      },
       headerOptions = all && dropdown(null, all.map(c => {
         return menucb(cols.includes(c), c.text, checked => {
           if (checked) {
             cols.push(c);
             sort(cols, (a, b) => all.indexOf(a) - all.indexOf(b));
           } else remove(cols, c);
-        }, req && (req.includes(c.key)))
+        }, c.key, req && (req.includes(c.key)))
       })),
       bd = bind(data, crudHandler(div("bd"), data, "tb-i", i), {
-        insert: (value, index) => insert(value, index, t(i.enum)),
+        insert(v, _i) {
+          let t2 = div("_ ft tb-i", [
+            div(C.side, t(i.enum) ? _i + 1 : ' '),
+            cols.map(c => wrap(c.fmt ? c.fmt({ v: v[c.key], p: i.p }, c.opts) : v[c.key]).css({ textAlign: c.align, width: c.size + 'px' })),
+            opts && opts.map((opt) => wrap((opt as OptionObj<T>).item(v, _i), "opt"))
+          ]).d(v);
+          i.style?.(t2, v, _i);
+          return t2;
+        },
         tag(s, active) {
           s.cls(C.current, active).e.scrollIntoView({
             block: "nearest",
@@ -149,13 +140,13 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
         },
         groups: { on: (s, active) => s.cls("on", active) }
       }),
-      ft = foot && bind(foot, div("ft"), (value, index) => insert(value, index, false, true));
+      ft = i.foot && new M(...i.foot?.map(value => g(value(cols), "_ ft tb-i")));
 
-    return call(div("_ tb"), s => {
+    return call(div(cl("_", "tb", i.fill && "fill")), s => {
       s
         .prop('tabIndex', 0)
         .add([
-          bind(cols, div("hd", [
+          bind(cols, div("hd tb-i", [
             wrap(i.corner).cls([C.side, C.item]),
             opts && opts.map((opt) => div(null, (opt as OptionObj<T>).head))
           ]), {
@@ -169,7 +160,7 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
                     //t = '.' + C.item + ':nth-child(' + (index + 2) + ')',
                     rows = bd.childs().child(index);
 
-                  ft && rows.push(...ft.childs().child(index));
+                  ft && rows.push(...ft.child(index));
 
                   rows.push(s.e);
                   body.css({ cursor: 'col-resize', userSelect: "none" });
