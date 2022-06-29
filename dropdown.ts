@@ -25,7 +25,7 @@ export interface IRoot {
 type Root = E<IRoot, { open: bool }>;
 
 
-export function keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
+export function  keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
   switch (e.key) {
     case "ArrowUp":
       me.set("open", true);
