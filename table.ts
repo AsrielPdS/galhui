@@ -1,13 +1,10 @@
 import { cl, clearEvent, div, E, g, M, One, S, wrap } from "galho";
-import { each as m_each } from "galho/m";
-import { rect } from "galho/s";
 import { call, delay, l, t, valid } from "inutil";
-import { Alias, bind, create as orray, extend, L, reload, reloadAll, remove, sort } from "orray";
-import { dropdown } from "./dropdown";
-import { $, body, C, doc, hc, icon } from "./galhui";
-import { crudHandler, FieldPlatform, ICrud, kbHandler, kbHTp, OutputCtx, RecordStyle } from "./list";
-import { menucb } from "./menu";
-import { wait } from "./wait";
+import { Alias, bind, create as orray, extend, L, reloadAll, remove, sort } from "orray";
+import { dropdown } from "./dropdown.js";
+import { $, body, C, doc, icon } from "./galhui.js";
+import { crudHandler, FieldPlatform, ICrud, kbHandler, kbHTp, OutputCtx, RecordStyle } from "./list.js";
+import { menucb } from "./menu.js";
 
 export interface Sort {
   multiple?: bool;
@@ -41,14 +38,14 @@ export interface OptionObj<T> {
   item(item: T, index: number): One;
 }
 export type Option<T> = OptionObj<T> | ((item: T, index: number) => One);
-export type ValueType = 's' | 'd' | 'b' | 'n';
+export type DataType = 's' | 'd' | 'b' | 'n';
 export type TAlign = "center" | "justify" | "left" | "right" | "start" | "end";
 export interface Column {
   key: str;
   size?: int;
   align?: TAlign;
   text?: any,
-  tp?: ValueType;
+  dt?: DataType;
   desc?: bool;
   /**options */
   opts?: any;
@@ -165,7 +162,7 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
                   rows.push(s.e);
                   body.css({ cursor: 'col-resize', userSelect: "none" });
                   function move(e: MouseEvent) {
-                    c.size = (c.size = Math.max($.rem * 3, e.clientX - rect(s).left));
+                    c.size = (c.size = Math.max($.rem * 3, e.clientX - s.rect().left));
                     rows.css({ width: c.size + 'px' });
                   }
                   doc

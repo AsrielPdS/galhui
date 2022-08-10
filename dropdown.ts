@@ -1,11 +1,10 @@
 import { clearEvent, div, E, g, S } from "galho";
-import { contains, rect, vScroll } from "galho/s";
 import { byKey, call, isO, l, sub, t } from "inutil";
 import { Alias, bind, extend, L } from "orray";
-import { list as selected, move as moveSelection, tp as selectionType } from "orray/selector";
-import { $, body, C, close, hc, icon, Icon, VAlign } from "./galhui";
-import { fixedMenu, fluid } from "./hover";
-import { menu, menuitem } from "./menu";
+import { list as selected, move as moveSelection, tp as selectionType } from "orray/selector.js";
+import { $, body, C, close, hc, icon, Icon, VAlign } from "./galhui.js";
+import { fixedMenu, fluid } from "./hover.js";
+import { menu, menuitem } from "./menu.js";
 export interface IRoot {
 
   /**if should open when clicked 
@@ -21,11 +20,15 @@ export interface IRoot {
   */
   tab?: bool;
   clear?: bool
+  /**placeholder */
+  ph?: any;
+  /**label field */
+  label?: str;
 }
-type Root = E<IRoot, { open: bool }>;
+export type Root = E<IRoot, { open: bool }>;
 
 
-export function  keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
+export function keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
   switch (e.key) {
     case "ArrowUp":
       me.set("open", true);
@@ -63,7 +66,7 @@ export function  keydown<T extends Object = any>(me: Root, e: KeyboardEvent, opt
 export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
   let
     i = me.i,
-    root = div(["_", C.select], [label.cls("bd"), t(i.icon) && icon($.i.dd).cls(C.side)/*, me.menu*/])
+    root = div(["_", C.select], [label.cls("bd"), t(i.icon) && icon($.i.dd)?.cls(C.side)/*, me.menu*/])
       .prop("tabIndex", 0)
       .on({
         focus: (e) => {
@@ -106,7 +109,7 @@ export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
         //if (m(<Element>e.target).is('button'))
         //  _this.set(C.open, false);
         //else
-        if (!contains(menu, e.target as Element))
+        if (!menu.contains(e.target as Element))
           me.toggle("open");
       }
     });
@@ -132,12 +135,12 @@ export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
           return;
         }
         menu.addTo(root);
-        // calcMenu(root, menu, fluid);
-        requestAnimationFrame(function _() {
-          calcMenu(root, menu, fluid);
-          if (body.contains(root))
-            requestAnimationFrame(_);
-        });
+        calcMenu(root, menu, fluid);
+        // requestAnimationFrame(function _() {
+        //   calcMenu(root, menu, fluid);
+        //   if (body.contains(menu))
+        //     requestAnimationFrame(_);
+        // });
       } else {
         root.cls([VAlign.bottom, VAlign.top], false);
         menu.remove();
@@ -149,18 +152,16 @@ export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
 }
 function calcMenu(root: S, menu: S, fluidMenu?: bool) {
   fluidMenu ?
-    fluid(rect(root), menu) :
+    fluid(root.rect(), menu) :
     fixedMenu(root, menu);
 }
-export function setValue<K extends Key = any>(me: Root & { value: K }, { root, options, menu, label, fluid }: { options: L, label: S, menu?: S, root?: S, fluid?: bool }) {
+export function setValue<K extends Key = any>(me: Root & { value: K }, label: S, options: L) {
   if (me.value) {
     let option = options.find(me.value);
-    label.set([option.text || option.key, t(me.i.clear) && close(() => me.value = null)]);
+    label.set([option[me.i.label], t(me.i.clear) && close(() => me.value = null)]);
     me.set("open", false);
-  } else {
-    label.set();
-    me.i.open && calcMenu(root, menu, fluid);
-  }
+  } else label.set(me.i.ph);
+
 }
 interface SelectItem<K> {
   key: K;
@@ -199,8 +200,8 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open:
         ct != t && (this.set("open", false).value = g(t as Element).closest("tr").d())),
       menu = div("_ menu", items),
       root = setRoot(this, label, menu).on("keydown", e => keydown(this, e, options, (v: K) => this.value = v));
-    setValue(this, { options, label });
-    this.on(e => ("value" in e) && setValue(this, { root, options, label, menu, fluid: i.fluid }));
+    setValue(this, label, options);
+    this.on(e => ("value" in e) && setValue(this, label, options));
 
     bind(options, items, {
       insert: ({ i, text, key }) => menuitem(i, text || key),
@@ -208,7 +209,7 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open:
         s.cls(tag, active);
 
         if (active) {
-          vScroll(menu, s.prop('offsetTop') - menu.prop('clientHeight') / 2 + s.prop('clientHeight') / 2);
+          menu.e.scroll({ top: s.prop('offsetTop') - menu.prop('clientHeight') / 2 + s.prop('clientHeight') / 2 });
         }
       }
     });
@@ -227,7 +228,7 @@ export function dropdown(label: any, items: any) {
       else {
         (mn ||= menu(items)).addTo(e);
         requestAnimationFrame(function _() {
-          fluid(rect(e), mn)
+          fluid(e.rect(), mn)
           if (body.contains(mn))
             requestAnimationFrame(_);
         });

@@ -1,5 +1,5 @@
 import { div, g } from "galho";
-import { button } from "./galhui";
+import { button } from "./galhui.js";
 
 interface Item { title: any; content: any }
 

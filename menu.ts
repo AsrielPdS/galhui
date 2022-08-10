@@ -1,9 +1,8 @@
-import { cl, div, g, Input, S, Tr } from "galho";
-import { is, rect } from "galho/s";
-import { call, isB, isO, uuid } from "inutil";
-import { C, click, HAlign, icon, Icon } from "./galhui";
-import { fluid } from "./hover";
-import { CB as WaitCB, tp as WaitTP, wait as _wait, waiter } from "./wait";
+import { cl, div, g, Input, S } from "galho";
+import { call, uuid } from "inutil";
+import { C, click, HAlign, icon, Icon } from "./galhui.js";
+import { fluid } from "./hover.js";
+import { CB as WaitCB, tp as WaitTP, wait as _wait, waiter } from "./wait.js";
 
 type _MenuItems = Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems> | (() => MenuItems);
 export type MenuItems = Task<_MenuItems>;
@@ -15,7 +14,7 @@ export const wait = (callback?: WaitCB) =>
   call(g("tr", 0, g("td", 0, _wait(WaitTP.out)).prop("colSpan", 4)), tr => waiter(tr, callback));
 
 /**menu item */
-export const menuitem = (i: Icon, text: any, action?: click, side?) => g("tr", C.item, [
+export const menuitem = (i: Icon, text: any, action?: click, side?:any) => g("tr", C.item, [
   g("td", 0, icon(i)),
   g("td", 0, text),
   g("td", C.side, side),
@@ -29,7 +28,7 @@ export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElem
   return g("tr", cl("i", disabled && C.disabled), [
     g("td", 0, input.on("click", e => e.stopPropagation())),
     g("td", 0, g("label", 0, text).prop("htmlFor", id)),
-    g("td"),  g("td")
+    g("td"), g("td")
   ]);
 }
 export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", C.item, [
@@ -40,8 +39,8 @@ export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", C.
 ]), e => {
   let mn: S;
   e.on("click", () => {
-    is(e.tcls(C.on), '.' + C.on) ?
-      fluid(rect(e), (mn ||= g("table", C.menu, items)).addTo(e)) :
+    e.tcls(C.on).is('.' + C.on) ?
+      fluid(e.rect(), (mn ||= g("table", C.menu, items)).addTo(e)) :
       mn.remove();
   })
 });
@@ -56,3 +55,9 @@ export const mbitem = (i: Icon, text: any, action?: (e: MouseEvent) => any) => g
 
 /**menubar separator */
 export const mbsep = () => g("hr");
+/**menubar checkbox */
+export function barcb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, disabled?: bool) {
+  let input = g("input", { checked, disabled, indeterminate: checked == null, type: "checkbox" });
+  toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
+  return g("label", cl("i", disabled && C.disabled), [input, text]);
+}

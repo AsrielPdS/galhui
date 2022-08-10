@@ -1,5 +1,4 @@
-import { ANYElement, cl, div, g, Render, S, svg, toSVG, wrap } from "galho";
-import { isSelection } from "galho/s";
+import { ANYElement, cl, div, g, isE, Render, S, svg, toSVG, wrap } from "galho";
 import { isS } from "inutil";
 
 declare global {
@@ -165,7 +164,7 @@ export function icon(dt: Icon, size?: Size): S<SVGSVGElement>;
 export function icon(d: Icon, s?: Size) {
   if (d) {
     if (isS(d)) d = { d };
-    else if (isSelection(d))
+    else if (isE(d))
       return d.cls(cl(C.icon, s));
     return svg('svg', {
       fill: d.c || "currentColor",

@@ -1,7 +1,7 @@
 import { cl, clearEvent, div, E } from "galho";
-import { $, C, Size,icon,Icon, logo } from "./galhui";
+import { $, C, Size,icon,Icon, logo } from "./galhui.js";
 import { bind, L } from "orray";
-import { crudHandler, ICrud, kbHandler, kbHTp } from "./list";
+import { crudHandler, ICrud, kbHandler, kbHTp } from "./list.js";
 
 export interface Node {
   key?: str;

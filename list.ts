@@ -1,12 +1,12 @@
 import { clearEvent, div, g, One, S, wrap } from "galho";
 import { call, isF, t } from "inutil";
 import { bind, extend, getTag, L, ontag, remove, setTag } from "orray";
-import { add as addSelection, clear as clearSelection, list as selected, move as moveSelection, movePivot as moveSelectionPivot, pivot, SelectionTp, tp as selectionType } from "orray/selector";
-import { $, C, Child, close, icon, Icon } from "./galhui";
-import { ctx } from "./hover";
-import { MenuItems } from "./menu";
+import { add as addSelection, clear as clearSelection, list as selected, move as moveSelection, movePivot as moveSelectionPivot, pivot, SelectionTp, tp as selectionType } from "orray/selector.js";
+import { $, C, Child, close, icon, Icon } from "./galhui.js";
+import { ctx } from "./hover.js";
+import { MenuItems } from "./menu.js";
 
-
+export type CrudMenu<T> = (...items: T[]) => void | MenuItems;
 export interface ICrud<T> {
   /**field used as primary key */
   key?: keyof T;
@@ -15,7 +15,7 @@ export interface ICrud<T> {
    */
   focus?(item: T, state: bool): any;
   open?(...items: T[]): any;
-  menu?(...items: T[]): void | MenuItems;
+  menu?:CrudMenu<T>;
   remove?(...items: T[]): any | true;
   single?: boolean;
 }
@@ -142,7 +142,7 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
   return bind(dt, crudHandler(g("ol", "_ list"), dt, "i", i), {
     insert: (value, index) => div("i", [
       div([C.side], e ? index + 1 : ' ')
-         .css('flexBasis', `${$.rem * 2.5}px`),
+        .css('flexBasis', `${$.rem * 2.5}px`),
       wrap(i.item(value), "bd")
     ]).d(value),
     tag(s, active) {

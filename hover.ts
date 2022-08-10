@@ -1,12 +1,10 @@
 import { active, cl, clearEvent, div, g, HSElement, One, S, wrap } from "galho";
-import { each } from "galho/m";
-import { contains, rect } from "galho/s";
 import { ex, t } from "inutil";
-import { body, C, cancel, close as closeBT, Color, confirm, HAlign, hc, icon, Icon, negative, positive, VAlign, w } from "./galhui";
-import type { MenuItems } from "./menu";
+import { body, C, cancel, close as closeBT, Color, confirm, HAlign, hc, icon, Icon, negative, positive, VAlign, w } from "./galhui.js";
+import type { MenuItems } from "./menu.js";
 
 export interface IModal<K> {
-  valid?: (key: K) => Task<bool>;
+  valid?: (key: K) => Task<unknown>;
   /**close on click out of modal */
   blur?: bool;
 
@@ -48,6 +46,7 @@ export function openModal<K>(md: Modal<K>) {
   }
   return md;
 }
+/**define a body and show modal */
 export function openBody<K>(md: Modal<K>, bd: any, actions?: S[], i?: IBody) {
   return openModal(modalBody(md, bd, actions, i));
 }
@@ -59,8 +58,8 @@ export async function closeModal<K>(md: Modal<K>, v?: K) {
   }
 }
 export function mapButtons<K>(md: Modal<K>) {
-  each(md.body.child(".ft").childs('[type="button"],[type="submit"]'),
-    bt => bt.on("click", e => { e.preventDefault(); closeModal(md, bt.d()) }));
+  md.body.child(".ft").childs('[type="button"],[type="submit"]')
+    .eachS(bt => bt.on("click", e => { e.preventDefault(); closeModal(md, bt.d()) }));
   return md;
 }
 export function addClose<K>(md: Modal<K>) {
@@ -139,7 +138,7 @@ export function fluid({ left: l, right: r, bottom: b, top: t, width: w, height: 
 }
 /**dropdown with width=base.width  */
 export function fixedMenu(base: S, menu: S, align?: VAlign) {
-  base.cls([VAlign.top, VAlign.bottom], false).cls(fixed(rect(base), menu, align));
+  base.cls([VAlign.top, VAlign.bottom], false).cls(fixed(base.rect(), menu, align));
 }
 export function fixed({ left: l, bottom: b, top: t, width: w }: DOMRectReadOnly, menu: S, align?: VAlign) {
   let wh = window.innerHeight;
@@ -171,7 +170,7 @@ export function popup(div: S, e: () => DOMRectReadOnly) {
   ctx.queryAll('button').on('click', function () { last.valid ? last.focus() : this.blur() });
 
   ctx.on({
-    focusout: (e: FocusEvent) => contains(ctx, e.relatedTarget as Node) || (ctx.remove() && body.off("wheel", wheelHandler)),
+    focusout: (e: FocusEvent) => ctx.contains(e.relatedTarget as Node) || (ctx.remove() && body.off("wheel", wheelHandler)),
     keydown(e) {
       if (e.key == "Escape") {
         e.stopPropagation();
@@ -201,7 +200,7 @@ export function tip<T extends HSElement>(root: S<T>, div: any, vAlign?: VAlign, 
     mouseenter() {
       body.add(div);
       requestAnimationFrame(function _() {
-        fluid(rect(root), div as S, vAlign, hAlign);
+        fluid(root.rect(), div as S, vAlign, hAlign);
         if (body.contains(div))
           requestAnimationFrame(_);
       });

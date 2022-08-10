@@ -1,8 +1,8 @@
 import { Property } from "csstype";
 import { def, ex, isA, isB, isN, isO, isV, toStr } from "inutil";
-import { cc, HAlign } from "./galhui";
+import { cc, HAlign } from "./galhui.js";
 import { filter } from "dic";
-import { css, Properties, Style, Styles } from "galho/css";
+import { css, Properties, Style, Styles } from "galho/css.js";
 
 export const enum ScreenSize {
   mobileS = 320,

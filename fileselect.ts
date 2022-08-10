@@ -1,9 +1,9 @@
 import { div, E, g, One, S } from "galho";
 import orray, { bind, L, remove, set } from "orray";
 import { ex, isS } from "inutil";
-import { $, C, Color, hc, Size, icon, Icon, w, close, ibutton, cancel, confirm, panel } from "./galhui";
-import { menubar, MBItems } from "./menu";
-import { modal, openModal } from "./hover";
+import { $, C, Color, hc, Size, icon, Icon, w, close, ibutton, cancel, confirm, panel } from "./galhui.js";
+import { menubar, MBItems } from "./menu.js";
+import { modal, openModal } from "./hover.js";
 
 export interface FilePath {
   path: string;

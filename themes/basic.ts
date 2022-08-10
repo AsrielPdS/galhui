@@ -1,7 +1,7 @@
 import { S } from "galho";
-import { css, Style, Styles } from "galho/css";
-import { C, Color, cc, HAlign, Size, VAlign } from "../galhui";
-import { bfg, block, border, box, max, min, rem, ScreenSize, spc, styleCtx, StyleCtx, vmarg, vpad, zIndex } from "../style";
+import { css, Style, Styles } from "galho/css.js";
+import { C, Color, cc, HAlign, Size, VAlign } from "../galhui.js";
+import { bfg, block, border, box, max, min, rem, ScreenSize, spc, styleCtx, StyleCtx, vmarg, vpad, zIndex } from "../style.js";
 
 interface State {
   /**normal */n: str;
@@ -13,6 +13,7 @@ type ListState = State & {/**odd row*/o: str };
 export interface Pallete {
   error: str;
   menu: str;
+  disabled: str;
   /**anchor(link) */
   a: State;
   /**border */
@@ -115,9 +116,9 @@ export const button = (ctx: Context): Styles => ctx(icon) && ({
   [cc(C.close)]: {
     // color: s.error,
     background: "none",
-    position: "absolute",
-    right: ".5em",
-    top: ".5em",
+    // position: "absolute",
+    // right: ".5em",
+    // top: ".5em",
     opacity: 0.8,
     ":hover": {
       opacity: 1,
@@ -133,6 +134,7 @@ export function input(ctx: Context): Styles {
     "._.in": {
       padding: ".6em 1em",
       display: "inline-flex",
+      alignItems: "center",
       color: fg,
       background: bg,
       border: `1px solid ${border.n}`,
@@ -143,6 +145,9 @@ export function input(ctx: Context): Styles {
         margin: 0,
         // height: "1em",
         ...vmarg("-.6em")
+      },
+      ["." + C.icon]: {
+
       },
       ":focus": {
         borderColor: border.a,
@@ -181,7 +186,7 @@ export const menubar = ({ menu }: Context): Styles => ({
     [cc(C.input)]: {
       // background: ,
     },
-    [`.${C.item},${cc(C.dropdown)}`]: {
+    [`.i,.in,${cc(C.dropdown)}`]: {
       ":hover": {
         background: "#b3c2c9",
       },
@@ -208,7 +213,7 @@ export const menubar = ({ menu }: Context): Styles => ({
     }
   },
 });
-export const menu = ({ menu }: Context): Styles => ({
+export const menu = ({ menu, disabled }: Context): Styles => ({
   [cc(C.menu)]: {
     background: menu,
     outline: "none",
@@ -231,6 +236,7 @@ export const menu = ({ menu }: Context): Styles => ({
         fontFamily: "inherit",
         lineHeight: "initial",
         padding: "3px 4px",
+        // margin:"0 1px",
         td: {
           //icon
           ":nth-child(1)": {
@@ -260,8 +266,8 @@ export const menu = ({ menu }: Context): Styles => ({
         ":hover": {
           background: "#acc5cf",
         },
-        ["." + C.disabled]: {
-          background: "grey",
+        ["&." + C.disabled]: {
+          background: disabled,
         },
         // ":active": {
         //   background:"",
@@ -336,18 +342,22 @@ export const modal = (ctx: Context): Styles =>
     background: "#0004",
     zIndex: zIndex.modalArea,
     overflow: "auto",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: spc(1, "rem"),
+    // display: "flex",
+    // flexDirection: "column",
+    // alignItems: "center",
+    // justifyContent: "center",
+    // padding: spc(1, "rem"),
   },
-  [cc(C.modal)]: {
+  "._.modal": {
     ...box(0, 0),
     zIndex: zIndex.modal,
     borderRadius: rem(.3),
-
     outline: "none",
+    "&.xl": {
+      width: "calc(100% - 1rem)",
+      height: "calc(100% - 1rem)",
+      margin: ".5rem"
+    },
 
     ".hd": {
       padding: "1.2em 1.7em",
@@ -362,7 +372,7 @@ export const modal = (ctx: Context): Styles =>
       position: "absolute",
       right: 0,
       top: 0,
-    },
+    }
   },
   [min(ScreenSize.laptop)]: {
 
@@ -372,25 +382,27 @@ export const modal = (ctx: Context): Styles =>
       width: "75%",
       maxWidth: (ScreenSize.tablet - 20) + "px",
       /**full screen */
-      [`.${Size.xl}`]: {
-        width: "95%",
-        height: "100%"
+      "&.xl": {
+        width: "calc(100% - 3rem)",
+        height: "calc(100% - 3rem)",
+        margin: "1.5rem",
+        maxWidth: "unset"
       },
-      [`.${Size.l}`]: {
+      "&.l": {
         width: "95%",
         maxWidth: "1020px"
       },
-      [`.${Size.s}`]: {
+      "&.s": {
         width: "55%"
       },
-      [`.${Size.xs}`]: {
+      "&.xs": {
         width: "35.2%",
         maxWidth: "360px"
       },
     },
   },
   [max(ScreenSize.tablet)]: {
-    [cc(C.modal)]: {
+    "._.modal": {
       width: "95%",
       minWidth: 0
     }
@@ -675,6 +687,9 @@ export function dropdown(ctx: Context): Styles {
       ["." + C.menu]: {
         position: "fixed",
         zIndex: zIndex.ctxMenu
+      },
+      ["." + C.icon]: {
+        padding: "0 .4em"
       }
     }
   }
@@ -690,12 +705,17 @@ export function select(add: Context): Styles {
       // ["." + C.side]: {
       //   float: "right"
       // },
-      ["." + C.body]: {
+      ".bd": {
         width: `calc(100% - ${consts.rem}px)`,
         display: "inline-flex",
         margin: 0, padding: 0,
-        whiteSpace: "normal", background: "inherit",
-        outline: "none", border: "none"
+        whiteSpace: "normal",
+        background: "inherit",
+        outline: "none",
+        border: "none",
+        ["." + C.close]: {
+          marginLeft: "auto"
+        }
       },
       ".menu": {
         maxWidth: "unset",
@@ -747,9 +767,9 @@ export const core = (p: Pallete, tag = css({})) => styleCtx(p, css({
   "*": {
     boxSizing: "border-box",
   },
+  "._.off": { display: "none!important" },
   "._.row": { display: "flex", flexDirection: "row" },
   "._.col": { display: "flex", flexDirection: "column", ".fill": { flex: 1 } },
-  [cc(C.off)]: { display: "none" }
 }, tag));
 export const style = (p: Pallete, tag?: S<HTMLStyleElement>) =>
   core(p, tag)(icon)
@@ -775,6 +795,7 @@ export const darkTheme: Pallete = {
   fg: "#fff",
   error: "#ab000d",
   menu: "",
+  disabled: "#999ea0",
   list: { n: "#e0f7fa", o: "" },
   modal: {
     hd: "",
@@ -794,6 +815,7 @@ export const lightTheme: Pallete = {
   bg: "#fff",
   error: "#ef5350",
   menu: "#cfd8dc",
+  disabled: "#999ea0",
   list: { n: "#fff", o: "#f6f6f6", h: "#e0f7fa", a: "#03a9f4", v: "#e0f7fa" },
   modal: {
     hd: "#e0f7fa",

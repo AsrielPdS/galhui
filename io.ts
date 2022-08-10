@@ -1,9 +1,9 @@
-import { cl, div, E, g, S, wrap } from "galho";
-import { delay, is } from "galho/s";
+import { cl, delay, div, E, g, S, wrap } from "galho";
 import { isS, isU, t } from "inutil";
-import  { orray,bind } from "orray";
-import { Select } from "./dropdown";
-import { $, C, Color, hc, ibutton, icon, w } from "./galhui";
+import { orray, bind } from "orray";
+import { Select } from "./dropdown.js";
+import { $, C, Color, hc, ibutton, icon, w } from "./galhui.js";
+import { mbitem, menuitem } from "./menu.js";
 
 //#region input
 export type InputTp = "text" | "number" | "search" | "checkbox" | "radio" | "password";
@@ -56,20 +56,20 @@ export class Pagging extends E<IPagging>{
         i.minLimit * 20,
         { key: 0, text: 'Mostrar todos' }
       ]);
-      g(limits).cls(C.full);
+      g(limits).cls("in");
     }
 
     return this.bind(div("_ bar pag", [
-      i.extreme && ibutton($.i.first, null, () => this.set('pag', 1)),
-      ibutton($.i.prev, null, () => this.set('pag', i.pag - 1)),
+      i.extreme && mbitem($.i.first, null, () => this.set('pag', 1)),
+      mbitem($.i.prev, null, () => this.set('pag', i.pag - 1)),
       output(),
-      ibutton($.i.next, null, () => this.set('pag', i.pag + 1)),
-      i.extreme && ibutton($.i.last, count, () => this.set('pag', pags)),
+      mbitem($.i.next, null, () => this.set('pag', i.pag + 1)),
+      i.extreme && mbitem($.i.last, count, () => this.set('pag', pags)),
       limits && [
         g("hr"),
         limits.on('input', (value) => { this.set('limit', value); })
       ],
-      i.viewtotal && [ g("hr"), total = div(C.item)]
+      i.viewtotal && [g("hr"), total = output()]
     ]), (s) => {
       if (i.viewtotal)
         total.set(`${Math.min(i.total - i.limit * (i.pag - 1), i.limit || i.total) || 0} / ${i.total || 0}`)
@@ -106,10 +106,10 @@ export const tip = (e: S, value) => e.prop("title", value);
 
 export interface IOutput<T> {
   key?: str;
-  text?:str;
+  text?: str;
   fmt?: str;
   value?: T;
-  color?:Color;
+  color?: Color;
   def?/*: Child*/;
 
 }
@@ -132,7 +132,7 @@ export class Output<T = unknown> extends E<IOutput<T>>{
     let i = this.i;
     return this.bind(div(), (s) => {
       s
-      .uncls().cls(cl(C.input,i.color))
+        .uncls().cls(cl(C.input, i.color))
         .set([
           i.text, ': ',
           $.fmt(i.value, i.fmt, i.def && { def: i.def })
@@ -163,7 +163,7 @@ export function accordion(items: AccordionItem[], i: IAccordion = {}) {
         t(i.icon) && icon("menuR"),
         hd
       ]).cls(C.on, i.def == j).on("click", () => {
-        if (is(<S>hd,'.'+C.on))
+        if ((hd as S).is('.' + C.on))
           (<S>hd).cls(C.on, false);
         else {
           t(i.single) && p.childs("." + C.head).cls(C.on, false);

@@ -1,8 +1,8 @@
 import { clearEvent, div, E, g, S, wrap } from "galho";
 import orray, { Alias, bind, get, L } from "orray";
-import { $, C, Child, icon, Icon } from "./galhui";
-import { ctx } from "./hover";
-import { ICrud } from "./list";
+import { $, C, Child, icon, Icon } from "./galhui.js";
+import { ctx } from "./hover.js";
+import { ICrud } from "./list.js";
 
 function prev(start: S, parent: S) {
   let e: Element = start.e;
