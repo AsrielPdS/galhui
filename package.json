@@ -10,7 +10,6 @@
   "sideEffects": false,
   "dependencies": {
     "csstype": "^3.0.11",
-    "dic": "file:../dic",
     "galho": "file:../galho",
     "handler": "file:../handler",
     "inutil": "file:../inutil",
