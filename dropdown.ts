@@ -1,10 +1,12 @@
 import { clearEvent, div, E, g, S } from "galho";
-import { byKey, call, isO, l, sub, t } from "inutil";
+import { call, isO, t } from "./util.js";
 import { Alias,  extend, L } from "orray";
 import { list as selected, move as moveSelection, tp as selectionType } from "orray/selector.js";
 import { $, body, C, close, hc, icon, Icon, VAlign } from "./galhui.js";
 import { fixedMenu, fluid } from "./hover.js";
 import { menu, menuitem } from "./menu.js";
+import { bool, Key, str } from "./util.js";
+import { byKey, l, sub } from "./array.js";
 export interface IRoot {
 
   /**if should open when clicked 

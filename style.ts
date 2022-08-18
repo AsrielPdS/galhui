@@ -1,8 +1,10 @@
 import { Property } from "csstype";
-import { def, ex, isA, isB, isN, isO, isV, toStr } from "inutil";
+import { def, ex, isB, isN, isO, toStr } from "./util.js";
 import { cc, HAlign } from "./galhui.js";
-import { filter } from "dic";
+import { filter } from "./dic.js";
 import { css, Properties, Style, Styles } from "galho/css.js";
+import { bool, float, str } from "./util.js";
+import { isA } from "./array.js";
 
 export const enum ScreenSize {
   mobileS = 320,
@@ -85,7 +87,7 @@ export const bords = (b: Borders): Style => b &&
     borderBottom: bord(def(b[2], b[0])),
     borderLeft: bord(def(b[3], b[1]))
   } : { border: bord(b) });
-export const spc = (v: SpaceFull, unit = "em") => isV(v) ? (isN(v) ? v + unit : v.map(v => v + unit).join(" ")) : null;
+export const spc = (v: SpaceFull, unit = "em") => v==null ? (isN(v) ? v + unit : v.map(v => v + unit).join(" ")) : null;
 /**horizontal space */
 export const hs = (v: SpaceFull) => isN(v) ? v : v[1];
 /**vertical space */

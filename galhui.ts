@@ -1,5 +1,6 @@
 import { ANYElement, cl, div, g, isE, Render, S, svg, toSVG, wrap } from "galho";
-import { isS } from "inutil";
+import { Dic } from "./dic.js";
+import { float, int, isS, str } from "./util.js";
 
 declare global {
   namespace GalhoUI {

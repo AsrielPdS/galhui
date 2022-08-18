@@ -1,7 +1,6 @@
-declare global {
-  interface Dic<T = any> {
-    [key: string]: T;
-  }
+
+export interface Dic<T = any> {
+  [key: string]: T;
 }
 
 export function any<T = any>(dic: Dic<T>, fn?: (value: T, key: string) => unknown) {

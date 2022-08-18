@@ -1,9 +1,9 @@
 import { cl, delay, div, E, g, S, wrap } from "galho";
-import { isS, isU, t } from "inutil";
 import { orray } from "orray";
 import { Select } from "./dropdown.js";
 import { $, C, Color, hc, icon, w } from "./galhui.js";
 import { mbitem } from "./menu.js";
+import { bool, int, isS, isU, str, t } from "./util.js";
 
 //#region input
 export type InputTp = "text" | "number" | "search" | "checkbox" | "radio" | "password";

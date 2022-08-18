@@ -1,5 +1,7 @@
 ﻿import { getAll, S } from "galho";
-import { def, isF, isS, z } from "inutil";
+import { z } from "./array.js";
+import { Dic } from "./dic.js";
+import { def, isF, isS, str, Task } from "./util.js";
 
 export const hash = (s: S, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: S[]) {

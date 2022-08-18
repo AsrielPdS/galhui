@@ -1,17 +1,19 @@
 import { cl, clearEvent, div, E, g, M, One, S, wrap } from "galho";
-import { call, delay, isF, l, t, valid } from "inutil";
-import { Alias, orray, extend, L } from "orray";
+import { Alias, extend, L, orray } from "orray";
+import { l, valid } from "./array.js";
+import { Dic } from "./dic.js";
 import { dropdown } from "./dropdown.js";
 import { $, body, C, doc, icon } from "./galhui.js";
 import { crudHandler, FieldPlatform, ICrud, kbHandler, kbHTp, OutputCtx, RecordStyle } from "./list.js";
 import { menucb } from "./menu.js";
+import { bool, call, delay, int, isF, str, t } from "./util.js";
 
 export interface Sort {
   multiple?: bool;
   clear?: bool;
   call(column: Column, active: bool): any;
 }
-function defineSize(items: { size?: num }[], apply?: boolean) {
+function defineSize(items: { size?: int }[], apply?: boolean) {
   let
     size = 0,
     l = items.length,

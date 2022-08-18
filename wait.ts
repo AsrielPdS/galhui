@@ -1,5 +1,5 @@
 import { div, S } from "galho";
-import { isN, isP } from "inutil";
+import { isN, isP } from "./util.js";
 import { C, icon } from "./galhui.js";
 /**call back */
 export type CB = PromiseLike<any> | (() => Promise<any>);

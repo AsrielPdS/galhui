@@ -1,10 +1,11 @@
 import { clearEvent, div, g, One, S, wrap } from "galho";
-import { call, isF, t } from "inutil";
+import { bool, call, int, isF, str, t } from "./util.js";
 import { extend, L } from "orray";
 import { add as addSelection, clear as clearSelection, list as selected, move as moveSelection, movePivot as moveSelectionPivot, pivot, SelectionTp, tp as selectionType } from "orray/selector.js";
 import { $, C, Child, close, icon, Icon } from "./galhui.js";
 import { ctx } from "./hover.js";
 import { MenuItems } from "./menu.js";
+import { Dic } from "./dic.js";
 
 export type CrudMenu<T> = (...items: T[]) => void | MenuItems;
 export interface ICrud<T> {

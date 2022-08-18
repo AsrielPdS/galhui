@@ -1,7 +1,8 @@
 import { S } from "galho";
 import { css, Style, Styles } from "galho/css.js";
-import { C, Color, cc, HAlign, Size, VAlign } from "../galhui.js";
-import { bfg, block, border, box, max, min, rem, ScreenSize, spc, styleCtx, StyleCtx, vmarg, vpad, zIndex } from "../style.js";
+import { C, cc, Color, Size } from "../galhui.js";
+import { bfg, border, box, max, min, rem, ScreenSize, styleCtx, StyleCtx, vmarg, zIndex } from "../style.js";
+import { float, str } from "../util.js";
 
 interface State {
   /**normal */n: str;

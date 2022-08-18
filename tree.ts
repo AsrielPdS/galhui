@@ -3,6 +3,7 @@ import orray, { Alias, L } from "orray";
 import { $, C, Child, icon, Icon } from "./galhui.js";
 import { ctx } from "./hover.js";
 import { ICrud } from "./list.js";
+import { bool, str } from "./util.js";
 
 function prev(start: S, parent: S) {
   let e: Element = start.e;

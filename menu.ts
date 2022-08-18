@@ -1,5 +1,5 @@
 import { cl, div, g, Input, S } from "galho";
-import { call, uuid } from "inutil";
+import { bool, call, Task, uuid } from "./util.js";
 import { C, click, HAlign, icon, Icon } from "./galhui.js";
 import { fluid } from "./hover.js";
 import { CB as WaitCB, tp as WaitTP, wait as _wait, waiter } from "./wait.js";

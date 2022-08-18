@@ -18,3 +18,5 @@ export function byKey<T, K extends keyof T>(arr: ArrayLike<T>, name: T[K], key: 
       return arr[i];
   return null;
 }
+export const valid = <T>(arr: Array<T>): T[] => arr.filter(v => v != null);
+export const sub = <T, K extends keyof T>(arr: Array<T>, key: K): T[K][] => arr.map(v => v?.[key])

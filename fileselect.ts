@@ -1,6 +1,6 @@
 import { div, E, g, One, S } from "galho";
 import { orray, L } from "orray";
-import { ex, isS } from "inutil";
+import { ex, isS, str } from "./util.js";
 import { $, C, Color, hc, Size, icon, Icon, w, close, ibt, cancel, confirm, panel } from "./galhui.js";
 import { menubar, MBItems } from "./menu.js";
 import { modal, openModal } from "./hover.js";
