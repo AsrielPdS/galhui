@@ -13,6 +13,8 @@ declare global {
       save?: str;
     }
     interface Settings {
+      /**shortcuts */
+      sc?: { edit?: str[]; remove?: str[]; },
       // /**class */
       // c: str;
 
@@ -176,19 +178,22 @@ export function icon(d: Icon, s?: Size) {
 export type click = (this: HTMLButtonElement, e: MouseEvent) => any;
 
 export type ButtonType = "button" | "submit" | "clear";
-export const button = (text: Child, click?: click, type: ButtonType = "button") =>
-  g("button", hc(C.button), text).prop("type", type).on("click", click);
-export const link = (text: Child, href?: str) => g("a", C.button, text).prop("href", href);
+export const bt = (text: Child, click?: click, type: ButtonType = "button") =>
+  g("button", "_ bt", text).prop("type", type).on("click", click);
+export const link = (text: Child, href?: str) => g("a", ["_", C.link], text).prop("href", href);
 
 /** button with icon */
-export const ibutton = (i: Icon, text: Child, click?: click, type: ButtonType = "button") =>
-  g("button", hc(C.button), [icon(i), text])
+export const ibt = (i: Icon, text: Child, click?: click, type: ButtonType = "button") =>
+  g("button", "_ bt", [icon(i), text])
     .prop("type", type)
     .cls(C.icon, !text).on("click", click);
+
+/** @deprecated */
+export const ibutton = ibt;
 export const positive = (i: Icon, text: Child, click?: click, type?: ButtonType) =>
-  ibutton(i, text, click, type).cls(Color.accept);
+  ibt(i, text, click, type).cls(Color.accept);
 export const negative = (i: Icon, text: Child, click?: click, type?: ButtonType) =>
-  ibutton(i, text, click, type).cls(Color.error);
+  ibt(i, text, click, type).cls(Color.error);
 
 /** link with icon */
 export const ilink = (i: Icon, text: Child, href?: str) => g("a", C.link, [icon(i), text]).prop("href", href);

@@ -1,6 +1,6 @@
 import { clearEvent, div, g, One, S, wrap } from "galho";
 import { call, isF, t } from "inutil";
-import { bind, extend, getTag, L, ontag, remove, setTag } from "orray";
+import { extend, L } from "orray";
 import { add as addSelection, clear as clearSelection, list as selected, move as moveSelection, movePivot as moveSelectionPivot, pivot, SelectionTp, tp as selectionType } from "orray/selector.js";
 import { $, C, Child, close, icon, Icon } from "./galhui.js";
 import { ctx } from "./hover.js";
@@ -15,7 +15,7 @@ export interface ICrud<T> {
    */
   focus?(item: T, state: bool): any;
   open?(...items: T[]): any;
-  menu?:CrudMenu<T>;
+  menu?: CrudMenu<T>;
   remove?(...items: T[]): any | true;
   single?: boolean;
 }
@@ -96,7 +96,7 @@ export function kbHandler<T>(dt: L<T>, e: KeyboardEvent, i: ICrud<T>) {
         (async () => {
           if ((await i.remove(...t)) !== false)
             for (let i of t)
-              remove(dt, i);
+              dt.remove(i);
         })();
       } else return;
 
@@ -139,7 +139,7 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
     }),
     // opts = i.options,
     e = t(i.enum);
-  return bind(dt, crudHandler(g("ol", "_ list"), dt, "i", i), {
+  return dt.bind(crudHandler(g("ol", "_ list"), dt, "i", i), {
     insert: (value, index) => div("i", [
       div([C.side], e ? index + 1 : ' ')
         .css('flexBasis', `${$.rem * 2.5}px`),
@@ -168,13 +168,13 @@ export interface TabItem {
   body: ((v: TabItem) => Child) | Child;
 }
 export const tab = (items: L<TabItem>, removeble: boolean, empty?: () => One) => div([C.tab], [
-  bind(items, div([C.menubar]), {
+  items.bind(div([C.menubar]), {
     tag: (v, a) => v.cls("on", a),
     insert: value => div("i", [
       icon(value.icon),
       value.text,
-      removeble && close(e => { clearEvent(e); remove(items, value); })
-    ]).on('click', () => setTag(items, "on", value))
+      removeble && close(e => { clearEvent(e); items.remove(value); })
+    ]).on('click', () => items.tag("on", value))
   }),
   call(div("bd"), bd => {
     let cb = (v: TabItem) => {
@@ -185,7 +185,7 @@ export const tab = (items: L<TabItem>, removeble: boolean, empty?: () => One) =>
       } else bd.set(empty?.());
 
     };
-    ontag(items, "on", cb);
-    cb(getTag(items, "on")?.value);
+    items.ontag("on", cb);
+    cb(items.tags?.["on"]?.value);
   }),
 ])

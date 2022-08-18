@@ -1,6 +1,6 @@
 import { clearEvent, div, E, g, S } from "galho";
 import { byKey, call, isO, l, sub, t } from "inutil";
-import { Alias, bind, extend, L } from "orray";
+import { Alias,  extend, L } from "orray";
 import { list as selected, move as moveSelection, tp as selectionType } from "orray/selector.js";
 import { $, body, C, close, hc, icon, Icon, VAlign } from "./galhui.js";
 import { fixedMenu, fluid } from "./hover.js";
@@ -109,7 +109,7 @@ export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
         //if (m(<Element>e.target).is('button'))
         //  _this.set(C.open, false);
         //else
-        if (!menu.contains(e.target as Element))
+        if (!menu.contains(e.target as HTMLElement))
           me.toggle("open");
       }
     });
@@ -203,7 +203,7 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open:
     setValue(this, label, options);
     this.on(e => ("value" in e) && setValue(this, label, options));
 
-    bind(options, items, {
+    options.bind(items, {
       insert: ({ i, text, key }) => menuitem(i, text || key),
       tag(s, active, tag) {
         s.cls(tag, active);

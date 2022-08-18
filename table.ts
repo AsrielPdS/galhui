@@ -1,6 +1,6 @@
 import { cl, clearEvent, div, E, g, M, One, S, wrap } from "galho";
-import { call, delay, l, t, valid } from "inutil";
-import { Alias, bind, create as orray, extend, L, reloadAll, remove, sort } from "orray";
+import { call, delay, isF, l, t, valid } from "inutil";
+import { Alias, orray, extend, L } from "orray";
 import { dropdown } from "./dropdown.js";
 import { $, body, C, doc, icon } from "./galhui.js";
 import { crudHandler, FieldPlatform, ICrud, kbHandler, kbHTp, OutputCtx, RecordStyle } from "./list.js";
@@ -96,8 +96,8 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
     let delayIndex: int;
     i.columns = orray<Column>(i.columns, { g: i.sort && ["sort"] })
       .onupdate(() => delayIndex = delay(delayIndex, () => {
-        reloadAll(this.data);
-        i.foot && reloadAll(i.foot);
+        this.data.reloadAll();
+        i.foot && i.foot.reloadAll();
       }));
 
     if (!i.head) i.head = (c) => c.text;
@@ -109,22 +109,22 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
       cols = i.columns,
       all = i.allColumns,
       req = i.reqColumns,
-      opts = i.options && valid(i.options),
+      opts = i.options && valid(i.options).map(o => isF(o) ? { item: o } : o),
       data = this.data,
       headerOptions = all && dropdown(null, all.map(c => {
         return menucb(cols.includes(c), c.text, checked => {
           if (checked) {
             cols.push(c);
-            sort(cols, (a, b) => all.indexOf(a) - all.indexOf(b));
-          } else remove(cols, c);
+            cols.sort((a, b) => all.indexOf(a) - all.indexOf(b));
+          } else cols.remove(c);
         }, c.key, req && (req.includes(c.key)))
       })),
-      bd = bind(data, crudHandler(div("bd"), data, "tb-i", i), {
+      bd = data.bind(crudHandler(div("bd"), data, "tb-i", i), {
         insert(v, _i) {
           let t2 = div("_ ft tb-i", [
             div(C.side, t(i.enum) ? _i + 1 : ' '),
             cols.map(c => wrap(c.fmt ? c.fmt({ v: v[c.key], p: i.p }, c.opts) : v[c.key]).css({ textAlign: c.align, width: c.size + 'px' })),
-            opts && opts.map((opt) => wrap((opt as OptionObj<T>).item(v, _i), "opt"))
+            opts && opts.map(opt => wrap(opt.item(v, _i), "opt"))
           ]).d(v);
           i.style?.(t2, v, _i);
           return t2;
@@ -143,7 +143,7 @@ export default class Table<T extends Dic> extends E<ITable<T>, { resizeCol: neve
       s
         .prop('tabIndex', 0)
         .add([
-          bind(cols, div("hd tb-i", [
+          cols.bind(div("hd tb-i", [
             wrap(i.corner).cls([C.side, C.item]),
             opts && opts.map((opt) => div(null, (opt as OptionObj<T>).head))
           ]), {

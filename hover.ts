@@ -170,7 +170,7 @@ export function popup(div: S, e: () => DOMRectReadOnly) {
   ctx.queryAll('button').on('click', function () { last.valid ? last.focus() : this.blur() });
 
   ctx.on({
-    focusout: (e: FocusEvent) => ctx.contains(e.relatedTarget as Node) || (ctx.remove() && body.off("wheel", wheelHandler)),
+    focusout: (e: FocusEvent) => ctx.contains(e.relatedTarget as HTMLElement) || (ctx.remove() && body.off("wheel", wheelHandler)),
     keydown(e) {
       if (e.key == "Escape") {
         e.stopPropagation();

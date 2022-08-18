@@ -1,7 +1,7 @@
 import { div, E, g, One, S } from "galho";
-import orray, { bind, L, remove, set } from "orray";
+import { orray, L } from "orray";
 import { ex, isS } from "inutil";
-import { $, C, Color, hc, Size, icon, Icon, w, close, ibutton, cancel, confirm, panel } from "./galhui.js";
+import { $, C, Color, hc, Size, icon, Icon, w, close, ibt, cancel, confirm, panel } from "./galhui.js";
 import { menubar, MBItems } from "./menu.js";
 import { modal, openModal } from "./hover.js";
 
@@ -102,7 +102,7 @@ export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { i
 
         else values.set(t);
       }),
-      bind(values, div(C.body), {
+      values.bind(div(C.body), {
         insert(file) {
           let
             tp = FileInput.getFileExt(file),
@@ -115,7 +115,7 @@ export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { i
           //= model.render(value);
           return div(C.item, [
             prov.render(file),
-            close(() => remove(values, file))
+            close(() => values.remove(file))
           ]);
         },
         empty(active, s) {
@@ -125,12 +125,12 @@ export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { i
         }
       }),
       menubar(
-        i.submit && !i.autosubmit && this.bind(ibutton("upload", null, () => this.submit()).cls(Color.accept),
+        i.submit && !i.autosubmit && this.bind(ibt("upload", null, () => this.submit()).cls(Color.accept),
           (s) => { g(s).prop("disabled", !values.length || values.every((value) => isS(value))); }, 'value'
         ),
-        ibutton('folder-open', null, () => this.input.e.click()),
+        ibt('folder-open', null, () => this.input.e.click()),
         i.options as any,
-        this.bind(close(() => set(values)), (s) => g(s).prop("disabled", !values.length), 'value')
+        this.bind(close(() => values.set()), (s) => g(s).prop("disabled", !values.length), 'value')
       )
     ]).prop("tabIndex", 0);
   }
@@ -239,7 +239,7 @@ export interface IImageSelector extends IFileSelector {
 export class ImageSelector extends FileInput<IImageSelector> {
   constructor(i: IImageSelector) {
     if (i.camera)
-      i.options = [ibutton("camera", null, () => this.openCamera())];
+      i.options = [ibt("camera", null, () => this.openCamera())];
     super(i);
   }
   static default: Partial<IImageSelector> = {
@@ -397,7 +397,7 @@ export class Camera extends E<ICamera, { input: string; }>{
         switch (model.state) {
           case CameraState.recording:
             s.set([
-              ibutton('camera', w.save, () => {
+              ibt('camera', w.save, () => {
                 var
                   canvas = g('canvas').e,
                   ctx = canvas.getContext("2d");
@@ -450,7 +450,7 @@ export class MobImgSelector extends E<IMobImgSelector, { input: str }>{
       input: HTMLInputElement = g("input", { type: 'file', accept: 'image/*' }).on("input", emitInput).e;
     return this.bind(div(hc(C.mobile, "imgsel"), [
       input, bd,
-      ibutton("edit", null, () => input.click())
+      ibt("edit", null, () => input.click())
     ]), async s => {
       if (i.value) {
         s.prepend(clear ||= close(() => { input.value = null; emitInput() }))

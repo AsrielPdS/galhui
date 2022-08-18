@@ -1,5 +1,5 @@
 import { clearEvent, div, E, g, S, wrap } from "galho";
-import orray, { Alias, bind, get, L } from "orray";
+import orray, { Alias, L } from "orray";
 import { $, C, Child, icon, Icon } from "./galhui.js";
 import { ctx } from "./hover.js";
 import { ICrud } from "./list.js";
@@ -33,7 +33,7 @@ function next(start: S, parent: S) {
 
   return e && new S(e);
 }
-export interface ITree extends ICrud<Branch>{
+export interface ITree extends ICrud<Branch> {
   toggle?(i: Branch, state: bool): any;
 
   data?: Alias<Branch, IBranch>;
@@ -50,7 +50,7 @@ export function tree(i: ITree) {
         select(i);
       else select(g(<Element>t).closest(".i").d());
     };
-  return bind(orray(i.data, v => v instanceof Branch ? v : new Branch(i, v, 0)), d.prop("tabIndex", 0)).on({
+  return orray(i.data, v => v instanceof Branch ? v : new Branch(i, v, 0)).bind(d.prop("tabIndex", 0)).on({
     keydown: (e) => {
       let f = i.s;
 
@@ -137,21 +137,21 @@ export interface IBranch {
   key?: str;
   icon?: Icon;
   tp?: str;
-  dt?: Alias<Branch,IBranch>;
+  dt?: Alias<Branch, IBranch>;
   open?: bool;
 }
 export class Branch extends E<IBranch> {
   uuid?: number;
   // dt: L<Branch, IBranch>;
   constructor(public ctx: ITree, i: IBranch, public level: number) {
-    super(i); 
+    super(i);
     i.dt && (i.dt = orray<Branch, IBranch>(i.dt, v => v instanceof Branch ? v : new Branch(ctx, v, level + 1)));
   }
   get key() { return this.i.key; }
 
   get(path: string) {
     var t1 = path.split('/', 2);
-    let result = get(<L<Branch>>this.i.dt, t1[0]);
+    let result = (this.i.dt as L<Branch>).find(t1[0]);
     if (t1.length > 1) {
       if (result.i.dt)
         result = result.get(t1[1]);
@@ -166,7 +166,7 @@ export class Branch extends E<IBranch> {
       h = this.head = div(C.head, div(C.body, [i.key, i.side && wrap(i.side, C.side)]))
         .css("paddingLeft", $.rem * this.level + "px").d(this);
     if (i.dt) {
-      let body = bind(<L<Branch>>i.dt, div()), ico = icon('menuR');
+      let body = (i.dt as L<Branch>).bind(div()), ico = icon('menuR');
 
       return this.bind(div(C.item, [
         h.prepend(div(0, ico).on('click', e => { this.toggle("open"); clearEvent(e) })),

@@ -1,9 +1,9 @@
 import { cl, delay, div, E, g, S, wrap } from "galho";
 import { isS, isU, t } from "inutil";
-import { orray, bind } from "orray";
+import { orray } from "orray";
 import { Select } from "./dropdown.js";
-import { $, C, Color, hc, ibutton, icon, w } from "./galhui.js";
-import { mbitem, menuitem } from "./menu.js";
+import { $, C, Color, hc, icon, w } from "./galhui.js";
+import { mbitem } from "./menu.js";
 
 //#region input
 export type InputTp = "text" | "number" | "search" | "checkbox" | "radio" | "password";
@@ -157,7 +157,7 @@ export const hidden = (head: any, body: any, open?: bool) => div(["_", C.accordi
   wrap(body, C.body)
 ]);
 export function accordion(items: AccordionItem[], i: IAccordion = {}) {
-  return bind(orray(items), div("_ accordion"), ([hd, bd], j, p) => {
+  return orray(items).bind(div("_ accordion"), ([hd, bd], j, p) => {
     p.place(j * 2, [
       hd = div(C.head, [
         t(i.icon) && icon("menuR"),
