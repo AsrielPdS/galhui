@@ -1,6 +1,6 @@
 import { div, E, g, One, S } from "galho";
 import { orray, L } from "orray";
-import { ex, isS, str } from "./util.js";
+import { assign, isS, str } from "galho/util.js";
 import { $, C, Color, hc, Size, icon, Icon, w, close, ibt, cancel, confirm, panel } from "./galhui.js";
 import { menubar, MBItems } from "./menu.js";
 import { modal, openModal } from "./hover.js";
@@ -32,7 +32,7 @@ export interface IFileSelector {
   options?: MBItems;
   icon?: Icon;
 }
-export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { input: Array<FSValue>, submit: string[]; }> {
+export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { input: [FSValue[]], submit: [str[]]; }> {
   input: S<HTMLInputElement>;
 
   static default: Partial<IFileSelector> = {
@@ -120,12 +120,12 @@ export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { i
         },
         empty(active, s) {
           s
-            .cls(C.label, active)
+            .c(C.label, active)
             .set(active && icon(i.icon));
         }
       }),
       menubar(
-        i.submit && !i.autosubmit && this.bind(ibt("upload", null, () => this.submit()).cls(Color.accept),
+        i.submit && !i.autosubmit && this.bind(ibt("upload", null, () => this.submit()).c(Color.accept),
           (s) => { g(s).prop("disabled", !values.length || values.every((value) => isS(value))); }, 'value'
         ),
         ibt('folder-open', null, () => this.input.e.click()),
@@ -311,7 +311,7 @@ export interface ICamera extends ImageFormat {
   /**base64 */
   value?: string;
 }
-export class Camera extends E<ICamera, { input: string; }>{
+export class Camera extends E<ICamera, { input: [str]; }>{
 
   constructor(model: ICamera) {
     super(model);
@@ -424,7 +424,7 @@ export class Camera extends E<ICamera, { input: string; }>{
     );
   }
   /** */
-  show() { return openModal(ex(modal(), { body: g(this) })); }
+  show() { return openModal(assign(modal(), { body: g(this) })); }
 }
 export const readFile = (file: Blob) => new Promise<str>(cb => {
   var reader = new FileReader();
@@ -440,7 +440,7 @@ export interface IMobImgSelector {
 }
 /**image select for smartphone/tablet */
 
-export class MobImgSelector extends E<IMobImgSelector, { input: str }>{
+export class MobImgSelector extends E<IMobImgSelector, { input: [str] }>{
   view() {
     let
       i = this.i,

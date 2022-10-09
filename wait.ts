@@ -1,5 +1,5 @@
 import { div, S } from "galho";
-import { isN, isP } from "./util.js";
+import { isN, isP } from "galho/util.js";
 import { C, icon } from "./galhui.js";
 /**call back */
 export type CB = PromiseLike<any> | (() => Promise<any>);
@@ -23,7 +23,7 @@ export function ph(type = tp.out) {
 export function waiter(element: S, cb: CB) {
   cb && (isP(cb) ? cb : cb?.()).then(t => {
     if (t instanceof S) {
-      t.cls(Array.from(element.e.classList).slice(1));
+      t.c(Array.from(element.e.classList).slice(1));
       t.attr("style",
         (t.attr("style") || "") +
         (element.attr("style") || "")

@@ -1,7 +1,8 @@
-import { active, cl, clearEvent, div, g, HSElement, One, S, wrap } from "galho";
-import { bool, ex, Key, str, t, Task } from "./util.js";
-import { body, C, cancel, close as closeBT, Color, confirm, HAlign, hc, icon, Icon, negative, positive, VAlign, w } from "./galhui.js";
+import { active, cl, clearEvent, div, g, HSElement, One, onfocusout, S, wrap } from "galho";
+import { assign, bool, float, Key, str, t, Task } from "galho/util.js";
+import { $, body, C, cancel, close as closeBT, Color, confirm, hc, icon, Icon, negative, Ori, positive, w } from "./galhui.js";
 import type { MenuItems } from "./menu.js";
+import { anim } from "./util.js";
 
 export interface IModal<K> {
   valid?: (key: K) => Task<unknown>;
@@ -22,7 +23,7 @@ export interface Modal<K> extends Promise<K>, IModal<K> {
 }
 //TODO remover valid
 export function modal<K = Key>(i: IModal<K> = {}) {
-  let resolve: any, p = ex(new Promise<K>(r => resolve = r) as Modal<K>, i);
+  let resolve: any, p = assign(new Promise<K>(r => resolve = r) as Modal<K>, i);
   p.cb = resolve;
   return p;
 }
@@ -30,7 +31,7 @@ export function modalBody<K>(md: Modal<K>, bd: any, actions?: S[], i: IBody = {}
   md.body = g("form", cl("_ modal panel", i.cls), [
     wrap(bd, "bd"),
     t(i.close) && closeBT(() => closeModal(md)),
-    actions && div(C.foot, actions.map(a => a.on('click', e => { e.preventDefault(); closeModal(md, a.d()) })))
+    actions && div("ft", actions.map(a => a.on('click', e => { e.preventDefault(); closeModal(md, a.d()) })))
   ]).on('keydown', (e) => {
     if (e.key == "Escape") {
       clearEvent(e);
@@ -45,6 +46,11 @@ export function openModal<K>(md: Modal<K>) {
     md.blur && md.area.prop("tabIndex", 0).on("focus", () => closeModal(md));
   }
   return md;
+}
+export function mdOpen(modal: S, blur?: bool) {
+  let t = div(hc(C.modalArea), modal).addTo(body);
+  blur && onfocusout(modal, () => t.remove())
+  return t;
 }
 /**define a body and show modal */
 export function openBody<K>(md: Modal<K>, bd: any, actions?: S[], i?: IBody) {
@@ -70,7 +76,7 @@ export function addClose<K>(md: Modal<K>) {
 export function fromPanel<K>(panel: One, i: IModal<K> = {}) {
   let md = modal(i);
   md.body = g(panel, "_ modal panel");
-  return openModal(mapButtons(addClose(md)));
+  return openModal(mapButtons(md));
 }
 
 export const headBody = (i: Icon, title: any, bd: any) => [
@@ -90,78 +96,27 @@ export function ok(msg: any) {
 export function error(msg: any) {
   return openBody(modal(), msg, [confirm()], { cls: Color.error });
 }
-/**dropdown with width>=base.width  */
-export function fluid({ left: l, right: r, bottom: b, top: t, width: w, height: h }: DOMRectReadOnly, menu: S, vAlign?: VAlign, hAlign?: HAlign, sub?: boolean) {
+
+type Tt = /*start*/"s" | /*end*/"e" |/*center*/ "c";
+export type FluidAlign = Ori | `${Ori}${Tt}` | `${Ori}${Tt}${Tt}` | [Ori, Tt?, Tt?];
+interface FluidRect { x: float, y: float, right: float, bottom: float }
+export function fluid({ x, y, right: r, bottom: b }: FluidRect, menu: S, [o, side, main]: FluidAlign) {
+  /*m:main,s:side */
   let
-    wh = window.innerHeight,
-    ww = window.innerWidth;
-
-  if (!vAlign)
-    vAlign = (t + h / 2) > (wh / 2) ? VAlign.top : VAlign.bottom;
-
-  if (!hAlign)
-    hAlign = (l + w / 2) > (ww / 2) ? HAlign.left : HAlign.right;
-
-  menu.css('minWidth', w + 'px');
-  if (vAlign == VAlign.top) {
-    menu
-      .uncss(['top'])
-      .css({
-        bottom: (wh - (sub ? b : t)) + 'px',
-        maxHeight: (sub ? b : t) + 'px'
-      })
-      .cls(VAlign.bottom, false);
-
-  } else {
-    menu
-      .uncss(['bottom'])
-      .css({
-        top: (sub ? t : b) + 'px',
-        maxHeight: (wh - (sub ? t : b)) + 'px'
-      })
-      .cls(VAlign.top, false);
-
-  }
-  if (hAlign == HAlign.left) {
-    menu
-      .uncss(['left'])
-      .css('right', (ww - (sub ? l : r)) + 'px')
-      .cls(HAlign.right, false);
-  } else {
-    menu
-      .uncss(['right'])
-      .css('left', (sub ? r : l) + 'px')
-      .cls(HAlign.left, false);
-  }
-  menu.cls([vAlign, hAlign]);
-
+    { innerHeight: wh, innerWidth: ww } = window,
+    { width: mw, height: mh } = menu.rect(),
+    h = o == "h",
+    e = $.rem * .4,
+    [ws, wm, ms, mm, s0, m0, s1, m1] = h ? [wh, ww, mh, mw, y, x, b, r] : [ww, wh, mw, mh, x, y, r, b];
+  main ||= (m0 + (m1 - m0) / 2) > (wm / 2) ? "s" : "e";
+  menu
+    .css({
+      ["max" + (h ? "Width" : "Height")]: (main == "e" ? wm - m1 : m0) - e*2 + "px",
+      [h ? "left" : "top"]: (main == "e" ? m1 + e : Math.max(0, m0 - mm) - e) + "px",
+      [h ? "top" : "left"]: Math.max(0, Math.min(ws - ms, side == "s" ? s1 - ms : side == "e" ? s0 : s0 + (s1 - s0) / 2 - ms / 2)) + "px",
+    });
 }
-/**dropdown with width=base.width  */
-export function fixedMenu(base: S, menu: S, align?: VAlign) {
-  base.cls([VAlign.top, VAlign.bottom], false).cls(fixed(base.rect(), menu, align));
-}
-export function fixed({ left: l, bottom: b, top: t, width: w }: DOMRectReadOnly, menu: S, align?: VAlign) {
-  let wh = window.innerHeight;
-
-  menu.css('width', w + 'px');
-  if (wh / 2 - t > 0) {
-    menu.css({
-      left: l + 'px',
-      top: b + 'px',
-      maxHeight: (wh - b) + 'px'
-    }).uncss(['bottom']);
-    return VAlign.bottom;
-  }
-
-  menu.css({
-    left: l + 'px',
-    bottom: (wh - t) + 'px',
-    maxHeight: t + 'px'
-  }).uncss(['top']);
-  return VAlign.top;
-
-}
-export function popup(div: S, e: () => DOMRectReadOnly) {
+export function popup(div: S, e: () => FluidRect, align: FluidAlign) {
   let
     last = active(),
     ctx = div.prop("tabIndex", 0),
@@ -182,29 +137,24 @@ export function popup(div: S, e: () => DOMRectReadOnly) {
   //   left: opts.clientX + 'px',
   //   top: opts.clientY + 'px'
   // })
-  requestAnimationFrame(function _() {
-    fluid(e(), ctx);
-    if (body.contains(ctx))
-      requestAnimationFrame(_);
-  });
+  anim(() => (fluid(e(), ctx, align), body.contains(ctx)));
   body.on("wheel", wheelHandler, { passive: false });
 }
 /**context menu */
 export function ctx(e: MouseEvent, data: MenuItems) {
   clearEvent(e);
-  popup(div("_ menu", g("table", 0, data)), () => new DOMRect(e.clientX, e.clientY, 0, 0));
+  popup(div("_ menu", g("table", 0, data)), () => new DOMRect(e.clientX, e.clientY, 0, 0), "ve");
 }
-export function tip<T extends HSElement>(root: S<T>, div: any, vAlign?: VAlign, hAlign?: HAlign) {
-  div = wrap(div).cls("_ tip");
+export function tip<T extends HSElement>(root: S<T>, div: any, align?: FluidAlign): S<T>
+export function tip<T extends HSElement>(root: S<T>, div: S, align: FluidAlign = "v") {
+  div = wrap(div, "_ tip");
   return root?.on({
     mouseenter() {
       body.add(div);
-      requestAnimationFrame(function _() {
-        fluid(root.rect(), div as S, vAlign, hAlign);
-        if (body.contains(div))
-          requestAnimationFrame(_);
-      });
+      anim(() => body.contains(root) ?
+        body.contains(div) && fluid(root.rect(), div as S, align) :
+        (div.remove(), false));
     },
-    mouseleave() { (div as S).remove() }
+    mouseleave() { div.remove() }
   });
 }

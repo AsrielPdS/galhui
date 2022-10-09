@@ -1,14 +1,10 @@
 ﻿import { getAll, S } from "galho";
-import { z } from "./array.js";
-import { Dic } from "./dic.js";
-import { def, isF, isS, str, Task } from "./util.js";
+import { Dic, def, isF, isS, str, Task, z } from "galho/util.js";
 
 export const hash = (s: S, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: S[]) {
   root = routeRoot;
-  window.onhashchange = () => {
-    tryGoTo(location.hash);
-  };
+  window.onhashchange = () => tryGoTo(location.hash);
   current = currentPath = null;
 }
 export type Update = (...path: string[]) => void;
@@ -51,7 +47,7 @@ export function intercept(v: Intercept) { _intercept = v; }
 export function has(path: str) {
   return path.slice(1).split('/')[0] in routes;
 }
-export function setDefault(value: str) { defRoute = value; }
+export function defaultRoute(value?: str) { return value === void 0 ? defRoute : defRoute = value; }
 export async function goTo(path: string): Promise<void> {
   if (path[0] == '#')
     path = path.slice(1);
@@ -62,6 +58,7 @@ export async function goTo(path: string): Promise<void> {
   if (newPath != currentPath) {
     current = null;
     let route = routes[newPath];
+    if (!route) throw 1;
     let dt = isF(route) ? await route(...keys) : route;
     if (dt && isF(dt[1])) {
       current = dt[1];
@@ -71,8 +68,8 @@ export async function goTo(path: string): Promise<void> {
     if (dt) set(dt as S[]);
   }
   history.replaceState(null, null, "#" + path/*`#${}?${dicToQString(params)}`*/);
-  getAll("a[current]").do(e => e.attr("current", false));
-  getAll(`a[href="#${path}"]`).do(e => e.attr("current", true));
+  getAll("a.on").do(e => e.c("on", false));
+  getAll(`a[href="#${path}"]`).do(e => e.c("on"));
   current?.(...keys);
 }
 export function tryGoTo(path: string) {

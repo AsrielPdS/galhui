@@ -1,6 +1,5 @@
 import { ANYElement, cl, div, g, isE, Render, S, svg, toSVG, wrap } from "galho";
-import { Dic } from "./dic.js";
-import { float, int, isS, str } from "./util.js";
+import { arr, Arr, Dic, falses, float, int, isS, str } from "galho/util.js";
 
 declare global {
   namespace GalhoUI {
@@ -20,19 +19,16 @@ declare global {
       // c: str;
 
       /**icon scale */
-      iconS?: int;
+      is?: str;
       delay?: int;
 
       /**icons */
       i?: Dic<Icon> & {
         /**dropdown */
-        dd: Icon;
+        dd?: Icon;
+        close?: Icon;
       };
-      rem: float
-
-      null?(): Icon;
-      /**return value formatted*/
-      fmt?(value: any, pattern: str, opts?: Dic): any;
+      rem: float;
     }
 
     // interface Theme {
@@ -106,7 +102,6 @@ export const enum C {
 /**settings */
 export const $: GalhoUI.Settings = {
   // c: "_",
-  iconS: 24,
   delay: 500,
   rem: 14
 }
@@ -126,6 +121,7 @@ export const enum VAlign {
   middle = 'm',
   bottom = 'b'
 }
+export type vAlign = "t" | "m" | "b";
 
 export const enum HAlign {
   left = 'l',
@@ -133,10 +129,12 @@ export const enum HAlign {
   right = 'r',
   justify = "j"
 }
-export const enum Ori {
+export type hAlign = "l" | "c" | "r" | "j";
+export const enum OriOld {
   h = 'h',
   v = 'v'
 }
+export type Ori = "v" | "h";
 export const enum Size {
   xl = "xl",
   l = "l",
@@ -162,21 +160,21 @@ export const cc = (...cls: str[]) => `._.${cls.join('-')}`;
 /**html class */
 export const hc = (...cls: str[]) => ['_', cls.join('-')];
 
-export type Icon = { d: str, c?: str | Color } | str | S<SVGSVGElement> | 0;
+export type Icon = { d: str, c?: str | Color } | str | S<SVGSVGElement> | falses;
 export function icon(dt: Icon, size?: Size): S<SVGSVGElement>;
 export function icon(d: Icon, s?: Size) {
   if (d) {
     if (isS(d)) d = { d };
     else if (isE(d))
-      return d.cls(cl(C.icon, s));
+      return d.c(cl(C.icon, s));
     return svg('svg', {
       fill: d.c || "currentColor",
-      viewBox: `0 0 ${$.iconS} ${$.iconS}`,
-    }, svg('path', { d: d.d })).cls(cl(C.icon, s));
+      viewBox: $.is || "0 0 24 24",
+    }, svg('path', { d: d.d })).c(cl(C.icon, s));
   }
 }
 
-export type click = (this: HTMLButtonElement, e: MouseEvent) => any;
+export type click = ((this: HTMLButtonElement, e: MouseEvent) => any) | falses;
 
 export type ButtonType = "button" | "submit" | "clear";
 export const bt = (text: Child, click?: click, type: ButtonType = "button") =>
@@ -187,14 +185,14 @@ export const link = (text: Child, href?: str) => g("a", ["_", C.link], text).pro
 export const ibt = (i: Icon, text: Child, click?: click, type: ButtonType = "button") =>
   g("button", "_ bt", [icon(i), text])
     .prop("type", type)
-    .cls(C.icon, !text).on("click", click);
+    .c(C.icon, !text).on("click", click);
 
 /** @deprecated */
 export const ibutton = ibt;
 export const positive = (i: Icon, text: Child, click?: click, type?: ButtonType) =>
-  ibt(i, text, click, type).cls(Color.accept);
+  ibt(i, text, click, type).c(Color.accept);
 export const negative = (i: Icon, text: Child, click?: click, type?: ButtonType) =>
-  ibt(i, text, click, type).cls(Color.error);
+  ibt(i, text, click, type).c(Color.error);
 
 /** link with icon */
 export const ilink = (i: Icon, text: Child, href?: str) => g("a", C.link, [icon(i), text]).prop("href", href);
@@ -218,9 +216,9 @@ export function logo(v: str | Icon) {
       switch (v[0]) {
         case ".":
         case "/":
-          return img(v).cls(C.icon);
+          return img(v).c(C.icon);
         case "<":
-          return toSVG(v).cls(C.icon);
+          return toSVG(v).c(C.icon);
       }
     } else return icon(v);
 }

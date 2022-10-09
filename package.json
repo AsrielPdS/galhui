@@ -10,8 +10,6 @@
   "sideEffects": false,
   "dependencies": {
     "csstype": "^3.0.11",
-    "galho": "file:../galho",
-    "handler": "file:../handler",
-    "orray": "file:../orray"
+    "galho": "file:../galho"
   }
 }

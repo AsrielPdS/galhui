@@ -1,7 +1,8 @@
 import { cl, div, g, Input, S } from "galho";
-import { bool, call, Task, uuid } from "./util.js";
+import { bool, call, Task } from "galho/util.js";
 import { C, click, HAlign, icon, Icon } from "./galhui.js";
 import { fluid } from "./hover.js";
+import { uuid } from "./util.js";
 import { CB as WaitCB, tp as WaitTP, wait as _wait, waiter } from "./wait.js";
 
 type _MenuItems = Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems> | (() => MenuItems);
@@ -14,7 +15,7 @@ export const wait = (callback?: WaitCB) =>
   call(g("tr", 0, g("td", 0, _wait(WaitTP.out)).prop("colSpan", 4)), tr => waiter(tr, callback));
 
 /**menu item */
-export const menuitem = (i: Icon, text: any, action?: click, side?:any) => g("tr", C.item, [
+export const menuitem = (i: Icon, text: any, action?: click, side?: any) => g("tr", C.item, [
   g("td", 0, icon(i)),
   g("td", 0, text),
   g("td", C.side, side),
@@ -40,11 +41,11 @@ export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", C.
   let mn: S;
   e.on("click", () => {
     e.tcls(C.on).is('.' + C.on) ?
-      fluid(e.rect(), (mn ||= g("table", C.menu, items)).addTo(e)) :
+      fluid(e.rect(), (mn ||= g("table", C.menu, items)).addTo(e), "h") :
       mn.remove();
   })
 });
-export const menusep = () => g("tr").cls(C.separator);
+export const menusep = () => g("tr",C.separator);
 
 export type MBItems = any;//Array<One | Array<Items>>;
 /** */

@@ -1,19 +1,23 @@
-import { cl, delay, div, E, g, S, wrap } from "galho";
-import { orray } from "orray";
+import { cl, clearEvent, delay, div, E, g, S, wrap } from "galho";
+import { orray } from "galho/orray.js";
 import { Select } from "./dropdown.js";
-import { $, C, Color, hc, icon, w } from "./galhui.js";
+import { $, body, C, Color, hc, icon, w } from "./galhui.js";
 import { mbitem } from "./menu.js";
-import { bool, int, isS, isU, str, t } from "./util.js";
+import { bool, Dic, int, isS, isU, str, t, Task } from "galho/util.js";
+import { kbHandler, list } from "./list.js";
+import { fluid, popup } from "./hover.js";
+import { anim } from "./util.js";
 
 //#region input
-export type InputTp = "text" | "number" | "search" | "checkbox" | "radio" | "password";
+export type TextInputTp = "text" | "email" | "url" | "tel";
+export type InputTp = TextInputTp | "number" | "search" | "checkbox" | "radio" | "password";
 export type Input = S<HTMLInputElement | HTMLTextAreaElement>;
 
 export const input = (type: InputTp, name: str, ph?: str, input?: (e: Event) => any) =>
-  g("input", { type, name, placeholder: ph }).cls(hc(C.input)).on("input", input);
+  g("input", { type, name, placeholder: ph }).c("_ in").on("input", input);
 
 export const textarea = (name: str, ph: str, input?: (text: str) => void) =>
-  g("textarea", { name, placeholder: ph }).cls(hc(C.input)).on("input", input && (function () { input(this.value) }));
+  g("textarea", { name, placeholder: ph }).c("_ in").on("input", input && (function () { input(this.value) }));
 
 export const checkbox = (label: any, input?: (checked: bool) => void) =>
   g("label", hc(C.checkbox), [g("input", { type: "checkbox" }).on("input", input && (function () { input(this.checked) })), label]);
@@ -21,9 +25,30 @@ export const checkbox = (label: any, input?: (checked: bool) => void) =>
 export function search(input?: (value: str) => any) {
   let t = g("input", { type: "search", placeholder: w.search }), i = icon($.i.search);
   input && delay(t, "input", $.delay, () => input(t.e.value));
-  return (i ? div(0, [t, i]) : t).cls(hc(C.input));
+  return (i ? div(0, [t, i]) : t).c("_ in");
 }
-export const lever = (name: str) => g("input", { type: "checkbox", name }).cls(C.lever);
+export function searcher<T extends Dic>(query: (q: str) => Task<T[]>) {
+  let
+    dt = orray<T>(),
+    menu = list({ kd: false, item: v => [div(0, v.name), g("span", "tag", ["NIF: ", v.nif])] }, dt).c("_ tip"),
+    _: () => any,
+    focus = () => _ ||= (
+      menu.addTo(body),
+      anim(() => body.contains(i) ? fluid(i.rect(), menu, "vc") : (_(), _ = null))),
+    i: Input = delay(g("input", { type: "search", placeholder: "NIF ou Nome da empresa" })
+      .on({
+        focus, blur() { _(); _ = null; },
+        keydown(e) { kbHandler(dt, e, {}) && clearEvent(e) }
+      }),
+      "input", $.delay, async () => {
+        if (i.e.value) {
+          focus();
+          dt.set(await query(i.e.value))
+        } else { _?.(); _ = null; }
+      });
+  return i;
+}
+export const lever = (name: str) => g("input", { type: "checkbox", name }).c(C.lever);
 
 
 export interface IPagging {
@@ -56,7 +81,7 @@ export class Pagging extends E<IPagging>{
         i.minLimit * 20,
         { key: 0, text: 'Mostrar todos' }
       ]);
-      g(limits).cls("in");
+      g(limits).c("in");
     }
 
     return this.bind(div("_ bar pag", [
@@ -74,7 +99,7 @@ export class Pagging extends E<IPagging>{
       if (i.viewtotal)
         total.set(`${Math.min(i.total - i.limit * (i.pag - 1), i.limit || i.total) || 0} / ${i.total || 0}`)
       pags = i.limit ? Math.ceil((i.total || 0) / i.limit) : 1;
-      s.cls(C.off, !!(pags < 2 && i.hideOnSingle));
+      s.c(C.off, !!(pags < 2 && i.hideOnSingle));
 
       let t = i.extreme ? 0 : 1
       s.child(2 - t).set(i.pag);
@@ -97,10 +122,10 @@ export class Pagging extends E<IPagging>{
 
 export const label = (content) => g("label", hc(C.label), content);
 export const output = (...content) => g("span", hc(C.label), content);
-export const keyVal = (key, val) => g("span", hc(C.input), [key + ": ", val]);
+export const keyVal = (key, val) => g("span", "_ in", [key + ": ", val]);
 
-export const message = (c?: Color, data?) => div(hc(C.message), data).cls(c);
-export const errorMessage = (data?) => message(data).cls(Color.error);
+export const message = (c?: Color, data?) => div(hc(C.message), data).c(c);
+export const errorMessage = (data?) => message(data).c(Color.error);
 export const tip = (e: S, value) => e.prop("title", value);
 
 
@@ -132,7 +157,8 @@ export class Output<T = unknown> extends E<IOutput<T>>{
     let i = this.i;
     return this.bind(div(), (s) => {
       s
-        .uncls().cls(cl(C.input, i.color))
+        .attr("class", false)
+        .c(cl(C.input, i.color))
         .set([
           i.text, ': ',
           $.fmt(i.value, i.fmt, i.def && { def: i.def })
@@ -153,7 +179,7 @@ export const hidden = (head: any, body: any, open?: bool) => div(["_", C.accordi
   head = div(C.head, [
     icon("menuR"),
     head
-  ]).cls(C.on, !!open).on("click", () => (<S>head).tcls(C.on)),
+  ]).c(C.on, !!open).on("click", () => (<S>head).tcls(C.on)),
   wrap(body, C.body)
 ]);
 export function accordion(items: AccordionItem[], i: IAccordion = {}) {
@@ -162,12 +188,12 @@ export function accordion(items: AccordionItem[], i: IAccordion = {}) {
       hd = div(C.head, [
         t(i.icon) && icon("menuR"),
         hd
-      ]).cls(C.on, i.def == j).on("click", () => {
+      ]).c(C.on, i.def == j).on("click", () => {
         if ((hd as S).is('.' + C.on))
-          (<S>hd).cls(C.on, false);
+          (<S>hd).c(C.on, false);
         else {
-          t(i.single) && p.childs("." + C.head).cls(C.on, false);
-          (<S>hd).cls(C.on);
+          t(i.single) && p.childs("." + C.head).c(C.on, false);
+          (<S>hd).c(C.on);
         }
       }),
       wrap(bd, C.body)

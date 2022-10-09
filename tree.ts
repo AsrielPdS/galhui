@@ -3,7 +3,7 @@ import orray, { Alias, L } from "orray";
 import { $, C, Child, icon, Icon } from "./galhui.js";
 import { ctx } from "./hover.js";
 import { ICrud } from "./list.js";
-import { bool, str } from "./util.js";
+import { bool, str } from "galho/util.js";
 
 function prev(start: S, parent: S) {
   let e: Element = start.e;
@@ -115,11 +115,11 @@ export function query({ data }: ITree, text: string) {
 export function select(i: ITree, e?: Branch) {
   let f = i.focus, o = i.s, n = i.s = e;
   if (o) {
-    o.head.cls(C.on, false);
+    o.head.c(C.on, false);
     f?.(o, false);
   }
   if (n) {
-    n.head.cls(C.on);
+    n.head.c(C.on);
     f?.(n, true);
   }
 }
@@ -182,7 +182,7 @@ export class Branch extends E<IBranch> {
         }
         this.ctx.toggle?.(this, i.open);
       }, 'open');
-    } else return h.cls(C.item).d(this).prepend(icon(i.icon));
+    } else return h.c(C.item).d(this).prepend(icon(i.icon));
   }
   filter(filter: (item: IBranch) => boolean, /*sub: boolean = true,*/  ok = false) {
     //obs: ok � para que se o parent passar no filtro todos os filhos devem passar tambem
@@ -193,7 +193,7 @@ export class Branch extends E<IBranch> {
       for (let item of dt) {
         any = item.filter(filter, ok) || any;
       }
-    // this.div.cls(C.off, !any);
+    // this.div.c(C.off, !any);
     return ok;
   }
 }

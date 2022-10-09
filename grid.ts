@@ -1,8 +1,8 @@
 import { cl, clearEvent, div, E } from "galho";
-import { L } from "orray";
+import { L } from "galho/orray.js";
 import { C, icon, Icon, logo, Size } from "./galhui.js";
 import { crudHandler, ICrud, kbHandler, kbHTp } from "./list.js";
-import { bool, int, str } from "./util.js";
+import { bool, int, str } from "galho/util.js";
 
 export interface Node {
   key?: str;
@@ -43,9 +43,9 @@ export class Grid<T extends Node> extends E<IGrid<T>>{
     let
       i = this.i,
       dt = i.dt,
-      d = crudHandler(div().attr("resize", true), dt, "grid", i);
+      d = div().attr("resize", true);
     setTimeout(() => this.resize());
-    return dt.bind(this.bind(d, () => d.uncls().cls(cl("_", i.sz, "grid")), "sz"), {
+    return dt.bind(this.bind(d, () => d.c(cl("_", i.sz, "grid")), "sz"), {
       insert: (v) => div(C.item, [
         logo(v.icon) || icon(i.defIcon),
         v.txt || v.key,
@@ -56,7 +56,7 @@ export class Grid<T extends Node> extends E<IGrid<T>>{
         marginLeft: this.margin + "px",
         marginRight: this.margin + "px",
       }),
-      groups: (e, v, _, k) => e.cls(k, v),
+      groups: (e, v, _, k) => e.c(k, v),
     }).on({
       keydown: (e) => {
         if (!kbHandler(dt, e, i))

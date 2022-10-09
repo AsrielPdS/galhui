@@ -1,12 +1,10 @@
 import { clearEvent, div, E, g, S } from "galho";
-import { call, isO, t } from "./util.js";
-import { Alias,  extend, L } from "orray";
-import { list as selected, move as moveSelection, tp as selectionType } from "orray/selector.js";
-import { $, body, C, close, hc, icon, Icon, VAlign } from "./galhui.js";
-import { fixedMenu, fluid } from "./hover.js";
+import { Alias, extend, L, range } from "galho/orray.js";
+import { bool, byKey, call, isO, isU, Key, l, str, sub, t } from "galho/util.js";
+import { $, body, C, close, icon, Icon, VAlign } from "./galhui.js";
+import { fluid, FluidAlign } from "./hover.js";
 import { menu, menuitem } from "./menu.js";
-import { bool, Key, str } from "./util.js";
-import { byKey, l, sub } from "./array.js";
+import { anim } from "./util.js";
 export interface IRoot {
 
   /**if should open when clicked 
@@ -27,61 +25,65 @@ export interface IRoot {
   /**label field */
   label?: str;
 }
-export type Root = E<IRoot, { open: bool }>;
+export type Root = E<IRoot, { open?: [bool] }> & {
+  value(): any;
+  value(...v: any[]): Root
+};
 
 
-export function keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
-  switch (e.key) {
-    case "ArrowUp":
-      me.set("open", true);
-      moveSelection(options, "on", -1, selectionType(e.shiftKey, e.ctrlKey));
-      break;
-    case "ArrowDown":
-      me.set("open", true);
-      moveSelection(options, "on", 1, selectionType(e.shiftKey, e.ctrlKey));
-      break;
-    case "Enter":
-      if (me.i.open) {
-        if (l(options) == 1) {
-          set(options[0][options.key] as any);
-        } else {
-          set(...sub(selected(options, "on"), options.key as any));
-          break;
-        }
-      }
-      // quando estiver fechado nao abri para permitir
-      // usar o enter para submeter o formulario (me.set(C.open, true))
-      return;
+// export function keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
 
-    case "Escape":
-      if (me.i.open) {
-        me.set("open", false);
-        break;
-      } else return;
-
-    default:
-      return;
-  }
-  clearEvent(e);
-}
+// }
 /**create root, add handlers */
-export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
+export function setRoot(me: Root, options: L, label: S, menu: S) {
   let
     i = me.i,
-    root = div(["_", C.select], [label.cls("bd"), t(i.icon) && icon($.i.dd)?.cls(C.side)/*, me.menu*/])
+    root = div(["_", C.select], [label.c("bd"), t(i.icon) && icon($.i.dd)?.c(C.side)/*, me.menu*/])
       .prop("tabIndex", 0)
       .on({
-        focus: (e) => {
+        focus(e) {
           if (i.off) {
             if (e.relatedTarget)
               g(e.relatedTarget as Element).focus();
             else root.blur();
-          } else root.cls("on");
+          } else root.c("on");
         },
-        focusout: false || ((e) => {
+        keydown(e) {
+          switch (e.key) {
+            case "ArrowUp":
+              me.set("open", true);
+              range.move(options, "on", -1, range.tp(e.shiftKey, e.ctrlKey));
+              break;
+            case "ArrowDown":
+              me.set("open", true);
+              range.move(options, "on", 1, range.tp(e.shiftKey, e.ctrlKey));
+              break;
+            case "Enter":
+              if (me.i.open)
+                l(options) == 1 ?
+                  me.value(options[0][options.key] as any) :
+                  me.value(...sub(range.list(options, "on"), options.key as any));
+              else {
+                let frm = g(me).closest("form");
+                if (frm) frm?.e.requestSubmit();
+                else return;
+              }
+              break;
+            case "Escape":
+              if (me.i.open) {
+                me.set("open", false);
+                break;
+              } else return;
+
+            default:
+              return;
+          }
+          clearEvent(e);
+        },
+        focusout: null && ((e) => {
           //se o novo item que ganhou o foco n�o estiver dentro do item actual fecha o menu
           // if (!i.off && !root.contains(e.relatedTarget as Element)) {
-          //   root.cls("on", false);
+          //   root.c("on", false);
           //   me.set("open", false);
           // }
 
@@ -120,31 +122,26 @@ export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
       if (i.off) {
         me.set("open", false);
         root.blur();
-        root.cls(C.disabled);
+        root.c(C.disabled);
         root.prop('tabIndex', -1);
       } else {
-        root.cls(C.disabled, false);
+        root.c(C.disabled, false);
         root.prop('tabIndex', t(i.tab) ? 0 : -1);
       }
     }
     if ("open" in state) {
+      if (i.open && i.off) {
+        me.set("open", false);
+        return;
+      }
       me.emit('open', i.open);
-      root.cls("on", i.open);
+      root.c("on", i.open);
 
       if (i.open) {
-        if (i.off) {
-          me.set("open", false);
-          return;
-        }
         menu.addTo(root);
-        calcMenu(root, menu, fluid);
-        // requestAnimationFrame(function _() {
-        //   calcMenu(root, menu, fluid);
-        //   if (body.contains(menu))
-        //     requestAnimationFrame(_);
-        // });
+        anim(() => body.contains(menu) && fluid(root.rect(), menu, "ve"));
       } else {
-        root.cls([VAlign.bottom, VAlign.top], false);
+        root.c([VAlign.bottom, VAlign.top], false);
         menu.remove();
       }
     }
@@ -152,17 +149,14 @@ export function setRoot(me: Root, label: S, menu: S, fluid?: bool) {
 
   return root;
 }
-function calcMenu(root: S, menu: S, fluidMenu?: bool) {
-  fluidMenu ?
-    fluid(root.rect(), menu) :
-    fixedMenu(root, menu);
-}
-export function setValue<K extends Key = any>(me: Root & { value: K }, label: S, options: L) {
-  if (me.value) {
-    let option = options.find(me.value);
-    label.set([option[me.i.label], t(me.i.clear) && close(() => me.value = null)]);
+export function setValue<K extends Key = any>(me: Root & { value(): K, value(v: K): Root }, label: S, options: L) {
+  let v = me.value();
+  if (v == null) label.c("_ ph").set(me.i.ph);
+  else {
+    let option = options.find(v);
+    label.c("ph", false).set([option[me.i.label], t(me.i.clear) && close(() => me.value(null))]);
     me.set("open", false);
-  } else label.set(me.i.ph);
+  }
 
 }
 interface SelectItem<K> {
@@ -176,7 +170,7 @@ export interface ISelect<K extends Key = str> extends IRoot {
   /**menu width will change acord to content */
   fluid?: boolean;
 }
-export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open: bool }> {
+export class Select<K extends Key = str> extends E<ISelect<K>, { input: [K]; open: [bool] }> {
   options: L<SelectItem<K>, K>;
   constructor(i: ISelect<K>, options?: Alias<SelectItem<K>, K>) {
     super(i);
@@ -185,12 +179,14 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open:
       parse: (e) => isO(e) ? e : { key: e }
     });
   }
-  get value() { return this.i.value }
-  set value(v) {
-    if (this.i.value !== v) {
-      this.set("value", v);
-      this.emit('input', v);
-    }
+  value(): K;
+  value(v: K): this;
+  value(v?: K) {
+    return isU(v) ?
+      this.i.value :
+      this.i.value === v ?
+        this :
+        this.set("value", v).emit('input', v);
   }
 
   get selected() { return byKey(this.options, this.i.value); }
@@ -201,14 +197,14 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open:
       items = g("table").on("click", ({ currentTarget: ct, target: t }) =>
         ct != t && (this.set("open", false).value = g(t as Element).closest("tr").d())),
       menu = div("_ menu", items),
-      root = setRoot(this, label, menu).on("keydown", e => keydown(this, e, options, (v: K) => this.value = v));
+      root = setRoot(this, options, label, menu);
     setValue(this, label, options);
     this.on(e => ("value" in e) && setValue(this, label, options));
 
     options.bind(items, {
       insert: ({ i, text, key }) => menuitem(i, text || key),
       tag(s, active, tag) {
-        s.cls(tag, active);
+        s.c(tag, active);
 
         if (active) {
           menu.e.scroll({ top: s.prop('offsetTop') - menu.prop('clientHeight') / 2 + s.prop('clientHeight') / 2 });
@@ -221,21 +217,17 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: K; open:
 
 }
 
-export function dropdown(label: any, items: any) {
-  return call(div(hc(C.dropdown), label), e => {
-    let mn = items instanceof S ? items : null, open: bool;
+export function dropdown(label: any, items: any, align: FluidAlign = "ve") {
+  return call(div("_ dd", [label, icon($.i.dd)]), e => {
+    let mn = items instanceof S ? items : null;
     e.on("click", () => {
-      if (open)
+      if (mn?.parent()) {
         mn.remove();
-      else {
-        (mn ||= menu(items)).addTo(e);
-        requestAnimationFrame(function _() {
-          fluid(e.rect(), mn)
-          if (body.contains(mn))
-            requestAnimationFrame(_);
-        });
+        e.c("on", false);
+      } else {
+        (mn ||= menu(items)).c(C.menu).addTo(e.c("on"));
+        anim(() => body.contains(mn) && fluid(e.rect(), mn, align));
       }
-      open = !open;
     });
   })
 }
@@ -291,11 +283,11 @@ export function dropdown(label: any, items: any) {
 //   view(): S {
 //     let
 //       i = this.i,
-//       lb = g(i.labelE || 'div').cls(C.body);
+//       lb = g(i.labelE || 'div').c(C.body);
 
 //     this.label = i.labelParent || lb // model.labelItem || label;
 
-//     this.menu = (i.menuE || div(0, i.items = g("table"))).cls("_ menu");
+//     this.menu = (i.menuE || div(0, i.items = g("table"))).c("_ menu");
 
 //     //if (model.menuItems && model.menuItems != this.menu) {
 //     //  this.menu.setClass(Cls.fill);
@@ -354,14 +346,14 @@ export function dropdown(label: any, items: any) {
 //     bind(options, menu, {
 //       insert: this.insertItem.bind(this),
 //       tag(s, active, tag) {
-//         s.cls(tag, active);
+//         s.c(tag, active);
 
 //         if (active) {
 //           vScroll(menu, s.e.offsetTop - menu.prop('clientHeight') / 2 + s.prop('clientHeight') / 2);
 //         }
 //       },
 //       groups: {
-//         ["on"](e, active) { e.cls(C.on, active); }
+//         ["on"](e, active) { e.c(C.on, active); }
 //       }
 //     });
 //     bind(values, menu, {
@@ -370,14 +362,14 @@ export function dropdown(label: any, items: any) {
 //         if (index != -1)
 //           mItems
 //             .child(index)
-//             .cls(C.main);
+//             .c(C.main);
 //       },
 //       remove(key) {
 //         let index = itemIndex(options, key);
 //         if (index != -1)
 //           mItems
 //             .child(index)
-//             .cls(C.main, false);
+//             .c(C.main, false);
 //       }
 //     });
 //     bind(values, this.label, {
@@ -497,7 +489,7 @@ export function dropdown(label: any, items: any) {
 // }
 // export function openMultselect<T extends Object = Dic, K extends Key = Key>(i: IOpenMultselect<T, K>, allOptions: T[]) {
 //   let
-//     select = new Multselect<T, K>(ex(i, {
+//     select = new Multselect<T, K>(assign(i, {
 //       label(value) {
 //         i.labelE.prop('value', value);
 //       },
@@ -529,6 +521,6 @@ export function dropdown(label: any, items: any) {
 //       })
 //     }), allOptions),
 //     opts = select.options;
-//   g(select).cls(C.input)
+//   g(select).c(C.input)
 //   return select;
 // }

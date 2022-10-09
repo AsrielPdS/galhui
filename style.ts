@@ -1,10 +1,9 @@
 import { Property } from "csstype";
-import { def, ex, isB, isN, isO, toStr } from "./util.js";
+import { def, assign, isB, isN, isO, toStr, isA } from "galho/util.js";
 import { cc, HAlign } from "./galhui.js";
-import { filter } from "./dic.js";
+import { filter } from "galho/dic.js";
 import { css, Properties, Style, Styles } from "galho/css.js";
-import { bool, float, str } from "./util.js";
-import { isA } from "./array.js";
+import { bool, float, str } from "galho/util.js";
 
 export const enum ScreenSize {
   mobileS = 320,
@@ -15,12 +14,17 @@ export const enum ScreenSize {
   laptopL = 1440
 }
 export const enum zIndex {
+  xxback = -3,
+  xback = -2,
   back = -1,
   normal = 0,
   front = 1,
-  modalArea = 2,
-  modal = 3,
-  ctxMenu = 4,
+  modalArea = 3,
+  modal = 4,
+  ctxMenu = 5,
+  tip = 6,
+  xfront = 7,
+  xxfront = 8
 }
 export const min = (size: ScreenSize) => `@media (min-width: ${size}px)`;
 export const max = (size: ScreenSize) => `@media (max-width: ${size}px)`;
@@ -40,14 +44,39 @@ export function font(v: Font): Properties {
       { fontSize: v.s && (v.s + "rem"), fontWeight: bold(v.b), fontStyle: italic(v.i) }
   )
 }
-export function center(): Style {
-  return {
+export
+  const center = (): Style => ({
     position: "absolute",
     left: "50%",
     top: "50%",
-    transform: "translate(-50%,-50%)"
-  }
-}
+    translate: "-50% -50%",
+  }),
+  col = (): Style => ({
+    display: "flex",
+    flexDirection: "column"
+  }),
+  row = (inline?: bool): Style => ({
+    display: inline ? "inline-flex" : "flex",
+    flexDirection: "row"
+  }),
+  vpad = (v: str | 0): Style => ({
+    paddingTop: v,
+    paddingBottom: v
+  }),
+  vmarg = (v: str | 0): Style => ({
+    marginTop: v,
+    marginBottom: v
+  }),
+  bord = (b: Border) => b && `${b.w || 1}px ${b.s || "solid"} ${b.c}`,
+  bords = (b: Borders): Style => b &&
+    (isA(b) ? {
+      borderTop: bord(b[0]),
+      borderRight: bord(b[1]),
+      borderBottom: bord(def(b[2], b[0])),
+      borderLeft: bord(def(b[3], b[1]))
+    } : { border: bord(b) });
+
+
 export const block = (v: TBlock): Style => v && filter({
   color: v.fg,
   padding: spc(v.pad),
@@ -56,13 +85,13 @@ export const block = (v: TBlock): Style => v && filter({
   ...bords(v.brd),
   background: v.bg,
   ...font(v.f)
-});
-export const state = (v: Stateble): Style => v && filter({
-  ...block(v),
-  ":hover": v.h && block(v.h),
-  ":visited": v.v && block(v.v),
-  ":active,:focus": v.on && block(v.on),
-});
+}),
+  state = (v: Stateble): Style => v && filter({
+    ...block(v),
+    ":hover": v.h && block(v.h),
+    ":visited": v.v && block(v.v),
+    ":active,:focus": v.on && block(v.on),
+  });
 export const c = (...cls: str[]) => cc(...cls);
 export const rem = (v: float) => v + "rem";
 export const border = (color: str, size = 1) => `${size}px solid ${color}`;
@@ -79,15 +108,7 @@ export function tAlign(v: HAlign): Property.TextAlign {
       return "justify";
   }
 }
-export const bord = (b: Border) => b && `${b.w || 1}px ${b.s || "solid"} ${b.c}`;
-export const bords = (b: Borders): Style => b &&
-  (isA(b) ? {
-    borderTop: bord(b[0]),
-    borderRight: bord(b[1]),
-    borderBottom: bord(def(b[2], b[0])),
-    borderLeft: bord(def(b[3], b[1]))
-  } : { border: bord(b) });
-export const spc = (v: SpaceFull, unit = "em") => v==null ? (isN(v) ? v + unit : v.map(v => v + unit).join(" ")) : null;
+export const spc = (v: SpaceFull, unit = "em") => v == null ? null : (isN(v) ? v + unit : v.map(v => v + unit).join(" "));
 /**horizontal space */
 export const hs = (v: SpaceFull) => isN(v) ? v : v[1];
 /**vertical space */
@@ -96,14 +117,6 @@ export const vs = (v: SpaceFull) => isN(v) ? v : v[0];
 export const topRadius = (v: float, unit = "rem"): Style => ({
   borderTopLeftRadius: v + unit,
   borderTopRightRadius: v + unit
-});
-export const vpad = (v: str | 0): Style => ({
-  paddingTop: v,
-  paddingBottom: v
-});
-export const vmarg = (v: str | 0): Style => ({
-  marginTop: v,
-  marginBottom: v
 });
 export const bottomRadius = (v: float, unit = "rem"): Style => ({
   borderBottomLeftRadius: v + unit,
@@ -133,7 +146,7 @@ export function styleCtx<T = any>(options: T, tag = css({})) {
       }
       return add;
     };
-  return ex(add, options);
+  return assign(add, options);
 }
 
 type Space = float | [x: float, y: float];
