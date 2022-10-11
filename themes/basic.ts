@@ -342,7 +342,7 @@ export const panel = (ctx: Context): Styles => ({
       ...box(0, [.5, .8]),
       padding: ".5em 1.7em",
       overflow: "auto",
-      height: "calc(100% - 3em)",
+      height: "calc(100% - 3.8em)",
       ":first-child": { paddingTop: "1.2em", },
     },
     ".hd+.bd": {
