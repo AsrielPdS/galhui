@@ -333,7 +333,7 @@ export const panel = (ctx: Context): Styles => ({
       margin: 0,
       height: "2.2em",
       fontSize: "inherit",
-      padding: ".4em .7em",
+      padding: ".4em 2em",
       background: "#cfd8dc",
       "&:empty": { display: "none" },
       // height:"unset"

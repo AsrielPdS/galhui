@@ -139,7 +139,10 @@ export function setRoot(me: Root, options: L, label: S, menu: S) {
 
       if (i.open) {
         menu.addTo(root);
-        anim(() => body.contains(menu) && fluid(root.rect(), menu, "ve"));
+        anim(() => {
+          let r = root.rect();
+          return body.contains(menu) && (menu.css("minWidth", r.width + "px"), fluid(r, menu, "ve"))
+        });
       } else {
         root.c([VAlign.bottom, VAlign.top], false);
         menu.remove();
