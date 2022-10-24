@@ -1,5 +1,6 @@
-import { ANYElement, cl, div, g, isE, Render, S, svg, toSVG, wrap } from "galho";
-import { arr, Arr, Dic, falses, float, int, isS, str } from "galho/util.js";
+import { ANYElement, cl, div, g, Input, isE, Render, S, svg, toSVG, wrap } from "galho";
+import { arr, Arr, bool, call, Dic, falses, float, int, isN, isP, isS, str, Task } from "galho/util.js";
+import { uuid } from "./util.js";
 
 declare global {
   namespace GalhoUI {
@@ -178,13 +179,13 @@ export type click = ((this: HTMLButtonElement, e: MouseEvent) => any) | falses;
 
 export type ButtonType = "button" | "submit" | "clear";
 export const bt = (text: Child, click?: click, type: ButtonType = "button") =>
-  g("button", "_ bt", text).prop("type", type).on("click", click);
-export const link = (text: Child, href?: str) => g("a", ["_", C.link], text).prop("href", href);
+  g("button", "_ bt", text).p("type", type).on("click", click);
+export const link = (text: Child, href?: str) => g("a", ["_", C.link], text).p("href", href);
 
 /** button with icon */
 export const ibt = (i: Icon, text: Child, click?: click, type: ButtonType = "button") =>
   g("button", "_ bt", [icon(i), text])
-    .prop("type", type)
+    .p("type", type)
     .c(C.icon, !text).on("click", click);
 
 /** @deprecated */
@@ -195,19 +196,19 @@ export const negative = (i: Icon, text: Child, click?: click, type?: ButtonType)
   ibt(i, text, click, type).c(Color.error);
 
 /** link with icon */
-export const ilink = (i: Icon, text: Child, href?: str) => g("a", C.link, [icon(i), text]).prop("href", href);
+export const ilink = (i: Icon, text: Child, href?: str) => g("a", C.link, [icon(i), text]).p("href", href);
 
 /**close button */
 export const close = (click?: click) => div(hc(C.close), icon($.i.close)).on("click", click);
 /**cancel button */
 export const cancel = (click?: click) => negative($.i.cancel, w.cancel, click,);
 /**confirm button */
-export const confirm = (click?: click) => positive("confirm", w.confirm, click, "submit");
+export const confirm = (click?: click) => positive($.i.check, w.confirm, click, "submit");
 
 export const buttons = (...buttons: S[]) => div(C.buttons, buttons);
 
-export const img = (src: str, cls?: str | str[]) => g("img", cls).prop("src", src)
-export const a = (href: str, content: any, cls?: str | str[]) => g("a", cls, content).prop("href", href)
+export const img = (src: str, cls?: str | str[]) => g("img", cls).p("src", src)
+export const a = (href: str, content: any, cls?: str | str[]) => g("a", cls, content).p("href", href)
 export const hr = (cls?: str | str[]) => g("hr", cls);
 
 export function logo(v: str | Icon) {
@@ -228,3 +229,132 @@ export const panel = (hd: any, bd: any, ft?: any) => div("_ panel", [
   wrap(bd, "bd"),
   ft && wrap(ft, "ft")
 ]);
+type Tt = /*start*/"s" | /*end*/"e" |/*center*/ "c";
+export type FluidAlign = Ori | `${Ori}${Tt}` | `${Ori}${Tt}${Tt}` | [Ori, Tt?, Tt?];
+export interface FluidRect { x: float, y: float, right: float, bottom: float }
+export function fluid({ x, y, right: r, bottom: b }: FluidRect, menu: S, [o, side, main]: FluidAlign) {
+  /*m:main,s:side */
+  let
+    { innerHeight: wh, innerWidth: ww } = window,
+    { width: mw, height: mh } = menu.rect(),
+    h = o == "h",
+    e = $.rem * .4,
+    [ws, wm, ms, mm, s0, m0, s1, m1] = h ? [wh, ww, mh, mw, y, x, b, r] : [ww, wh, mw, mh, x, y, r, b];
+  main ||= (m0 + (m1 - m0) / 2) > (wm / 2) ? "s" : "e";
+  menu
+    .css({
+      ["max" + (h ? "Width" : "Height")]: (main == "e" ? wm - m1 : m0) - e * 2 + "px",
+      [h ? "left" : "top"]: (main == "e" ? m1 + e : Math.max(0, m0 - mm) - e) + "px",
+      [h ? "top" : "left"]: Math.max(0, Math.min(ws - ms, side == "s" ? s1 - ms : side == "e" ? s0 : s0 + (s1 - s0) / 2 - ms / 2)) + "px",
+    });
+}
+type _MenuItems = Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems> | (() => MenuItems);
+export type MenuItems = Task<_MenuItems>;
+
+export function menu(items?: MenuItems) { return div("_ menu", g("table", 0, items)); }
+
+/**menu item */
+export const menuitem = (i: Icon, text: any, action?: click, side?: any) => g("tr", C.item, [
+  g("td", 0, icon(i)),
+  g("td", 0, text),
+  g("td", C.side, side),
+  g("td")
+]).on("click", action);
+
+/**checkbox */
+export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, id = uuid(4), disabled?: bool) {
+  let input = g("input", { id, checked, disabled, indeterminate: checked == null, type: "checkbox" });
+  toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
+  return g("tr", cl("i", disabled && C.disabled), [
+    g("td", 0, input.on("click", e => e.stopPropagation())),
+    g("td", 0, g("label", 0, text).p("htmlFor", id)),
+    g("td"), g("td")
+  ]);
+}
+export const menuwait = (callback?: WaitCB) =>
+  call(g("tr", 0, g("td", 0, wait(WaitType.out)).p("colSpan", 4)), tr => waiter(tr, callback));
+export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", "i", [
+  g("td", 0, icon(i)),
+  g("td", 0, text),
+  g("td"),
+  g("td", 0, icon("menuR"))
+]), e => {
+  let mn: S;
+  e.on("click", () => {
+    e.tcls(C.on).is('.' + C.on) ?
+      fluid(e.rect(), (mn ||= g("table", C.menu, items)).addTo(e), "h") :
+      mn.remove();
+  })
+});
+export const menusep = () => g("tr",C.separator);
+
+export type MBItems = any;//Array<One | Array<Items>>;
+/** */
+export const menubar = (...items: MBItems) => div("_ bar", items);
+/** */
+export const right = () => div(HAlign.right);
+export const mbitem = (i: Icon, text: any, action?: (e: MouseEvent) => any) => g("button", "i", [icon(i), text]).on("click", action);
+
+/**menubar separator */
+export const mbsep = () => g("hr");
+/**menubar checkbox */
+export function barcb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, disabled?: bool) {
+  let input = g("input", { checked, disabled, indeterminate: checked == null, type: "checkbox" });
+  toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
+  return g("label", cl("i", disabled && C.disabled), [input, text]);
+}
+
+/**call back */
+export type WaitCB = PromiseLike<any> | (() => Promise<any>);
+
+/**wait type */
+export const enum WaitType {
+  inline,
+  out,
+}
+/**place holder */
+export function ph(type = WaitType.out) {
+  switch (type) {
+    case WaitType.inline:
+    case WaitType.out:
+      return div(C.loading, [
+        //icon({ /*s: size, */d: `loading ${C.centered}` }),
+        //icon({ /*s: size, */d: `loading ${C.itemA} ${C.centered}` }),
+      ]);
+  }
+}
+export function waiter(element: S, cb: WaitCB) {
+  cb && (isP(cb) ? cb : cb?.()).then(t => {
+    if (t instanceof S) {
+      t.c(Array.from(element.e.classList).slice(1));
+      t.attr("style",
+        (t.attr("style") || "") +
+        (element.attr("style") || "")
+      )
+    }
+    element.replace(t);
+  });
+}
+export function wait(body?: WaitCB): S;
+export function wait(type: WaitType, body?: WaitCB): S;
+export function wait(type?: WaitType | WaitCB, body?: WaitCB): any {
+  if (!isN(type)) {
+    body = type;
+    type = WaitType.inline;
+  }
+  let loader = ph(type);
+  waiter(loader, body);
+  return loader;
+}
+
+
+export function busy(container: S) {
+  let e = wait(), t = setTimeout(() => {
+    container.add(e);
+  }, 750);
+
+  return () => {
+    e.remove();
+    clearTimeout(t);
+  }
+}

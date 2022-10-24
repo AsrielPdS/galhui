@@ -2,7 +2,7 @@ import { Property } from "csstype";
 import { def, assign, isB, isN, isO, toStr, isA } from "galho/util.js";
 import { cc, HAlign } from "./galhui.js";
 import { filter } from "galho/dic.js";
-import { css, Properties, Style, Styles } from "galho/css.js";
+import { css, Properties, Style, Styles } from "galho";
 import { bool, float, str } from "galho/util.js";
 
 export const enum ScreenSize {

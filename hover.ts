@@ -1,7 +1,7 @@
-import { active, cl, clearEvent, div, g, HSElement, One, onfocusout, S, wrap } from "galho";
-import { assign, bool, float, Key, str, t, Task } from "galho/util.js";
-import { $, body, C, cancel, close as closeBT, Color, confirm, hc, icon, Icon, negative, Ori, positive, w } from "./galhui.js";
-import type { MenuItems } from "./menu.js";
+import { active, cl, clearEvent, div, E, g, HSElement, One, onfocusout, S, wrap } from "galho";
+import { Alias, extend, L, range } from "galho/orray.js";
+import { assign, bool, byKey, call, Dic, isO, isU, Key, l, str, sub, t, Task } from "galho/util.js";
+import { $, MenuItems, FluidRect, FluidAlign, fluid, body, C, cancel, close, close as closeBT, Color, confirm, hc, icon, Icon, menu, menuitem, negative, positive, VAlign, w } from "./galhui.js";
 import { anim } from "./util.js";
 
 export interface IModal<K> {
@@ -30,9 +30,9 @@ export function modal<K = Key>(i: IModal<K> = {}) {
 export function modalBody<K>(md: Modal<K>, bd: any, actions?: S[], i: IBody = {}) {
   md.body = g("form", cl("_ modal panel", i.cls), [
     wrap(bd, "bd"),
-    t(i.close) && closeBT(() => closeModal(md)),
+    // t(i.close) && closeBT(() => closeModal(md)),
     actions && div("ft", actions.map(a => a.on('click', e => { e.preventDefault(); closeModal(md, a.d()) })))
-  ]).on('keydown', (e) => {
+  ]).p("tabIndex", 0).on('keydown', (e) => {
     if (e.key == "Escape") {
       clearEvent(e);
       closeModal(md);
@@ -43,7 +43,8 @@ export function modalBody<K>(md: Modal<K>, bd: any, actions?: S[], i: IBody = {}
 export function openModal<K>(md: Modal<K>) {
   if (!md.area) {
     md.area = div(hc(C.modalArea), md.body).addTo(body);
-    md.blur && md.area.prop("tabIndex", 0).on("focus", () => closeModal(md));
+    md.body.focus();
+    md.blur && md.area.p("tabIndex", 0).on("focus", () => closeModal(md));
   }
   return md;
 }
@@ -85,7 +86,7 @@ export const headBody = (i: Icon, title: any, bd: any) => [
 ];
 
 export function okCancel(body: any, valid?: () => any) {
-  return openBody(modal({ valid: valid && (v => !v || valid()) }), body, [confirm().d(true), cancel()]);
+  return openBody(modal({ valid: valid && (v => !v || valid()) }), body, [confirm().d(true), cancel()], { cls: "xs" });
 }
 export function yesNo(body: any, valid?: () => any) {
   return openBody(modal({ valid: valid && (v => !v || valid()) }), body, [positive(null, w.yes).d(true), negative(null, w.no)]);
@@ -97,29 +98,10 @@ export function error(msg: any) {
   return openBody(modal(), msg, [confirm()], { cls: Color.error });
 }
 
-type Tt = /*start*/"s" | /*end*/"e" |/*center*/ "c";
-export type FluidAlign = Ori | `${Ori}${Tt}` | `${Ori}${Tt}${Tt}` | [Ori, Tt?, Tt?];
-interface FluidRect { x: float, y: float, right: float, bottom: float }
-export function fluid({ x, y, right: r, bottom: b }: FluidRect, menu: S, [o, side, main]: FluidAlign) {
-  /*m:main,s:side */
-  let
-    { innerHeight: wh, innerWidth: ww } = window,
-    { width: mw, height: mh } = menu.rect(),
-    h = o == "h",
-    e = $.rem * .4,
-    [ws, wm, ms, mm, s0, m0, s1, m1] = h ? [wh, ww, mh, mw, y, x, b, r] : [ww, wh, mw, mh, x, y, r, b];
-  main ||= (m0 + (m1 - m0) / 2) > (wm / 2) ? "s" : "e";
-  menu
-    .css({
-      ["max" + (h ? "Width" : "Height")]: (main == "e" ? wm - m1 : m0) - e*2 + "px",
-      [h ? "left" : "top"]: (main == "e" ? m1 + e : Math.max(0, m0 - mm) - e) + "px",
-      [h ? "top" : "left"]: Math.max(0, Math.min(ws - ms, side == "s" ? s1 - ms : side == "e" ? s0 : s0 + (s1 - s0) / 2 - ms / 2)) + "px",
-    });
-}
 export function popup(div: S, e: () => FluidRect, align: FluidAlign) {
   let
     last = active(),
-    ctx = div.prop("tabIndex", 0),
+    ctx = div.p("tabIndex", 0),
     // isOut: bool,
     wheelHandler = (e: Event) => clearEvent(e);
   ctx.queryAll('button').on('click', function () { last.valid ? last.focus() : this.blur() });
@@ -158,3 +140,521 @@ export function tip<T extends HSElement>(root: S<T>, div: S, align: FluidAlign =
     mouseleave() { div.remove() }
   });
 }
+
+export interface IRoot {
+
+  /**if should open when clicked 
+   * @default true */
+  click?: bool;
+  /**if should have menu-down icon 
+   * @default true */
+  icon?: bool;
+  open?: bool;
+  off?: bool;
+  /**gain focus via tab key 
+   * @default true
+  */
+  tab?: bool;
+  clear?: bool
+  /**placeholder */
+  ph?: any;
+  /**label field */
+  label?: str;
+}
+export type Root = E<IRoot, { open?: [bool] }> & {
+  value: Key;
+};
+
+
+// export function keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
+
+// }
+/**create root, add handlers */
+export function setRoot(me: Root, options: L, label: S, menu: S) {
+  let
+    i = me.i,
+    root = div(["_", C.select], [label.c("bd"), t(i.icon) && icon($.i.dd)?.c(C.side)/*, me.menu*/])
+      .p("tabIndex", 0)
+      .on({
+        focus(e) {
+          if (i.off) {
+            if (e.relatedTarget)
+              g(e.relatedTarget as Element).focus();
+            else root.blur();
+          } else root.c("on");
+        },
+        keydown(e) {
+          switch (e.key) {
+            case "ArrowUp":
+              me.set("open", true);
+              range.move(options, "on", -1, range.tp(e.shiftKey, e.ctrlKey));
+              break;
+            case "ArrowDown":
+              me.set("open", true);
+              range.move(options, "on", 1, range.tp(e.shiftKey, e.ctrlKey));
+              break;
+            case "Enter":
+              if (me.i.open)
+                me.value = l(options) == 1 ?
+                  options[0][options.key] as any :
+                  sub(range.list(options, "on"), options.key as any)[0];
+              else {
+                let frm = g(me).closest("form");
+                if (frm) frm?.e.requestSubmit();
+                else return;
+              }
+              break;
+            case "Escape":
+              if (me.i.open) {
+                me.set("open", false);
+                break;
+              } else return;
+
+            default:
+              return;
+          }
+          clearEvent(e);
+        },
+        focusout: null && ((e) => {
+          //se o novo item que ganhou o foco n�o estiver dentro do item actual fecha o menu
+          // if (!i.off && !root.contains(e.relatedTarget as Element)) {
+          //   root.c("on", false);
+          //   me.set("open", false);
+          // }
+
+          ////so faz esta checagem se estiver activo(n�o desactivo)
+          //if (!model.off) {
+          //  //se o novo item que ganhou o foco n�o estiver dentro do item actual fecha o menu
+          //  let child = m(<Element>e.relatedTarget);
+          //  root.setClass(Cls.selected, false);
+
+          //  if (!child.valid)
+          //    _this.set(C.open, false);
+          //  else if (root.contains(child)) {
+          //    if (child.isCls(Cls.item) && !child.isCls(Cls.dropdown))
+          //      _this.set(C.open, false);
+
+          //  } else _this.set(C.open, false);
+
+          //}
+        })
+      });
+
+  if (t(i.click))
+    root.on('click', (e) => {
+      if (i.off) {
+        e.stopImmediatePropagation();
+      } else {
+        //if (m(<Element>e.target).is('button'))
+        //  _this.set(C.open, false);
+        //else
+        if (!menu.contains(e.target as HTMLElement))
+          me.toggle("open");
+      }
+    });
+  me.on(state => {
+    if ("off" in state) {
+      if (i.off) {
+        me.set("open", false);
+        root.blur();
+        root.c(C.disabled);
+        root.p('tabIndex', -1);
+      } else {
+        root.c(C.disabled, false);
+        root.p('tabIndex', t(i.tab) ? 0 : -1);
+      }
+    }
+    if ("open" in state) {
+      if (i.open && i.off) {
+        me.set("open", false);
+        return;
+      }
+      me.emit('open', i.open);
+      root.c("on", i.open);
+
+      if (i.open) {
+        menu.addTo(root);
+        anim(() => {
+          let r = root.rect();
+          return body.contains(menu) && (menu.css("minWidth", r.width + "px"), fluid(r, menu, "ve"))
+        });
+      } else {
+        root.c([VAlign.bottom, VAlign.top], false);
+        menu.remove();
+      }
+    }
+  });
+
+  return root;
+}
+export async function setValue<K extends Key = any>(me: Root & { option(k: K): Task<Dic> }, label: S) {
+  let v = me.value;
+  if (v == null) label.c("_ ph").set(me.i.ph);
+  else {
+    let o = await me.option(v as K);
+    label.c("ph", false).set([o[me.i.label], t(me.i.clear) && close(() => me.value=null)]);
+    me.set("open", false);
+  }
+
+}
+interface SelectItem<K> {
+  key: K;
+  text?: str;
+  i?: Icon;
+}
+export interface ISelect<K extends Key = str> extends IRoot {
+  value?: K;
+  ph?: str;
+  /**menu width will change acord to content */
+  fluid?: boolean;
+}
+export class Select<K extends Key = str> extends E<ISelect<K>, { input: [K]; open: [bool] }> {
+  options: L<SelectItem<K>, K>;
+  get selected() { return byKey(this.options, this.i.value); }
+  constructor(i: ISelect<K>, options?: Alias<SelectItem<K>, K>) {
+    super(i);
+    this.options = extend<SelectItem<K>, K>(options, {
+      key: "key",
+      parse: (e) => isO(e) ? e : { key: e }
+    });
+  }
+  get value() { return this.i.value; }
+  set value(v) { this.i.value === v || this.set("value", v).emit('input', v) }
+
+  view() {
+    let
+      { i, options } = this,
+      label = g("span"),
+      items = g("table").on("click", ({ currentTarget: ct, target: t }) =>
+        ct != t && (this.set("open", false).value = g(t as Element).closest("tr").d())),
+      menu = div("_ menu", items),
+      root = setRoot(this, options, label, menu);
+    setValue(this, label);
+    this.on(e => ("value" in e) && setValue(this, label));
+
+    options.bind(items, {
+      insert: ({ i, text, key }) => menuitem(i, text || key),
+      tag(s, active, tag) {
+        s.c(tag, active);
+
+        if (active) {
+          menu.e.scroll({ top: s.p('offsetTop') - menu.p('clientHeight') / 2 + s.p('clientHeight') / 2 });
+        }
+      }
+    });
+
+    return root;
+  }
+  option(k: K) {
+    return this.options.find(k);
+  }
+}
+
+export const dropdown = (label: any, items: any, align: FluidAlign = "ve") =>
+  call(div("_ dd", label), e => {
+    let mn = items instanceof S ? items : null;
+    e.on("click", () => {
+      if (mn?.parent()) {
+        mn.remove();
+        e.c("on", false);
+      } else {
+        (mn ||= menu(items)).c(C.menu).addTo(e.c("on"));
+        anim(() => body.contains(mn) && fluid(e.rect(), mn, align));
+      }
+    });
+  });
+export const idropdown = (label: any, items: any, align?: FluidAlign) =>
+  dropdown([label, icon($.i.dd)], items, align)
+// export interface IOpenSelect<T extends Object = Dic, K extends Key = Key> extends ISelect<T, K> {
+//   input?: 'text' | 'number';
+//   valid?: (value: string) => boolean;
+// }
+// export function openSelect<T extends Object = Dic, K extends Key = Key>(input: (this: Select<T, K>, value) => any, options: (T | K)[], i: IOpenSelect<T, K> = {}) {
+//   let ip = i.labelE = g('input', { type: i.input }).on('input', function () {
+//     input.call(select, this.value);
+//   });
+//   i.label = (value) => {
+//     ip.p('value', <any>value);
+//   }
+//   let select = new Select<T, K>(i, options);
+//   return select;
+// }
+
+
+
+// export interface ISelectBase<T extends Object, K> extends IRoot {
+//   menuE?: S;
+//   labelE?: S;
+
+//   /**element in menu or menu itself where items will be added */
+//   items?: S<HTMLTableElement>;
+//   labelParent?: S;
+//   menu?: (this: this, value: T) => One;
+//   /**called when value change */
+//   setMenu?: (this: this, value: K) => void;
+//   /**elemento dentro da label onde a label vai ser renderizada */
+//   //labelItem?: S;
+
+//   //label: S | ((key: K) => void);
+
+// }
+// export abstract class SelectBase<M extends ISelectBase<T, K> = ISelectBase<any, any>, T extends Object = any, K = Key, E extends SelectEvents = SelectEvents> extends E<M, E>  {
+//   menu: S;
+//   label: S;
+
+//   options: L<T, K>;
+//   abstract setValue(...value: K[]): void;
+
+//   constructor(i: M, options?: Alias<T, K>) {
+//     super(i);
+//     this.options = extend<T, K>(options, {
+//       key: "key",
+//       parse: (e) => isO(e) ? e : { key: e } as any
+//     });
+//   }
+
+
+//   view(): S {
+//     let
+//       i = this.i,
+//       lb = g(i.labelE || 'div').c(C.body);
+
+//     this.label = i.labelParent || lb // model.labelItem || label;
+
+//     this.menu = (i.menuE || div(0, i.items = g("table"))).c("_ menu");
+
+//     //if (model.menuItems && model.menuItems != this.menu) {
+//     //  this.menu.setClass(Cls.fill);
+//     //  model.menuItems.setClass(Cls.full);
+//     //}
+
+//     i.open = false;
+
+
+//     //if (!md.menuRender)
+//     //  md.menuRender = value => div( null, value[md.key]);
+
+//     return root(this, i, this.options);
+//   }
+
+//   protected insertItem(value: T) {
+//     var model = this.i;
+
+//     return g(model.menu(value))
+//       //.setClass(Cls.option)
+//       .on('click', (e) => {
+//         e.stopPropagation();
+//         let k = value[model.key];
+//         this.setValue(k);
+//       });
+//   }
+// }
+// export interface IMultselect<T extends Object = any, K extends str | num = str> extends ISelectBase<T, K> {
+//   value?: L<K>;
+//   empty?: (empty: boolean, container?: S) => void;
+//   label?: (this: L<K>, value: K, index?: number, container?: S) => void | One;// Child | Promise;
+// }
+// export class Multselect<T extends Object = { key: str }, K extends str | num = str> extends SelectBase<IMultselect<T, K>, T, K, { add: K[], remove: K[]; input: K[] } & SelectEvents> {
+//   constructor(i: IMultselect<T, K>, options?: Array<T | K>) {
+//     super(i, options);
+//     this.options.addGroup("on");
+//     i.value = orray(i.value, {
+//       parse(item) {
+//         if (this.indexOf(item) == -1)
+//           return item;
+//       }
+//     });
+//     //.bindToE(this, "value");
+//   }
+//   get value() { return this.i.value; }
+//   view() {
+//     let
+//       i = this.i,
+//       values = i.value,
+//       options = this.options,
+//       div = super.view(),
+//       mItems = i.items,
+//       menu = i.items || this.menu;
+
+//     this.label.css('flexWrap', 'wrap');
+//     bind(options, menu, {
+//       insert: this.insertItem.bind(this),
+//       tag(s, active, tag) {
+//         s.c(tag, active);
+
+//         if (active) {
+//           vScroll(menu, s.e.offsetTop - menu.p('clientHeight') / 2 + s.p('clientHeight') / 2);
+//         }
+//       },
+//       groups: {
+//         ["on"](e, active) { e.c(C.on, active); }
+//       }
+//     });
+//     bind(values, menu, {
+//       insert(key) {
+//         let index = itemIndex(options, key);
+//         if (index != -1)
+//           mItems
+//             .child(index)
+//             .c(C.main);
+//       },
+//       remove(key) {
+//         let index = itemIndex(options, key);
+//         if (index != -1)
+//           mItems
+//             .child(index)
+//             .c(C.main, false);
+//       }
+//     });
+//     bind(values, this.label, {
+//       insert: i.label,
+//       empty: i.empty
+//     });
+
+//     return root(this, i).on("keydown", e => {
+//       switch (e.key) {
+//         case "Delete": {
+//           let target = g(e.target as HTMLElement);
+//           if (is(target, 'input') || is(target, 'textarea') || !this.delete())
+//             return;
+//           else break;
+//         }
+//         case "Backspace": {
+//           let target = g(e.target as HTMLElement);
+//           if (is(target, 'input') || is(target, 'textarea') || !this.backspace())
+//             return;
+//           else break;
+//         }
+//       }
+//       keydown(e, this.options);
+//     });
+//   }
+
+//   delete() {
+//     let vl = this.i.value;
+//     if (!vl.length)
+//       return false;
+
+//     this.removeValue(vl[0]);
+//     return true;
+//   }
+//   backspace() {
+//     let vl = this.i.value;
+
+//     if (!vl.length)
+//       return false;
+
+//     this.removeValue(z(vl));
+//     return true;
+//   }
+
+//   setValue(...values: K[]) {
+//     let md = this.i;
+
+//     //let list = this.model.value;
+//     if (values.length) {
+//       //let l = list.length;
+//       let inserted: K[] = [];
+
+//       for (let value of values) {
+//         if (md.value.indexOf(value) == -1) {
+//           inserted.push(value);
+//         }
+//       }
+
+
+//       //md.value.push(...values);
+
+//       if (inserted.length > 0) {
+//         md.value.push(...inserted);
+
+//         this.emit('add', inserted);
+//         this.emit('input', md.value.slice());
+
+//         if (md.open && this.$)
+//           this.setMenu(this.$)
+//       }
+//     }
+//   }
+
+//   removeValue(...values: K[]) {
+//     let
+//       md = this.i,
+//       removed: K[] = [];
+
+//     for (let value of values) {
+//       let i = md.value.indexOf(value);
+//       if (i != -1) {
+//         md.value.removeAt(i);
+//         removed.push(value);
+//       }
+//     }
+
+//     if (removed.length > 0) {
+//       this.emit('remove', removed);
+//       this.emit('input', md.value.slice());
+
+//       if (md.open && this.$)
+//         this.setMenu(this.$)
+//     }
+//   }
+
+//   //setLabel(value: T) {
+//   //  var model = this.model;
+//   //  return model.menuRender(<T>value)
+//   //    .setClass(Cls.option)
+//   //    .on('click', (e) => {
+//   //      e.stopPropagation();
+//   //      let k = value[model.key];
+//   //      this.set('value', k);
+//   //      model.child.setTag(focusKey, k);
+//   //    })
+//   //}
+
+// }
+
+
+
+// export interface IOpenMultselect<T extends Object = Dic, K extends Key = Key> extends IMultselect<T, K> {
+//   input?: 'text' | 'number';
+//   valid?: (value: string) => boolean;
+//   /**place holder */
+//   ph?: str;
+// }
+// export function openMultselect<T extends Object = Dic, K extends Key = Key>(i: IOpenMultselect<T, K>, allOptions: T[]) {
+//   let
+//     select = new Multselect<T, K>(assign(i, {
+//       label(value) {
+//         i.labelE.p('value', value);
+//       },
+//       labelE: g('input', { type: i.input, placeholder: i.ph }).on({
+//         input() {
+//           let arg: Arg<str> = { v: this.value };
+//           select.emit("type" as any, arg);
+//           if (!arg.p) {
+//             allOptions ||= opts.slice();
+//             let parts = valid(arg.v.split(/\s+/g)).map(q => new RegExp(q, "gu"));
+//             opts.set(allOptions.filter(o => parts.every(p => p.test(o[i.key]))));
+//           }
+//           if (l(opts) == 1)
+//             addSelection(opts, "on", opts[0], SelectionTp.set);
+//         },
+//         keydown(e) {
+//           if (e.key == "Enter" && !opts.tags["on"]) {
+//             clearEvent(e);
+//             let arg: Arg<str> = { v: this.value };
+//             if (i.valid ? i.valid(arg.v) : false) {
+//               select.emit("submit" as any, arg)
+//               if (!arg.p) {
+//                 opts.push({ [i.key]: arg.v } as any);
+//                 select.setValue(arg.v as K);
+//               }
+//             }
+//           }
+//         }
+//       })
+//     }), allOptions),
+//     opts = select.options;
+//   g(select).c(C.input)
+//   return select;
+// }

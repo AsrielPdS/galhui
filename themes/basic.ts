@@ -1,8 +1,7 @@
-import type { S } from "galho";
-import { css, rgb, rgba, Style, Styles } from "galho/css.js";
+import { css, rgb, rgba, S, Style, Styles } from "galho";
 import { str } from "galho/util.js";
 import { C, cc, Color, Size } from "../galhui.js";
-import { bfg, border, box, max, min, col, rem, row, ScreenSize, styleCtx, StyleCtx, vmarg, zIndex } from "../style.js";
+import { bfg, border, box, min, rem, row, ScreenSize, styleCtx, StyleCtx, vmarg, zIndex } from "../style.js";
 
 interface State {
   /**normal */n: str;
@@ -27,7 +26,6 @@ export interface Pallete {
   in: { bg: str, fg?: str, border: State };
 }
 export type Context = StyleCtx<Pallete>;
-
 
 export const enum consts {
   menuH = 2,
@@ -277,6 +275,10 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
         // },
 
       },
+      [`.${Color.error}`]: {
+        background: "#e53935", color: "#fff",
+        ":hover": { background: "#ef5350" },
+      }
     },
     // display: "table",  
   },
