@@ -1,6 +1,6 @@
 import { cl, clearEvent, delay, div, E, g, One, S, wrap } from "galho";
 import { L, orray } from "galho/orray.js";
-import { assign, bool, Dic, fmt, int, isS, isU, str, t, Task } from "galho/util.js";
+import { assign, bool, call, Dic, fmt, int, isN, isS, isU, str, t, Task } from "galho/util.js";
 import { $, body, C, fluid, cancel, close, Color, confirm, hc, ibt, icon, Icon, mbitem, MBItems, menubar, panel, Size, w } from "./galhui.js";
 import { modal, openModal, Select } from "./hover.js";
 import { kbHandler, list } from "./list.js";
@@ -659,5 +659,17 @@ export function accordion(items: AccordionItem[], i: IAccordion = {}) {
       wrap(bd, C.body)
     ]);
   });
+}
+export type TabItem = [hd: any, bd: any];
+export function tab(items: TabItem[],initial?:int) {
+  let
+    hd = div("_ bar", items.map(([h, b]) => call(div("i", h), e => e.on("click", () => {
+      d.set([hd, b]);
+      hd.childs().c("on", false);
+      e.c("on");
+    })))),
+    d = div("_ tab");
+    isN(initial)&&hd.child<HTMLDivElement>(initial).e.click()
+  return d;
 }
 //#endregion

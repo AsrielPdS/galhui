@@ -50,7 +50,12 @@ export function openModal<K>(md: Modal<K>) {
 }
 export function mdOpen(modal: S, blur?: bool) {
   let t = div(hc(C.modalArea), modal).addTo(body);
-  blur && onfocusout(modal, () => t.remove())
+
+  blur && t.on("click", function _(e) {
+    if (e.target == e.currentTarget)
+      t.off("click", _).remove()
+  });
+
   return t;
 }
 /**define a body and show modal */
@@ -292,7 +297,7 @@ export async function setValue<K extends Key = any>(me: Root & { option(k: K): T
   if (v == null) label.c("_ ph").set(me.i.ph);
   else {
     let o = await me.option(v as K);
-    label.c("ph", false).set([o[me.i.label], t(me.i.clear) && close(() => me.value=null)]);
+    label.c("ph", false).set([o[me.i.label], t(me.i.clear) && close(() => me.value = null)]);
     me.set("open", false);
   }
 

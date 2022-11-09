@@ -245,8 +245,10 @@ export class FormBase<T extends IFormBase = IFormBase, Ev extends FormEvents = F
     return this;
   }
   reset(...fields: str[]) {
-    for (let i of l(fields) ? this.inputs.filter(i => fields.includes(i.key)) : this.inputs)
+    for (let i of l(fields) ? this.inputs.filter(i => fields.includes(i.key)) : this.inputs) {
+      i.visited = false;
       i.value = i.def;
+    }
     return this;
   }
   // clear(...fields: str[]) {

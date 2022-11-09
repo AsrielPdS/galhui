@@ -1,5 +1,5 @@
 import { ANYElement, cl, div, g, Input, isE, Render, S, svg, toSVG, wrap } from "galho";
-import { arr, Arr, bool, call, Dic, falses, float, int, isN, isP, isS, str, Task } from "galho/util.js";
+import { bool, call, Dic, falses, float, int, isN, isP, isS, str, Task } from "galho/util.js";
 import { uuid } from "./util.js";
 
 declare global {
@@ -40,7 +40,7 @@ export type FormatType = "s" | "d" | "b" | "n";
 
 export type Classes =
   "mnb";
-/** classes */
+/**@deprecated classes */
 export const enum C {
   full = "full",
   disabled = "ds",

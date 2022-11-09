@@ -50,6 +50,7 @@ export class TimeSpan {
     return this;
   }
   to(unit: TimeUnit) { return Math.floor(this.value / unit); }
+  day() { return this.to(TimeUnit.d); }
   get(ref: Date | int) {
     return new Date(<int>ref + this.value);
 

@@ -139,9 +139,8 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
       g: i.single ? null : ["on"],
       clear: true, key: i.key
     }),
-    e = t(i.enum),
-    r = dt.bind(g("ol", "_ list"), {
-      insert: v => crudHandler(wrap(i.item(v), "i").d(v), dt, i),
+    r = dt.bind(g(t(i.enum) ? "ol" : "ul", "_ list"), {
+      insert: v => crudHandler(wrap(i.item(v), "i").d(v).badd(div(C.side)), dt, i),
       tag(s, active, tag) {
         tag == "on" && s.c(C.current, active).e.scrollIntoView({
           block: "nearest",

@@ -1,33 +1,10 @@
 import { Property } from "csstype";
-import { def, assign, isB, isN, isO, toStr, isA } from "galho/util.js";
+import { def, assign, isB, isN, isO, toStr, isA, int } from "galho/util.js";
 import { cc, HAlign } from "./galhui.js";
 import { filter } from "galho/dic.js";
 import { css, Properties, Style, Styles } from "galho";
 import { bool, float, str } from "galho/util.js";
 
-export const enum ScreenSize {
-  mobileS = 320,
-  mobileM = 375,
-  mobileL = 425,
-  tablet = 768,
-  laptop = 1024,
-  laptopL = 1440
-}
-export const enum zIndex {
-  xxback = -3,
-  xback = -2,
-  back = -1,
-  normal = 0,
-  front = 1,
-  modalArea = 3,
-  modal = 4,
-  ctxMenu = 5,
-  tip = 6,
-  xfront = 7,
-  xxfront = 8
-}
-export const min = (size: ScreenSize) => `@media (min-width: ${size}px)`;
-export const max = (size: ScreenSize) => `@media (max-width: ${size}px)`;
 export const bold = (v: bool | Property.FontWeight): any =>
   v ? isB(v) ? "bold" : v : null;
 export const italic = (v: bool | Property.FontStyle): any =>
@@ -50,14 +27,6 @@ export
     left: "50%",
     top: "50%",
     translate: "-50% -50%",
-  }),
-  col = (): Style => ({
-    display: "flex",
-    flexDirection: "column"
-  }),
-  row = (inline?: bool): Style => ({
-    display: inline ? "inline-flex" : "flex",
-    flexDirection: "row"
   }),
   vpad = (v: str | 0): Style => ({
     paddingTop: v,
