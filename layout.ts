@@ -181,7 +181,7 @@ class Tab implements Item, Render {
     let i = this.i, list = <L<iBox>>i.list;
     return div("_ tab", [
       list.bind(div(C.head), {
-        tag: (v, a) => v.c(C.on, a),
+        tag: (v, i,p) => p.child(i).c("on", v),
         insert: box => box.$.head().c(C.item)
           .add(close(e => { e.stopPropagation(); list.remove(box); }))
           .on('click', () => list.tag("on", box))

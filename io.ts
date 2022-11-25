@@ -661,7 +661,7 @@ export function accordion(items: AccordionItem[], i: IAccordion = {}) {
   });
 }
 export type TabItem = [hd: any, bd: any];
-export function tab(items: TabItem[],initial?:int) {
+export function tab(initial:int, ...items: TabItem[]) {
   let
     hd = div("_ bar", items.map(([h, b]) => call(div("i", h), e => e.on("click", () => {
       d.set([hd, b]);
@@ -669,7 +669,7 @@ export function tab(items: TabItem[],initial?:int) {
       e.c("on");
     })))),
     d = div("_ tab");
-    isN(initial)&&hd.child<HTMLDivElement>(initial).e.click()
+    hd.child<HTMLDivElement>(initial).e.click()
   return d;
 }
 //#endregion

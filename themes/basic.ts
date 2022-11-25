@@ -1,6 +1,6 @@
 import { css, rgb, rgba, S, Style, Styles } from "galho";
 import { bool, int, str } from "galho/util.js";
-import { C, cc, Color, Size } from "../galhui.js";
+import { C, Color, Size } from "../galhui.js";
 import { bfg, border, box, styleCtx, StyleCtx, vmarg } from "../style.js";
 
 export const enum ScreenSize {
@@ -32,6 +32,12 @@ export const
   row = (inline?: bool): Style => ({
     display: inline ? "inline-flex" : "flex",
     flexDirection: "row"
+  }),
+  center = (): Style => ({
+    position: "absolute",
+    left: "50%",
+    top: "50%",
+    translate: "-50% -50%",
   }),
   min = (size: int) => `@media (min-width: ${size}px)`,
   max = (size: int) => `@media (max-width: ${size}px)`;
@@ -104,6 +110,9 @@ export const button = (ctx: Context): Styles => ctx(icon) && ({
 
     ["&." + C.full]: { display: "block", width: "auto" },
 
+    [`.${C.icon}`]: {
+      marginRight: ".5em",
+    },
     [`&.${Color.accept}`]: {
 
     },
@@ -132,8 +141,9 @@ export const button = (ctx: Context): Styles => ctx(icon) && ({
       height: "5em",
     },
     ["&." + Size.xl]: {
-      minHeight: "10em",
-      minWidth: "12em",
+      // minHeight: "10em",
+      // minWidth: "12em",
+      borderRadius: "1em",
       display: "inline-flex",
       flexDirection: "column",
       alignItems: "center",
@@ -156,7 +166,7 @@ export function input(ctx: Context): Styles {
     },//.css("height", ($.rem * 6) + "px")
     "._.in": {
       padding: ".6em 1em",
-      display: "inline-flex!important",
+      display: "inline-flex",
       alignItems: "center",
       color: fg,
       background: bg,
@@ -168,9 +178,9 @@ export function input(ctx: Context): Styles {
       //   width: 0,
       // },
       ".bt": {
-        margin: 0,
-        // height: "1em",
-        ...vmarg("-.6em")
+        height: "calc(100%  + 1.2em)",
+        marginRight: "-1em",
+        lineHeight: .2
       },
       ["." + C.icon]: {
 
@@ -188,6 +198,36 @@ export function input(ctx: Context): Styles {
         borderColor: "#f44336",
       }
     }
+  }
+}
+export function output(ctx: Context): Styles {
+  // let { a } = theme;
+  return {
+    [`._.${C.label}`]: {
+      borderRadius: consts.acentBorderRadius + "em",
+      ...box([0, .3, 0, 0], [.4, .8]),
+      background: "#d3e3f3",
+      display: "inline-block",
+    },
+    [`._.${C.message}`]: {
+      [`&.${Color.error}`]: {
+        ...bfg("rgb(255, 246, 246)", consts.error),
+      },
+      ...box([1, 0], [1, 1.5]),
+      ":empty": { height: 0, padding: 0, margin: 0 },
+      transition: "all .2s"
+    },
+    "._._.join": {
+      ...row(true),
+      //para os filhos não removerem bordas do parent
+      overflow: "hidden",
+      padding: 0,
+      "*": { border: "none", flex: "1 auto" },
+      ">:not(:last-child)": {
+        borderRadius: "0",
+        borderRight: `1px solid ${ctx.in.border.n}`,
+      },
+    },
   }
 }
 export const menubar = ({ menu }: Context): Styles => ({
@@ -251,7 +291,7 @@ export const menubar = ({ menu }: Context): Styles => ({
   },
 });
 export const menu = ({ menu, disabled }: Context): Styles => ({
-  ".menu": {
+  "._.menu": {
     background: menu,
     outline: "none",
     position: "fixed",
@@ -264,7 +304,7 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
     table: {
       width: "100%",
       borderCollapse: "collapse",
-      [cc(C.separator)]: {
+      "._.hr": {
         border: "none",
         borderBottom: border("#000"),
       },
@@ -318,7 +358,7 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
     },
     // display: "table",  
   },
-    ".menu-c": { background: menu },
+  ".menu-c": { background: menu },
   "._.tip": {
     position: "fixed",
     background: menu,
@@ -372,6 +412,9 @@ export const panel = (ctx: Context): Styles => ({
       padding: ".4em 2em",
       background: "#cfd8dc",
       "&:empty": { display: "none" },
+      "&.bar": {
+        padding: ".1em 2em",
+      }
       // height:"unset"
     },
     ".bd": {
@@ -404,7 +447,7 @@ export const panel = (ctx: Context): Styles => ({
   },
 })
 export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
-  [cc(C.modalArea)]: {
+  [`._.${C.modalArea}`]: {
     position: "fixed",
     top: 0,
     left: 0,
@@ -443,7 +486,7 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
     // }
   },
   [min(ScreenSize.tablet)]: {
-    [cc(C.modal)]: {
+    "._.modal": {
       width: "75%",
       maxWidth: (ScreenSize.tablet - 20) + "px",
       margin: "3em auto 0",
@@ -503,7 +546,7 @@ export const listItem = ({ h, a, v }: ListState): Style => ({
     background: v,
   },
   ["&." + C.current]: {
-    outline: `1px solid ${a}`,
+    boxShadow: `inset 0 0 1px 2px ${a}`
   }
 })
 export const list = ({ brd, list: l }: Context): Styles => ({
@@ -540,6 +583,20 @@ export const list = ({ brd, list: l }: Context): Styles => ({
     },
     tfoot: { position: "sticky", bottom: 0, background: "#fff" }
   },
+  "._.card": {
+    display: "grid!important",
+    gridTemplateColumns: "40px 4fr 1fr",
+    gridTemplateAreas: `
+"s m o" 
+"s e o"`,
+    ".bd": { gridArea: "m" },
+    ".sd": { gridArea: "s", marginRight: ".8em" },
+    ".ed": {
+      gridArea: "e",
+      tr: { display: "table-row" },
+      fontSize: "smaller",
+    },
+  }
 });
 export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
   "._.tb": {
@@ -552,7 +609,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
 
     //line
     "*": {
-      display: "inline-flex",
+      display: "flex",
       flexDirection: "row",
       height: "2rem",
       whiteSpace: "nowrap",
@@ -710,7 +767,7 @@ export function form(ctx: Context): Styles {
       }
     },
 
-    [cc(C.form, C.group)]: {
+    "._.form-g": {
       "*": { width: "100%" }
     },
 
@@ -718,10 +775,11 @@ export function form(ctx: Context): Styles {
 }
 export function tab({ menu }: Context): Styles {
   return {
-    [cc(C.tab)]: {
-      [cc(C.menubar)]: {
+    "._.tab": {
+      ...col(),
+      "._.bar": {
         background: menu,
-        [cc(C.close)]: {
+        [`._.${C.close}`]: {
           float: "right",
           opacity: 0,
           height: consts.menuH + "rem",
@@ -730,7 +788,7 @@ export function tab({ menu }: Context): Styles {
           }
         },
         ":hover": {
-          [cc(C.close)]: {
+          [`._.${C.close}`]: {
             opacity: 1
           },
         }
@@ -741,41 +799,10 @@ export function tab({ menu }: Context): Styles {
     }
   }
 }
-export function output(ctx: Context): Styles {
-  // let { a } = theme;
-  return {
-    [cc(C.label)]: {
-      // ...block(a),
-      //display: "flex",
-      //input: {
-      //  width: "100%"
-      //},
-    },
-    [cc(C.message)]: {
-      [`&.${Color.error}`]: {
-        ...bfg("rgb(255, 246, 246)", consts.error),
-      },
-      ...box([1, 0], [1, 1.5]),
-      ":empty": { height: 0, padding: 0, margin: 0 },
-      transition: "all .2s"
-    },
-    "._._.join": {
-      ...row(true),
-      //para os filhos não removerem bordas do parent
-      overflow: "hidden",
-      padding: 0,
-      "*": { border: "none", flex: "1 auto" },
-      ">:not(:last-child)": {
-        borderRadius: "0",
-        borderRight: `1px solid ${ctx.in.border.n}`,
-      },
-    },
-  }
-}
 export function mobImgSelector(ctx: Context): Styles {
   ctx(button);
   return {
-    [cc(C.mobile, "imgsel")]: {
+    "._.imgsel": {
       position: "relative",
       textAlign: "center",
       width: "12em",
@@ -811,7 +838,7 @@ export function mobImgSelector(ctx: Context): Styles {
 }
 export function accordion(): Styles {
   return {
-    [cc(C.accordion)]: {
+    "._.ac": {
       ["." + C.body]: {
         display: "none"
       },
@@ -826,7 +853,7 @@ export function accordion(): Styles {
 export function dropdown(ctx: Context): Styles {
   ctx(menu);
   return {
-    [cc(C.dropdown)]: {
+    "._.dd": {
       ["." + C.menu]: {
         position: "fixed",
         zIndex: zIndex.ctxMenu
@@ -840,7 +867,7 @@ export function dropdown(ctx: Context): Styles {
 export function select(add: Context): Styles {
   add(menu);
   return {
-    [cc(C.select)]: {
+    [`._.${C.select}`]: {
       minWidth: "10em",
       position: "relative",
       display: "inline-block",
@@ -900,7 +927,7 @@ export const stack = ({ brd }: Context): Styles => ({
     "*": { margin: 0, borderRadius: 0 }
   },
 });
-export const core = (p: Pallete, tag = css({})) => styleCtx(p, css({
+export const core = (p: Pallete, tag = css({})) => styleCtx(p)({
   html: {
     fontSize: consts.rem + "px",
     fontFamily: consts.ff,
@@ -916,10 +943,11 @@ export const core = (p: Pallete, tag = css({})) => styleCtx(p, css({
     textDecoration: "none"
   },
   hr: {
+    borderStyle: "solid",
     margin: 0,
-    border: "none",
-    borderLeft: "solid #0004 1px",
-    borderTop: "solid #0004 1px",
+    // border: "none",
+    // borderLeft: "solid #0004 1px",
+    // borderTop: "solid #0004 1px",
   },
   input: {
     background: "inherit",
@@ -933,20 +961,21 @@ export const core = (p: Pallete, tag = css({})) => styleCtx(p, css({
   h2: { fontSize: "1.25em" },
   h3: { fontSize: "1.1em" },
   "._.off": { display: "none!important" },
-  "._.row": { display: "flex", flexDirection: "row" },
-  "._.col": { display: "flex", flexDirection: "column", ".fill": { flex: 1 } },
+  "._.row": row(),
+  "._.col": col(),
+  "._.center": center(),
   "._.ph": { color: "#000A" },
   ["." + Color.warning]: { background: "#ffc107!important" },
-}, tag));
-export const style = (p: Pallete, tag?: S<HTMLStyleElement>) =>
-  core(p, tag)(icon)
+});
+export const style = (p: Pallete) =>
+  core(p)(icon)
+    (menu)
     (button)
     (dropdown)
     (select)
     (input)
     (panel)
     (modal)
-    (menu)
     (menubar)
     (menurow)
     (table)
@@ -974,7 +1003,7 @@ export const darkTheme: Pallete = {
   in: { bg: "", border: { n: "" } },
   a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
 };
-export const dark = (tag?: S<HTMLStyleElement>) => style(darkTheme, tag);
+export const dark = () => style(darkTheme);
 
 export const lightTheme: Pallete = {
   fg: "#000",
@@ -993,4 +1022,4 @@ export const lightTheme: Pallete = {
   a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
 }
 /**full style,light theme */
-export const light = (tag?: S<HTMLStyleElement>) => style(lightTheme, tag);
+export const light = () => style(lightTheme);

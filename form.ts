@@ -1,6 +1,6 @@
 import { cl, div, E, g, m, MRender, One, onfocusout, S } from "galho";
 import { any, fromArray } from "galho/dic.js";
-import { assign, bool, byKey, def, Dic, float, int, isA, isN, isS, isU, Key, l, Primitive, str } from "galho/util.js";
+import { assign, bool, byKey, date, def, Dic, float, int, isA, isN, isS, isU, Key, l, Primitive, str } from "galho/util.js";
 import { $, C, Color, ibt, Icon, icon, w } from "./galhui.js";
 import { errorMessage, TextInputTp } from "./io.js";
 import { up } from "./util.js";
@@ -58,7 +58,7 @@ export const enum ErrorType {
   lessItems = "less_items",
   unsubmited = "unsubmited"
 }
-export interface IInput<V = unknown, D = V> {
+export interface iInput<V = unknown, D = V> {
   //tp: Key;
   k?: str;
   g?: str[];
@@ -73,7 +73,7 @@ export interface IInput<V = unknown, D = V> {
   def?: D;
   // side?: bool;
 }
-export abstract class Input<V = unknown, I extends IInput<V, any> = IInput<V>, A = never, Ev extends Dic<any[]> = {}> extends E<I, Ev> {// & { input: [V] }
+export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A = never, Ev extends Dic<any[]> = {}> extends E<I, Ev> {// & { input: [V] }
   public ctx?: IInputContext
   constructor(i: I) {
     super(i);
@@ -142,7 +142,7 @@ interface FormEvents extends Dic<any[]> {
   cancel: [];
 }
 
-export interface IFormBase {
+export interface iFormBase {
   /**set true if this form is inside another form
    * when dis is true will be used div tag instead of form tag
    * */
@@ -156,7 +156,7 @@ export interface IFormBase {
 }
 
 /** */
-export class FormBase<T extends IFormBase = IFormBase, Ev extends FormEvents = FormEvents> extends E<T, Ev> implements IInputContext {
+export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends E<T, Ev> implements IInputContext {
   inputs: Input[];
   constructor(i: T, inputs: Input[]) {
     super(i);
@@ -314,15 +314,15 @@ function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
 }
 
 /** */
-export interface IForm extends IFormBase {
+export interface iForm extends iFormBase {
   errorDiv?: S;
   outline?: bool;
 }
 
-export class Form extends FormBase<IForm> {
-  constructor(i: IForm, inputs?: Input[])
+export class Form extends FormBase<iForm> {
+  constructor(i: iForm, inputs?: Input[])
   constructor(inputs: Input[])
-  constructor(i: IForm | Input[], inputs?: Input[]) {
+  constructor(i: iForm | Input[], inputs?: Input[]) {
     if (isA(i)) {
       inputs = i;
       i = {};
@@ -418,14 +418,14 @@ export function value(e: HTMLFormElement) {
 //   });;
 // }
 //------------TEXT------------------------
-export interface ITextIn extends IInput<str> {
+export interface iTextIn extends iInput<str> {
   //tp: FT.text;
   pattern?: RegExp;
   input?: TextInputTp | "ta";
   min?: int;
   max?: int;
 }
-export class TextIn extends Input<str, ITextIn> {
+export class TextIn extends Input<str, iTextIn> {
   view() {
     var i = this.i, r: S<HTMLInputElement | HTMLTextAreaElement>;
     if (i.input == 'ta') {
@@ -484,7 +484,7 @@ export interface NumberFormat {
   format?: str;
   integer?: bool;
 }
-export type iNumbIn = IInput<int> & NumberFormat & {
+export type iNumbIn = iInput<int> & NumberFormat & {
   //tp: FT.number,
   unsigned?: bool;
   unit?: str;
@@ -510,19 +510,21 @@ export class NumbIn extends Input<float, iNumbIn> {
   validate(value: number) {
     return validateNumber(this.i, value);
   }
-  calc(...values: number[]) {
-    var r = 0;
-    for (let value of values)
-      r += value || 0;
-    return r;
-  }
+  // calc(...values: number[]) {
+  //   var r = 0;
+  //   for (let value of values)
+  //     r += value || 0;
+  //   return r;
+  // }
   focus() {
     let { $, i } = this;
     (i.unit ? $.first() : $).focus();
     return this;
   }
 }
-export function validateNumber(i: NumberFormat & IInput<int>, value: int) {
+export const numbIn = (k: str, req?: bool, text?: str) =>
+  new NumbIn({ k, req, text });
+export function validateNumber(i: NumberFormat & iInput<int>, value: int) {
   let errs: Error[] = [];
   if (value == null) {
     if (i.req)
@@ -560,12 +562,12 @@ export const enum CBFmt {
   checkbox = "c",
   switch = "s"
 }
-export interface iCheckIn extends IInput<bool> {
+export interface iCheckIn extends iInput<bool> {
   //tp: FT.checkbox,
   fmt?: CBFmt;
   clear?: bool;
 }
-class CheckBoxInput extends Input<bool, iCheckIn>  {
+class CheckIn extends Input<bool, iCheckIn>  {
   view() {
     let i = this.i;
     switch (i.fmt) {
@@ -623,12 +625,12 @@ class CheckBoxInput extends Input<bool, iCheckIn>  {
     return false;
   }
 }
-/**checkbox input*/
-export const checkboxIn = (key: str, req?: bool) =>
-  new CheckBoxInput({ k: key, req });
+/**check box input*/
+export const checkIn = (key: str, req?: bool, text?: str) =>
+  new CheckIn({ k: key, req, text });
 
 //------------ DATE & TIME ------------------------
-export interface iTimeIn extends IInput<str> {
+export interface iTimeIn extends iInput<str> {
   //tp: FT.time,
   min?: str | int;
   max?: str | int;
@@ -651,51 +653,56 @@ export class TimeIn extends Input<str, iTimeIn> {
 
 export const time = (key: str, req?: bool) =>
   new TimeIn({ k: key, req });
-export type DateInputType = "date" | "month" | "week";
-export interface iDateIn extends IInput<str, Date | str | int> {
+export interface iDateIn extends iInput<str, str> {
   //tp: FT.date,
   min?: str | int;
   max?: str | int;
-  tp?: DateInputType;
 }
 export class DateIn extends Input<str, iDateIn> {
   view() {
-    let i = this.i, inp = g("input", "_ in").p({
-      type: i.tp || "date",
-      name: i.k, id: i.k,
-      value: i.value,
-      placeholder: i.ph
-    });
-    this.onset("value", () => inp.e.value = i.value);
-    return inp.on("input", () => this.set("value", inp.e.value));
-    // this.bind(inp, () => (inp.e.valueAsDate != this.value()) && (inp.e.valueAsDate = this.value()), "value");
-    // inp.on("input", () => this.set("value", inp.e.valueAsDate));
-  }
-  validate(value: str) {
     let
       i = this.i,
-      errs: Error[] = [];
-
-    if (i.req && value == null)
-      errs.push(req());
-
-    return errs;
+      inp = g("input", "_ in").p({
+        type: "date",
+        name: i.k, id: i.k,
+        placeholder: i.ph,
+        value: i.value
+      })
+    this.onset("value", () => inp.e.value = i.value);
+    return inp.on("input", () => this.set("value", inp.e.value || null));
   }
   get def() {
-    let d = this.i.def;
-    if (d == "now") d = new Date();
-    else if (isN(d)) d = new Date(d);
-    return d ? isS(d) ? d : `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}` : null;
-  }
-  isDef(value = this.value, def = this.def) {
-    return !def ? !value : def.valueOf() === value.valueOf();
+    let y: int, m: int, d: int;
+    return this.i.def == "now" ? ([y, m, d] = date(new Date()), `${y}-${m}-${d}`) : null;
   }
 }
 
-export const dateIn = (key: str, tp: DateInputType = "date", req?: bool) =>
-  new DateIn({ k: key, req, tp });
+export const dateIn = (key: str, req?: bool, def?: str) =>
+  new DateIn({ k: key, req, def });
 
-export interface iDTIn extends IInput<str> {
+export class MonthIn extends Input<str, iDateIn> {
+  view() {
+    let
+      i = this.i,
+      inp = g("input", "_ in").p({
+        type: "month",
+        name: i.k, id: i.k,
+        placeholder: i.ph,
+        value: i.value?.slice(0, 7)
+      });
+    this.onset("value", () => inp.e.value = i.value?.slice(0, 7));
+    return inp.on("input", () => this.set("value", inp.e.value || null));
+  }
+  get def() {
+    let y: int, m: int, d: int;
+    return this.i.def == "now" ? ([y, m, d] = date(new Date()), `${y}-${m}`) : null;
+  }
+
+  submit(data: Dic) {
+    data[this.i.k] = this.value ? this.value + "-01" : null;
+  }
+}
+export interface iDTIn extends iInput<str> {
   //tp: FT.date,
   min?: str;
   max?: str;
@@ -715,7 +722,7 @@ export class DTIn extends Input<str, iDTIn> {
 //------------ RADIO ------------------------
 
 type Option = [key: Key, text?: str, icon?: Icon];
-export interface iRadioIn extends IInput<Key> {
+export interface iRadioIn extends iInput<Key> {
   //tp: FT.radio,
   options?: (Option | str)[];
   enum?: str;
@@ -759,7 +766,7 @@ export class RadioIn extends Input<Key, iRadioIn>{
 
 //------------ password ------------------------
 
-interface iPWIn extends IInput<str> {
+interface iPWIn extends iInput<str> {
   //tp: FT.password,
   /**auto complete */
   auto?: str;
@@ -791,7 +798,7 @@ export class PWIn extends Input<str, iPWIn> {
 }
 
 //------------
-interface iCompostIn extends IInput<Dic> {
+interface iCompostIn extends iInput<Dic> {
   inputs?: Input<any>[];
 }
 export class CompostIn extends Input<Dic, iCompostIn> {
@@ -804,9 +811,9 @@ export class CompostIn extends Input<Dic, iCompostIn> {
 
     return div("_ in join", i.inputs);
   }
-  get value() { return fromArray(this.ins, v => [v.key, v.value()]); }
+  get value() { return fromArray(this.ins, v => [v.key, v.value]); }
   set value(v: Dic) {
-    this.ins.forEach(i => i.key in v && i.value(v ? v[i.key] : i.null));
+    this.ins.forEach(i => i.key in v && (i.value = v ? v[i.key] : i.null));
   }
   // value(): Dic;
   // value(v: Dic): this;
@@ -831,7 +838,7 @@ export class CompostIn extends Input<Dic, iCompostIn> {
   // }
   submit(data: Dic, edited: bool, req: bool) {
     for (let i of edited ? this.ins.filter(i => (req && i.i.req) || !i.isDef()) : this.ins)
-      data[i.key] = i.value();
+      data[i.key] = i.value;
   }
   isDef(v = this.value, def = this.def) {
     for (let i of this.ins)

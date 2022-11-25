@@ -1,33 +1,19 @@
 import { Property } from "csstype";
-import { def, assign, isB, isN, isO, toStr, isA, int } from "galho/util.js";
-import { cc, HAlign } from "./galhui.js";
+import { css, Style, Styles } from "galho";
 import { filter } from "galho/dic.js";
-import { css, Properties, Style, Styles } from "galho";
-import { bool, float, str } from "galho/util.js";
+import { assign, bool, def, float, isA, isB, isN, isO, str, toStr } from "galho/util.js";
+import { HAlign } from "./galhui.js";
 
-export const bold = (v: bool | Property.FontWeight): any =>
-  v ? isB(v) ? "bold" : v : null;
-export const italic = (v: bool | Property.FontStyle): any =>
-  v ? isB(v) ? "italic" : v : null;
-
-export function isDark() {
-  return matchMedia && matchMedia('(prefers-color-scheme: dark)').matches
-}
-export function font(v: Font): Properties {
-  return v && (isN(v) ?
+export const
+  bold = (v: bool | Property.FontWeight): any => v ? isB(v) ? "bold" : v : null,
+  italic = (v: bool | Property.FontStyle): any => v ? isB(v) ? "italic" : v : null,
+  isDark = () => matchMedia && matchMedia('(prefers-color-scheme: dark)').matches,
+  font = (v: Font) => v && (isN(v) ?
     { fontSize: v + "rem" } :
     v.f ?
       { font: `${toStr(italic(v.i))} ${toStr(bold(v.b))} ${v.s}rem ${v.f}` } :
       { fontSize: v.s && (v.s + "rem"), fontWeight: bold(v.b), fontStyle: italic(v.i) }
-  )
-}
-export
-  const center = (): Style => ({
-    position: "absolute",
-    left: "50%",
-    top: "50%",
-    translate: "-50% -50%",
-  }),
+  ),
   vpad = (v: str | 0): Style => ({
     paddingTop: v,
     paddingBottom: v
@@ -43,25 +29,23 @@ export
       borderRight: bord(b[1]),
       borderBottom: bord(def(b[2], b[0])),
       borderLeft: bord(def(b[3], b[1]))
-    } : { border: bord(b) });
-
-
-export const block = (v: TBlock): Style => v && filter({
-  color: v.fg,
-  padding: spc(v.pad),
-  margin: spc(v.mrg),
-  borderRadius: spc(v.rad),
-  ...bords(v.brd),
-  background: v.bg,
-  ...font(v.f)
-}),
+    } : { border: bord(b) }),
+  block = (v: TBlock): Style => v && filter({
+    color: v.fg,
+    padding: spc(v.pad),
+    margin: spc(v.mrg),
+    borderRadius: spc(v.rad),
+    ...bords(v.brd),
+    background: v.bg,
+    ...font(v.f)
+  }),
   state = (v: Stateble): Style => v && filter({
     ...block(v),
     ":hover": v.h && block(v.h),
     ":visited": v.v && block(v.v),
     ":active,:focus": v.on && block(v.on),
   });
-export const c = (...cls: str[]) => cc(...cls);
+// export const c = (...cls: str[]) => cc(...cls);
 export const rem = (v: float) => v + "rem";
 export const border = (color: str, size = 1) => `${size}px solid ${color}`;
 
@@ -100,21 +84,22 @@ export const box = (mrg: SpaceFull, pad: SpaceFull): Style => ({
 });
 
 
-export type StyleFnAdd<T> = (style?: StyleFn<T> | Styles) => StyleFnAdd<T>;
+export type StyleFnAdd<T> = ((style?: StyleFn<T> | Styles) => StyleFnAdd<T>) & { css?: str };
 export type StyleFn<T> = (ctx: StyleCtx<T>) => Styles;
 export type StyleCtx<T> = T & StyleFnAdd<T>;
-export function styleCtx<T = any>(options: T, tag = css({})) {
+export function styleCtx<T = any>(options: T) {
   let
     list: StyleFn<T>[] = [],
     add: StyleFnAdd<T> = (style) => {
       if (isO(style))
-        css(<any>style, tag);
+        add.css += css(<any>style);
       else if (!list.includes(style)) {
         list.push(style);
-        css((<any>style)(add), tag);
+        add.css += css((<any>style)(add));
       }
       return add;
     };
+  add.css = "";
   return assign(add, options);
 }
 

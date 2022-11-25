@@ -1,14 +1,14 @@
 ﻿import { getAll, S } from "galho";
-import { Dic, def, isF, isS, str, Task, z } from "galho/util.js";
+import { Dic, def, isF, isS, str, Task, z, falses } from "galho/util.js";
 
 export const hash = (s: S, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: S[]) {
   root = routeRoot;
-  window.onhashchange = () => tryGoTo(location.hash);
+  window.onhashchange = () => goTo(location.hash);
   current = currentPath = null;
 }
 export type Update = (...path: string[]) => void;
-export type RouteResult = S[] | [view: S[], onupdate: Update];
+export type RouteResult = S[] | [view: S[]|falses, onupdate: Update];
 export type Route = RouteResult | ((...path: string[]) => Task<RouteResult | void>);
 export var root: S[], current: Update, currentPath: str;
 const routes: { [index: string]: Route } = {};
@@ -45,7 +45,7 @@ type Intercept = (path: str) => void | str;
 var _intercept: Intercept, defRoute: str;
 export function intercept(v: Intercept) { _intercept = v; }
 export function has(path: str) {
-  return path.slice(1).split('/')[0] in routes;
+  return path.split('/', 2)[0] in routes;
 }
 export function defaultRoute(value?: str) { return value === void 0 ? defRoute : defRoute = value; }
 export async function goTo(path: string): Promise<void> {
@@ -53,12 +53,13 @@ export async function goTo(path: string): Promise<void> {
     path = path.slice(1);
 
   _intercept && (path = def(<str>_intercept(path), path));
+  has(path) || (path = defRoute || "");
   let keys = path.split('/'), newPath = keys.shift();
 
   if (newPath != currentPath) {
     current = null;
     let route = routes[newPath];
-    if (!route) throw 1;
+    if (!route) throw 404;
     let dt = isF(route) ? await route(...keys) : route;
     if (dt && isF(dt[1])) {
       current = dt[1];
@@ -72,6 +73,3 @@ export async function goTo(path: string): Promise<void> {
   getAll(`a[href="#${path}"]`).do(e => e.c("on"));
   current?.(...keys);
 }
-export function tryGoTo(path: string) {
-  return goTo(has(path) ? path : defRoute || "");
-} 

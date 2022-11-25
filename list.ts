@@ -5,7 +5,7 @@ import { $, body, C, Child, close, doc, icon, Icon, logo, menucb, MenuItems, Siz
 import { ctx, idropdown } from "./hover.js";
 import { up } from "./util.js";
 
-export type CrudMenu<T> = (...items: T[]) => void | MenuItems;
+export type CrudMenu<T> = (items: T[]) => void | MenuItems;
 export interface ICrud<T> {
   /**field used as primary key */
   key?: keyof T;
@@ -62,14 +62,14 @@ export const defRenderer: FieldPlatform = {
   format: true
 }
 
-export function crudHandler<T>(e: S, dt: L<T>, i: ICrud<T>) {
-  let click = (ev: MouseEvent) => range.add(dt, "on", e.d(), range.tp(ev.ctrlKey, ev.shiftKey));
+export function crudHandler<T>(e: S, v: T, dt: L<T>, i: ICrud<T>) {
+  let click = (ev: MouseEvent) => range.add(dt, "on", v, range.tp(ev.ctrlKey, ev.shiftKey))
   return e.on({
     click,
     dblclick: i.open && (() => i.open(...range.list(dt, "on"))),
     contextmenu: i.menu && (e => {
       click(e);
-      let t = i.menu(...range.list(dt, "on"));
+      let t = i.menu(range.list(dt, "on"));
       t && ctx(e, t)
     })
   })
@@ -140,16 +140,20 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
       clear: true, key: i.key
     }),
     r = dt.bind(g(t(i.enum) ? "ol" : "ul", "_ list"), {
-      insert: v => crudHandler(wrap(i.item(v), "i").d(v).badd(div(C.side)), dt, i),
-      tag(s, active, tag) {
-        tag == "on" && s.c(C.current, active).e.scrollIntoView({
-          block: "nearest",
-          inline: "nearest"
-        });
-        s.c(tag, active);
+      insert: v => crudHandler(wrap(i.item(v), "i").badd(div(C.side)), v, dt, i),
+      tag(active, i, p, tag) {
+        let s = p.child(i);
+        if (tag == "on") {
+          s.c(C.current, active);
+          active && s.e.scrollIntoView({
+            block: "nearest",
+            inline: "nearest"
+          })
+        }
+        p.child(i).c(tag, active);
       },
-      groups(s, on, _, key) { s.c(key, on) }
-    });
+      groups(v, i, p, g) { p.child(i).c(g, v) }
+    }).on("click", e => e.target == e.currentTarget && range.clear(data as L, "on"));
   return t(i.kd) ? r.p("tabIndex", 0).on("keydown", e => kbHandler(data as L<T>, e, i) && clearEvent(e)) : r;
 }
 
@@ -166,7 +170,7 @@ export interface TabItem {
 }
 export const tab = (items: L<TabItem>, removeble: boolean, empty?: () => One) => div([C.tab], [
   items.bind(div([C.menubar]), {
-    tag: (v, a) => v.c("on", a),
+    tag(v, i, p) { p.child(i).c("on", v) },
     insert: value => div("i", [
       icon(value.icon),
       value.text,
@@ -335,10 +339,11 @@ export default class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol
           });
           p.place(j + 1, s);
         },
-        tag(s, active, tag, v, j, p) {
+        tag(active, j, p, tag, v) {
+          let s = p.child(j + 1);
           switch (tag) {
             case "sort":
-              (s = p.child(j + 1)).child(".sort")?.remove();
+              s.child(".sort")?.remove();
               if (active)
                 s.add(icon($.i[v.desc ? 'desc' : 'asc']).c("sort"));
               i.sort.call(v, active);
@@ -353,6 +358,7 @@ export default class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol
       foot = (v: Foot) => g(v(this), "_ ft tr"),
       ft = i.foot && m(...i.foot?.map(foot)),
       d: S = div("_ tb" + (i.fill ? " fill" : ""), [hd, ft])
+        .on("click", e => e.target == e.currentTarget && range.clear(data as L, "on"))
         .p('tabIndex', 0)
         .on("keydown", (e) => kbHandler(data, e, i) && clearEvent(e));
 
@@ -365,19 +371,20 @@ export default class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol
             return this.ccss(wrap(c.fmt ? isS(c.fmt) ? fmt(v, c.fmt) : c.fmt({ v, p: i.p, s }) : v).css({ textAlign: c.align }), c);
           }),
           // i.options && div(C.options, i.options.map(opt => opt(s, _i)))
-        ]).d(s);
+        ]);
         i.style?.(t2, s, j);
-        p.place(j + 1, crudHandler(t2, data, i));
+        p.place(j + 1, crudHandler(t2, s, data, i));
       },
-      tag(s, active) {
-        s.c(C.current, active).e.scrollIntoView({
+      tag(active, i, p) {
+        let s = p.child(i + 1).c(C.current, active).e;
+        active && s.scrollIntoView({
           block: "nearest",
           inline: "nearest"
         });
       },
       remove(_, i, p) { p.unplace(i + 1) },
-      clear(s) { s.childs(".i").remove() },
-      groups: { on: (s, active) => s.c("on", active) }
+      clear(s) { s.childs().slice(1).remove() },
+      groups(v, i, p, g) { p.child(i + 1).c(g, v) }
     });
     i.cols.onupdate(() => {
       this.data.reloadAll();
@@ -497,7 +504,7 @@ export function tree(i: ITree) {
     dblclick: i.open && (() => i.open(i.s)),
     contextmenu: i.menu && ((e) => {
       click(e);
-      let t = i.menu(i.s);
+      let t = i.menu([i.s]);
       if (t) {
         ctx(e, t);
         e.preventDefault();
@@ -654,7 +661,7 @@ export class Grid<T extends Node> extends E<iGrid<T>>{
         marginLeft: this.margin + "px",
         marginRight: this.margin + "px",
       }),
-      groups: (e, v, _, k) => e.c(k, v),
+      groups(v, i, p, g) { p.child(i).c(g, v) }
     }).on({
       keydown: (e) => {
         if (!kbHandler(dt, e, i))

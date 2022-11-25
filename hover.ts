@@ -339,7 +339,8 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: [K]; ope
 
     options.bind(items, {
       insert: ({ i, text, key }) => menuitem(i, text || key),
-      tag(s, active, tag) {
+      tag(active, i, p, tag) {
+        let s = p.child(i);
         s.c(tag, active);
 
         if (active) {

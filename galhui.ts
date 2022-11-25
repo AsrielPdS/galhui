@@ -2,6 +2,13 @@ import { ANYElement, cl, div, g, Input, isE, Render, S, svg, toSVG, wrap } from 
 import { bool, call, Dic, falses, float, int, isN, isP, isS, str, Task } from "galho/util.js";
 import { uuid } from "./util.js";
 
+/*
+----GLOCARY----
+ed: Extra Data
+in: Input
+i : Item
+mn: MeNu
+*/
 declare global {
   namespace GalhoUI {
     interface Words {
@@ -71,7 +78,7 @@ export const enum C {
   modal = "modal",
   tree = "tree",
   table = "tb",
-  grid = "grd",
+  grid = "grid",
   placeholder = "ph",
   select = "sel",
   label = "lb",
@@ -286,7 +293,7 @@ export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", "i
       mn.remove();
   })
 });
-export const menusep = () => g("tr",C.separator);
+export const menusep = () => g("tr", "_ hr");
 
 export type MBItems = any;//Array<One | Array<Items>>;
 /** */
