@@ -5,14 +5,6 @@ import { $, C, Color, ibt, Icon, icon, w } from "./galhui.js";
 import { errorMessage, TextInputTp } from "./io.js";
 import { up } from "./util.js";
 
-declare global {
-  namespace GalhoUI {
-    interface Words {
-      required?: str;
-      invalidFmt?: str;
-    }
-  }
-}
 interface FormValidator {
   query: str;
   type?: str;
@@ -99,6 +91,15 @@ export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A
       handler();
     });
   }
+  field(outline: bool): One {
+    let i = this.i;
+    outline ||= i.outline;
+    return div(outline ? "_ oi" : "_ ii", [
+      g('label', "hd", i.text).attrs({ for: i.k, title: i.text }),
+      g(this).c("bd"),
+      !!i.req && g('span', "req", '*'),
+    ]);
+  }
   /**show or hide errors */
   error(state: bool) {
     g(this).c(Color.error, state);
@@ -138,7 +139,8 @@ export const bots: Dic<BotCall> = {};
 interface FormEvents extends Dic<any[]> {
   input: [Input];
   fill: [data: Dic];
-  submit: [];
+  requestsubmit: [e: SubmitEvent];
+  submit: [data: Dic];
   cancel: [];
 }
 
@@ -267,6 +269,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
     let r: Dic = assign({}, this.i.hidden);
     for (let input of edited ? inputs.filter(i => (req && i.i.req) || !i.isDef()) : inputs)
       input.i.off || input.submit(r, edited, req);
+    this.emit("submit", r);
     return r;
   }
   formData(edited?: bool, required?: bool) {
@@ -337,7 +340,7 @@ export class Form extends FormBase<iForm> {
   view() {
     let { i, inputs: inp } = this;
     return g(i.intern ? 'div' : 'form', "_ form", [
-      fields(inp, i.outline),
+      fields(inp, def(i.outline, $.oform)),
       this._errorDiv
     ]);
   }
@@ -349,14 +352,7 @@ export class Form extends FormBase<iForm> {
   protected readonly _errorDiv: S;
 }
 export function fields(inputs: Input[], outline?: bool) {
-  return inputs.map(input => {
-    let ii = input.i;
-    return div(outline || ii.outline ? "_ io" : "_ ii", [
-      g('label', "hd", ii.text).attrs({ for: ii.k, title: ii.text }),
-      g(input).c("bd"),
-      !!ii.req && g('span', "req", '*'),
-    ]);
-  });
+  return inputs.map(input => input.field(outline));
 }
 export function expand(form: Form, ...main: str[]) {
   for (let input of form.inputs)
@@ -620,14 +616,10 @@ class CheckIn extends Input<bool, iCheckIn>  {
 
     }
   }
-
-  static defaultValue() {
-    return false;
-  }
 }
 /**check box input*/
-export const checkIn = (key: str, req?: bool, text?: str) =>
-  new CheckIn({ k: key, req, text });
+export const checkIn = (key: str, text?: str) =>
+  new CheckIn({ k: key, text });
 
 //------------ DATE & TIME ------------------------
 export interface iTimeIn extends iInput<str> {
@@ -800,11 +792,12 @@ export class PWIn extends Input<str, iPWIn> {
 //------------
 interface iCompostIn extends iInput<Dic> {
   inputs?: Input<any>[];
+  sub?: bool;
 }
 export class CompostIn extends Input<Dic, iCompostIn> {
   get ins() { return this.i.inputs; }
   get def() { return fromArray(this.ins, v => [v.key, v.def]) }
-  view() {
+  view(): S {
     let i = this.i;
     for (let input of i.inputs)
       input.onset('value', () => this.set(['value']));
@@ -815,11 +808,6 @@ export class CompostIn extends Input<Dic, iCompostIn> {
   set value(v: Dic) {
     this.ins.forEach(i => i.key in v && (i.value = v ? v[i.key] : i.null));
   }
-  // value(): Dic;
-  // value(v: Dic): this;
-  // value(v?: Dic) {
-  //   return isU(v) ? fromArray(this.ins, v => [v.key, v.value()]) : (, this);
-  // }
   fill(value: Dic) { this.value = value; }
   validate(v: Dic) {
     let err: Error[] = [];
@@ -837,7 +825,9 @@ export class CompostIn extends Input<Dic, iCompostIn> {
   //   return this;
   // }
   submit(data: Dic, edited: bool, req: bool) {
-    for (let i of edited ? this.ins.filter(i => (req && i.i.req) || !i.isDef()) : this.ins)
+    let { ins, i } = this;
+    if (i.sub) data = data[i.k] = {};
+    for (let i of edited ? ins.filter(i => (req && i.i.req) || !i.isDef()) : ins)
       data[i.key] = i.value;
   }
   isDef(v = this.value, def = this.def) {
@@ -845,5 +835,21 @@ export class CompostIn extends Input<Dic, iCompostIn> {
       if (!i.isDef(v[i.key], def[i.key]))
         return false;
     return true;
+  }
+}
+
+export class GroupIn extends CompostIn {
+  constructor(i: iCompostIn) {
+    i.outline = true; super(i);
+  }
+  view() {
+    let i = this.i;
+    return g("fieldset", "_ g form io", [
+      g("legend", 0, i.text),
+      fields(i.inputs)
+    ])
+  }
+  field() {
+    return this;
   }
 }

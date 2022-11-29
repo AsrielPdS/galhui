@@ -230,7 +230,7 @@ export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { i
         },
         empty(active, s) {
           s
-            .c(C.label, active)
+            .c("tag", active)
             .set(active && icon(i.icon));
         }
       }),
@@ -581,8 +581,8 @@ export function mobileImageSelector() {
 
 //#region output
 
-export const label = (content) => g("label", hc(C.label), content);
-export const output = (...content) => g("span", hc(C.label), content);
+export const label = (content) => g("label", "_ tag", content);
+export const output = (...content) => g("span", "_ tag", content);
 export const keyVal = (key, val) => g("span", "_ in", [key + ": ", val]);
 
 export const message = (c?: Color, data?) => div(hc(C.message), data).c(c);

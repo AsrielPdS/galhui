@@ -203,7 +203,7 @@ export function input(ctx: Context): Styles {
 export function output(ctx: Context): Styles {
   // let { a } = theme;
   return {
-    [`._.${C.label}`]: {
+    "._.tag": {
       borderRadius: consts.acentBorderRadius + "em",
       ...box([0, .3, 0, 0], [.4, .8]),
       background: "#d3e3f3",
@@ -487,7 +487,7 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
   },
   [min(ScreenSize.tablet)]: {
     "._.modal": {
-      width: "75%",
+      width: "55%",
       maxWidth: (ScreenSize.tablet - 20) + "px",
       margin: "3em auto 0",
       height: "unset",
@@ -503,10 +503,10 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
         maxWidth: "1020px"
       },
       "&.s": {
-        width: "55%"
+        width: "40%"
       },
       "&.xs": {
-        width: "35.2%",
+        width: "31%",
         maxWidth: "360px"
       },
     },
@@ -572,11 +572,11 @@ export const list = ({ brd, list: l }: Context): Styles => ({
         borderRight: border(brd),
         ":empty::before": { content: 'counter(l)', },
       },
-      ".bd": {
-        flex: 1,
-        // display: "inline-block",
-        padding: ".6em .4em"
-      },
+      // ".bd": {
+      //   flex: 1,
+      //   // display: "inline-block",
+      //   padding: ".6em .4em"
+      // },
       // ["." + C.options]: {
       //   borderLeft: border(brd),
       // },
@@ -585,17 +585,19 @@ export const list = ({ brd, list: l }: Context): Styles => ({
   },
   "._.card": {
     display: "grid!important",
-    gridTemplateColumns: "40px 4fr 1fr",
+    gridTemplateColumns: "40px",
     gridTemplateAreas: `
 "s m o" 
 "s e o"`,
-    ".bd": { gridArea: "m" },
+    ".bd": { gridArea: "m", },
     ".sd": { gridArea: "s", marginRight: ".8em" },
     ".ed": {
+      borderSpacing: "0 3px",
       gridArea: "e",
-      tr: { display: "table-row" },
+      tr: { background: "#d3e3f3", td: { padding: ".5em" } },
       fontSize: "smaller",
     },
+    paddingBottom:".6rem"
   }
 });
 export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
@@ -716,7 +718,7 @@ export function form(ctx: Context): Styles {
       "&.expand>._sd": { display: "none" },
       padding: "1rem",
       //input outline
-      "._.io": {
+      "._.oi": {
         margin: `.8rem 0`,
         ".hd": {
           display: "block",

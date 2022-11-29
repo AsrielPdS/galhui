@@ -19,6 +19,8 @@ declare global {
       no?: str;
       camera?: str;
       save?: str;
+      required?: str;
+      invalidFmt?: str;
     }
     interface Settings {
       /**shortcuts */
@@ -37,6 +39,8 @@ declare global {
         close?: Icon;
       };
       rem: float;
+      /**outline form */
+      oform?:bool;
     }
 
     // interface Theme {
@@ -81,7 +85,6 @@ export const enum C {
   grid = "grid",
   placeholder = "ph",
   select = "sel",
-  label = "lb",
   checkbox = "cb",
   switch = "sw",
   //-------------------generic
