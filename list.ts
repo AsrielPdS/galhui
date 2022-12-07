@@ -146,8 +146,7 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
         if (tag == "on") {
           s.c(C.current, active);
           active && s.e.scrollIntoView({
-            block: "nearest",
-            inline: "nearest"
+            block: "nearest", inline: "nearest"
           })
         }
         p.child(i).c(tag, active);
@@ -248,7 +247,7 @@ export interface ITable<T extends Dic> extends ICrud<T> {
   foot?: Foot[];
 }
 export type Foot = (tb: Table) => One;
-export default class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never }>{
+export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never }>{
   // get data() { return this.i.data as L<T>; }
   // get footData() { return this.i.foot as L<T>; }
   get cols() { return this.i.cols; }

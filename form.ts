@@ -1,6 +1,6 @@
-import { cl, div, E, g, m, MRender, One, onfocusout, S } from "galho";
+import { cl, div, E, g, m, MRender, One, onfocusout, S, span } from "galho";
 import { any, fromArray } from "galho/dic.js";
-import { assign, bool, byKey, date, def, Dic, float, int, isA, isN, isS, isU, Key, l, Primitive, str } from "galho/util.js";
+import { assign, bool, byKey, date, def, Dic, falses, filter, float, int, isA, isN, isS, isU, Key, l, Primitive, str } from "galho/util.js";
 import { $, C, Color, ibt, Icon, icon, w } from "./galhui.js";
 import { errorMessage, TextInputTp } from "./io.js";
 import { up } from "./util.js";
@@ -324,10 +324,10 @@ export interface iForm extends iFormBase {
 
 export class Form extends FormBase<iForm> {
   constructor(i: iForm, inputs?: Input[])
-  constructor(inputs: Input[])
-  constructor(i: iForm | Input[], inputs?: Input[]) {
+  constructor(inputs: (Input | falses)[])
+  constructor(i: iForm | (Input | falses)[], inputs?: Input[]) {
     if (isA(i)) {
-      inputs = i;
+      inputs = filter(i);
       i = {};
     }
     super(i, inputs);
@@ -729,7 +729,7 @@ export class RadioIn extends Input<Key, iRadioIn>{
     if (this.inline)
       throw "not implemented";
 
-    return this.bind(g("span", i.layout == 'column' ? C.menu : '', i.options.map<Option>(v => isS(v) ? [v] : v).map(([key, text, ico]) => g('label', [C.checkbox, "i"], [
+    return this.bind(span(i.layout == 'column' ? C.menu : '', i.options.map<Option>(v => isS(v) ? [v] : v).map(([key, text, ico]) => g('label', [C.checkbox, "i"], [
       g("input", {
         type: 'radio',
         value: <string>key,

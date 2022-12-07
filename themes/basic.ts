@@ -67,11 +67,10 @@ export interface Pallete {
 export type Context = StyleCtx<Pallete>;
 
 export const enum consts {
-  menuH = 2,
+  menuH = 2.4,
+  tabH = 2.8,
   error = "rgb(159, 58, 56)",
   ff = "Roboto,sans-serif",
-  rem = 14,
-
   acentHPad = .4,
   acentVPad = .3,
   acentHMarg = .3,
@@ -80,7 +79,7 @@ export const enum consts {
 }
 export const icon = (): Styles => ({
   [`.${C.icon}`]: {
-    height: "1em",
+    height: "1.2em",
     verticalAlign: "middle",
     "&.xl": {
       height: "10em",
@@ -281,7 +280,7 @@ export const menubar = ({ menu }: Context): Styles => ({
     },
     "&.main": {
       background: "#9eb6c0",
-      height: "2.4em",
+      height: consts.tabH + "em",
       paddingTop: ".3em",
       ".i:active,.i.on": {
         background: menu,
@@ -512,14 +511,23 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
     },
   },
   [min(ScreenSize.laptop)]: {
-
+  
   },
   "._.side": {
+    ...col(),
     height: "100%",
     width: "85%",
-    // ".hd":{
-    //   borderBottom:"1px solid #0006"
-    // }
+    background: ctx.bg,
+    position: "relative",
+    ".hd": {
+      margin: 0,
+      padding: ".8em",
+      background: "#cfd8dc",
+      borderBottom: "1px solid #0006"
+    },
+    ".bd": {
+      flex: 1,
+    }
   }
 };
 export const index = (ctx: Context): Styles => ({
@@ -597,7 +605,7 @@ export const list = ({ brd, list: l }: Context): Styles => ({
       tr: { background: "#d3e3f3", td: { padding: ".5em" } },
       fontSize: "smaller",
     },
-    paddingBottom:".6rem"
+    paddingBottom: ".6rem"
   }
 });
 export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
@@ -878,7 +886,7 @@ export function select(add: Context): Styles {
       //   float: "right"
       // },
       ".bd": {
-        width: `calc(100% - ${consts.rem}px)`,
+        width: `calc(100% - 1rem)`,
         display: "inline-flex",
         margin: 0, padding: 0,
         whiteSpace: "normal",
@@ -931,14 +939,15 @@ export const stack = ({ brd }: Context): Styles => ({
 });
 export const core = (p: Pallete, tag = css({})) => styleCtx(p)({
   html: {
-    fontSize: consts.rem + "px",
+    // fontSize: consts.rem + "px",
     fontFamily: consts.ff,
   },
   body: { margin: 0 },
   button: {
     background: "none",
     color: "inherit",
-    border: "none"
+    border: "none",
+    fontSize: "inherit"
   },
   a: {
     color: "inherit",
@@ -946,7 +955,7 @@ export const core = (p: Pallete, tag = css({})) => styleCtx(p)({
   },
   hr: {
     borderStyle: "solid",
-    margin: 0,
+    // margin: 0,
     // border: "none",
     // borderLeft: "solid #0004 1px",
     // borderTop: "solid #0004 1px",
@@ -962,6 +971,11 @@ export const core = (p: Pallete, tag = css({})) => styleCtx(p)({
   h1: { fontSize: "1.5em" },
   h2: { fontSize: "1.25em" },
   h3: { fontSize: "1.1em" },
+  "._.corner": {
+    position: "absolute",
+    right: ".4em",
+    top: ".1em",
+  },
   "._.off": { display: "none!important" },
   "._.row": row(),
   "._.col": col(),

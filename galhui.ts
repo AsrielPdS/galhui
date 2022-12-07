@@ -40,7 +40,7 @@ declare global {
       };
       rem: float;
       /**outline form */
-      oform?:bool;
+      oform?: bool;
     }
 
     // interface Theme {
@@ -234,8 +234,8 @@ export function logo(v: str | Icon) {
     } else return icon(v);
 }
 
-export const panel = (hd: any, bd: any, ft?: any) => div("_ panel", [
-  hd && wrap(hd, "hd"),
+export const panel = (hd: any, bd: any, ft?: any) => g("section", "_ panel", [
+  hd && wrap(hd, "hd", "header"),
   wrap(bd, "bd"),
   ft && wrap(ft, "ft")
 ]);

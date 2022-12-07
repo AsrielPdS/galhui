@@ -17,35 +17,15 @@ export const input = (type: InputTp, name: str, ph?: str, input?: (e: Event) => 
 export const textarea = (name: str, ph: str, input?: (text: str) => void) =>
   g("textarea", { name, placeholder: ph }).c("_ in").on("input", input && (function () { input(this.value) }));
 
-export const checkbox = (label: any, input?: (checked: bool) => void) =>
-  g("label", hc(C.checkbox), [g("input", { type: "checkbox" }).on("input", input && (function () { input(this.checked) })), label]);
+export const checkbox = (label: any, input?: (checked: bool) => void, checked?: bool) =>
+  g("label", "_ cb", [g("input", { type: "checkbox", checked }).on("input", input && (function () { input(this.checked) })), label]);
 
 export function search(input?: (value: str) => any) {
   let t = g("input", { type: "search", placeholder: w.search }), i = icon($.i.search);
   input && delay(t, "input", $.delay, () => input(t.e.value));
   return (i ? div(0, [t, i]) : t).c("_ in");
 }
-export function searcher<T extends Dic>(query: (q: str) => Task<T[]>) {
-  let
-    dt = orray<T>(),
-    menu = list({ kd: false, item: v => [div(0, v.name), g("span", "tag", ["NIF: ", v.nif])] }, dt).c("_ tip"),
-    _: () => any,
-    focus = () => _ ||= (
-      menu.addTo(body),
-      anim(() => body.contains(i) ? fluid(i.rect(), menu, "vc") : (_(), _ = null))),
-    i: Input = delay(g("input", { type: "search", placeholder: "NIF ou Nome da empresa" })
-      .on({
-        focus, blur() { _(); _ = null; },
-        keydown(e) { kbHandler(dt, e, {}) && clearEvent(e) }
-      }),
-      "input", $.delay, async () => {
-        if (i.e.value) {
-          focus();
-          dt.set(await query(i.e.value))
-        } else { _?.(); _ = null; }
-      });
-  return i;
-}
+
 export const lever = (name: str) => g("input", { type: "checkbox", name }).c(C.lever);
 
 
@@ -661,7 +641,7 @@ export function accordion(items: AccordionItem[], i: IAccordion = {}) {
   });
 }
 export type TabItem = [hd: any, bd: any];
-export function tab(initial:int, ...items: TabItem[]) {
+export function tab(initial: int, ...items: TabItem[]) {
   let
     hd = div("_ bar", items.map(([h, b]) => call(div("i", h), e => e.on("click", () => {
       d.set([hd, b]);
@@ -669,7 +649,7 @@ export function tab(initial:int, ...items: TabItem[]) {
       e.c("on");
     })))),
     d = div("_ tab");
-    hd.child<HTMLDivElement>(initial).e.click()
+  hd.child<HTMLDivElement>(initial).e.click()
   return d;
 }
 //#endregion
