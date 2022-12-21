@@ -1,6 +1,6 @@
 import { active, cl, clearEvent, div, E, g, HSElement, One, onfocusout, S, wrap } from "galho";
 import { Alias, extend, L, range } from "galho/orray.js";
-import { assign, bool, byKey, call, Dic, isO, isU, Key, l, str, sub, t, Task } from "galho/util.js";
+import { assign, bool, byKey, call, def, Dic, isO, isU, Key, l, str, sub, t, Task } from "galho/util.js";
 import { $, MenuItems, FluidRect, FluidAlign, fluid, body, C, cancel, close, close as closeBT, Color, confirm, hc, icon, Icon, menu, menuitem, negative, positive, VAlign, w } from "./galhui.js";
 import { anim } from "./util.js";
 
@@ -132,10 +132,10 @@ export function ctx(e: MouseEvent, data: MenuItems) {
   clearEvent(e);
   popup(div("_ menu", g("table", 0, data)), () => new DOMRect(e.clientX, e.clientY, 0, 0), "ve");
 }
-export function tip<T extends HSElement>(root: S<T>, div: any, align?: FluidAlign): S<T>
+export function tip<T extends HSElement>(root: One<T>, div: any, align?: FluidAlign): S<T>
 export function tip<T extends HSElement>(root: S<T>, div: S, align: FluidAlign = "v") {
   div = wrap(div, "_ tip");
-  return root?.on({
+  return (root = g(<any>root))?.on({
     mouseenter() {
       body.add(div);
       anim(() => body.contains(root) ?
@@ -146,7 +146,7 @@ export function tip<T extends HSElement>(root: S<T>, div: S, align: FluidAlign =
   });
 }
 
-export interface IRoot {
+export interface IRoot<T extends Dic = Dic> {
 
   /**if should open when clicked 
    * @default true */
@@ -163,8 +163,9 @@ export interface IRoot {
   clear?: bool
   /**placeholder */
   ph?: any;
+  item?(v: T): any
   /**label field */
-  label?: str;
+  // label?: Key;
 }
 export type Root = E<IRoot, { open?: [bool] }> & {
   value: Key;
@@ -178,7 +179,7 @@ export type Root = E<IRoot, { open?: [bool] }> & {
 export function setRoot(me: Root, options: L, label: S, menu: S) {
   let
     i = me.i,
-    root = div(["_", C.select], [label.c("bd"), t(i.icon) && icon($.i.dd)?.c(C.side)/*, me.menu*/])
+    root = onfocusout(div(["_", C.select], [label.c("bd"), t(i.icon) && icon($.i.dd)?.c(C.side)/*, me.menu*/]), () => me.set("open", false))
       .p("tabIndex", 0)
       .on({
         focus(e) {
@@ -219,32 +220,8 @@ export function setRoot(me: Root, options: L, label: S, menu: S) {
               return;
           }
           clearEvent(e);
-        },
-        focusout: null && ((e) => {
-          //se o novo item que ganhou o foco n�o estiver dentro do item actual fecha o menu
-          // if (!i.off && !root.contains(e.relatedTarget as Element)) {
-          //   root.c("on", false);
-          //   me.set("open", false);
-          // }
-
-          ////so faz esta checagem se estiver activo(n�o desactivo)
-          //if (!model.off) {
-          //  //se o novo item que ganhou o foco n�o estiver dentro do item actual fecha o menu
-          //  let child = m(<Element>e.relatedTarget);
-          //  root.setClass(Cls.selected, false);
-
-          //  if (!child.valid)
-          //    _this.set(C.open, false);
-          //  else if (root.contains(child)) {
-          //    if (child.isCls(Cls.item) && !child.isCls(Cls.dropdown))
-          //      _this.set(C.open, false);
-
-          //  } else _this.set(C.open, false);
-
-          //}
-        })
+        }
       });
-
   if (t(i.click))
     root.on('click', (e) => {
       if (i.off) {
@@ -297,7 +274,7 @@ export async function setValue<K extends Key = any>(me: Root & { option(k: K): T
   if (v == null) label.c("_ ph").set(me.i.ph);
   else {
     let o = await me.option(v as K);
-    label.c("ph", false).set([o[me.i.label], t(me.i.clear) && close(() => me.value = null)]);
+    label.c("ph", false).set([me.i.item(o), t(me.i.clear) && close(() => me.value = null)]);
     me.set("open", false);
   }
 
@@ -307,17 +284,18 @@ interface SelectItem<K> {
   text?: str;
   i?: Icon;
 }
-export interface ISelect<K extends Key = str> extends IRoot {
+export interface iSelect<K extends Key = str> extends IRoot {
   value?: K;
   ph?: str;
   /**menu width will change acord to content */
   fluid?: boolean;
 }
-export class Select<K extends Key = str> extends E<ISelect<K>, { input: [K]; open: [bool] }> {
+export class Select<K extends Key = str> extends E<iSelect<K>, { input: [K]; open: [bool] }> {
   options: L<SelectItem<K>, K>;
   get selected() { return byKey(this.options, this.i.value); }
-  constructor(i: ISelect<K>, options?: Alias<SelectItem<K>, K>) {
+  constructor(i: iSelect<K>, options?: Alias<SelectItem<K>, K>) {
     super(i);
+    i.item ||= v => def(v.text, v.key);
     this.options = extend<SelectItem<K>, K>(options, {
       key: "key",
       parse: (e) => isO(e) ? e : { key: e }
@@ -338,7 +316,7 @@ export class Select<K extends Key = str> extends E<ISelect<K>, { input: [K]; ope
     this.on(e => ("value" in e) && setValue(this, label));
 
     options.bind(items, {
-      insert: ({ i, text, key }) => menuitem(i, text || key),
+      insert: v => menuitem(v.i, i.item(v)),
       tag(active, i, p, tag) {
         let s = p.child(i);
         s.c(tag, active);

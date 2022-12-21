@@ -249,7 +249,7 @@ export const menubar = ({ menu }: Context): Styles => ({
       border: "none",
       margin: "0 .1em",
       padding: "0 .6em",
-      minWidth: "2em",
+      minWidth: "2.4em",
       height: "100%",
       overflow: "hidden",
       textOverflow: "ellipsis",
@@ -338,17 +338,14 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
         }
       },
 
-      [`.${C.item},.${C.dropdown}`]: {
+      ".i,.dd": {
+        cursor: "pointer",
         ":hover": {
           background: "#acc5cf",
         },
         ["&." + C.disabled]: {
           background: disabled,
         },
-        // ":active": {
-        //   background:"",
-        // },
-
       },
       [`.${Color.error}`]: {
         background: "#e53935", color: "#fff",
@@ -434,7 +431,23 @@ export const panel = (ctx: Context): Styles => ({
       hr: {
         border: "none",
         margin: "auto"
-      }
+      },
+      // ".field": {
+
+      //   position: "relative",
+      //   label: {
+      //     top: "-8px",
+      //     border: "1px solid #0000005c",
+      //     background: "#fff",
+      //     padding: "1px 2px",
+      //     borderRadius: "3px",
+      //     fontSize: "smaller",
+      //     position: "absolute",
+      //     zIndex: zIndex.modal, 
+      //     left: "5px",
+      //   },
+      //   ".in": { marginRight: "10px" }
+      // }
     },
   },
   [min(ScreenSize.laptop)]: {
@@ -511,7 +524,7 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
     },
   },
   [min(ScreenSize.laptop)]: {
-  
+
   },
   "._.side": {
     ...col(),
@@ -621,7 +634,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
     "*": {
       display: "flex",
       flexDirection: "row",
-      height: "2rem",
+      height: "2em",
       whiteSpace: "nowrap",
       ".opts": {
         position: "absolute",
@@ -629,13 +642,13 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       },
       //cell
       "*": {
-        display: "inline-block",
+        // display: "inline-block",
         padding: `${consts.acentVPad}em ${consts.acentHPad}em`,
         borderRadius: 0,
         overflow: "hidden",
         textOverflow: "ellipsis",
         margin: 0,
-        height: "2rem",
+        height: "100%",
         border: "none",
         borderRight: border(brd),
         borderBottom: border(brd),
@@ -653,11 +666,11 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       },
     },
     ".hd": {
-      height: `${consts.menuH}em`,
+      height: "2em",
       zIndex: zIndex.front,
       background: menu,
       fontWeight: 500,
-      minWidth: "100%",
+      minWidth: "fit-content",
       position: "sticky",
       top: 0,
       //cell

@@ -1,7 +1,9 @@
-import { cl, div, E, g, m, MRender, One, onfocusout, S, span } from "galho";
+import { cl, div,wrap, E, g, m, MRender, One, onfocusout, S, span } from "galho";
 import { any, fromArray } from "galho/dic.js";
-import { assign, bool, byKey, date, def, Dic, falses, filter, float, int, isA, isN, isS, isU, Key, l, Primitive, str } from "galho/util.js";
-import { $, C, Color, ibt, Icon, icon, w } from "./galhui.js";
+import { Alias, extend, L } from "galho/orray.js";
+import { assign, bool, byKey, date, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str } from "galho/util.js";
+import { $, C, Color, ibt, Icon, icon, menuitem, w } from "./galhui.js";
+import { IRoot, Root, setRoot, setValue } from "./hover.js";
 import { errorMessage, TextInputTp } from "./io.js";
 import { up } from "./util.js";
 
@@ -518,8 +520,8 @@ export class NumbIn extends Input<float, iNumbIn> {
     return this;
   }
 }
-export const numbIn = (k: str, req?: bool, text?: str) =>
-  new NumbIn({ k, req, text });
+export const numbIn = (k: str, req?: bool, text?: str, unit?: str) =>
+  new NumbIn({ k, req, text, unit });
 export function validateNumber(i: NumberFormat & iInput<int>, value: int) {
   let errs: Error[] = [];
   if (value == null) {
@@ -568,7 +570,7 @@ class CheckIn extends Input<bool, iCheckIn>  {
     let i = this.i;
     switch (i.fmt) {
       case CBFmt.yesNo:
-        return this.bind(g('div', null, [
+        return this.bind(div(null, [
           g('label', [C.checkbox, "i"], [
             g("input", {
               type: 'radio',
@@ -599,17 +601,15 @@ class CheckIn extends Input<bool, iCheckIn>  {
         let inp: S<HTMLInputElement> = g("input", {
           type: 'checkbox',
           name: i.k, id: i.k,
+          checked: i.value,
           onclick: i.clear && ((e: MouseEvent) => {
             if (e.altKey)
-              setTimeout(() => {
-
-                this.set('value', null);
-              });
+              setTimeout(() => this.set('value', null));
           }),
-          oninput: () => this.set('value', inp.prop('checked'))
+          oninput: () => this.set('value', inp.p('checked'))
         }).c(C.switch, i.fmt != CBFmt.checkbox);
 
-        return this.bind(inp, s => s.props({
+        return this.bind(inp, s => s.p({
           checked: i.value,
           placeholder: i.ph || (i.value == null ? '' : i.value ? w.yes : w.no)
         }), 'value');
@@ -711,6 +711,48 @@ export class DTIn extends Input<str, iDTIn> {
     return this.bind(inp, () => inp.e.value = i.value || "");
   }
 }
+//------------ SELECT -----------------------
+export type iSelectIn<T extends Dic> = iInput<Key> & IRoot<T> & {}
+export class SelectIn<T extends Dic = Dic> extends Input<Key, iSelectIn<T>, never, { open: [bool] }> implements Root {
+  options: L;
+  active: T;
+  #l: S;
+  constructor(i: iSelectIn<T>, src: Alias<T>, key:keyof T = "key") {
+    super(i);
+    this.options = extend<T>(src,{key});
+    this.onset("value", v => {
+      this.active = this.options.find(v.value);
+      setValue(this, this.#l)
+    });
+  }
+  // get value() { return this.i.value; }
+  // set value(v: Key) {
+  //   this.active = this.options.find(v);
+  //   setValue(this, this.#l);
+  //   this.set("value", v);
+  // }
+  option(k: Key) { return this.options.find(k); }
+
+  view() {
+    //TODO: checar se é mobile e usar o tag select nativo
+    let
+      i = this.i,
+      label = this.#l = g("span"),
+      o = this.options,
+      menu = div("_ menu", [
+        o.bind(g("table"), {
+          insert: v => menuitem(0, i.item(v), () => this.value = v[o.key]),
+          tag(active, i, p, tag) {
+            let s = p.child(i).c(tag, active).e as HTMLElement;
+            active && menu.e.scroll({ top: s.offsetTop - menu.e.clientHeight / 2 + s.clientHeight / 2 });
+          }
+        })
+      ]),
+      m = setRoot(this, o, label, menu).p({ id: i.k }).c("in");
+    setValue(this, label);
+    return m;
+  }
+}
 //------------ RADIO ------------------------
 
 type Option = [key: Key, text?: str, icon?: Icon];
@@ -723,7 +765,6 @@ export interface iRadioIn extends iInput<Key> {
   layout?: 'wrap' | 'column';
 }
 export class RadioIn extends Input<Key, iRadioIn>{
-
   view() {
     let i = this.i;
     if (this.inline)

@@ -1,5 +1,5 @@
 ﻿import { getAll, S } from "galho";
-import { Dic, def, isF, isS, str, Task, z, falses } from "galho/util.js";
+import { Dic, def, isF, isS, str, Task, z, falses, filter } from "galho/util.js";
 
 export const hash = (s: S, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: S[]) {
@@ -8,7 +8,7 @@ export function init(...routeRoot: S[]) {
   current = currentPath = null;
 }
 export type Update = (...path: string[]) => void;
-export type RouteResult = S[] | [view: S[]|falses, onupdate: Update];
+export type RouteResult = S[] | [view: S[] | falses, onupdate: Update];
 export type Route = RouteResult | ((...path: string[]) => Task<RouteResult | void>);
 export var root: S[], current: Update, currentPath: str;
 const routes: { [index: string]: Route } = {};
@@ -21,12 +21,12 @@ export function add(key: string | Dic<Route>, handler?: Route) {
     routes[k] = key[k];
 }
 
-export function set(t: S[]) {
+export function set(t: (S | falses)[]) {
   let p = root[0].parent(), i = -1;
   while (p.child(++i).e != root[0].e);
 
   for (let e of root) e.remove();
-  p.place(i, root = t);
+  p.place(i, root = filter(t));
 }
 export function push(...items: S[]) {
   z(root).putAfter(items);
@@ -60,12 +60,12 @@ export async function goTo(path: string): Promise<void> {
     current = null;
     let route = routes[newPath];
     if (!route) throw 404;
+    currentPath = newPath;
     let dt = isF(route) ? await route(...keys) : route;
     if (dt && isF(dt[1])) {
       current = dt[1];
       dt = dt[0] as S[];
     }
-    currentPath = newPath;
     if (dt) set(dt as S[]);
   }
   history.replaceState(null, null, "#" + path/*`#${}?${dicToQString(params)}`*/);

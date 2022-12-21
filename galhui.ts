@@ -264,12 +264,12 @@ export type MenuItems = Task<_MenuItems>;
 export function menu(items?: MenuItems) { return div("_ menu", g("table", 0, items)); }
 
 /**menu item */
-export const menuitem = (i: Icon, text: any, action?: click, side?: any) => g("tr", C.item, [
+export const menuitem = (i: Icon, text: any, action?: click, side?: any, disabled?: bool) => g("tr", "i" + (disabled ? " " + C.disabled : ""), [
   g("td", 0, icon(i)),
   g("td", 0, text),
   g("td", C.side, side),
   g("td")
-]).on("click", action);
+]).on("click", !disabled && action);
 
 /**checkbox */
 export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, id = uuid(4), disabled?: bool) {

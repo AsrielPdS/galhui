@@ -1,4 +1,4 @@
-import { cl, clearEvent, div, E, g, m, One, S, wrap } from "galho";
+import { cl, clearEvent, div, E, g, HSElement, m, One, S, wrap } from "galho";
 import orray, { Alias, extend, L, range } from "galho/orray.js";
 import { bool, call, def, Dic, fmt, int, isF, isN, isS, l, str, t } from "galho/util.js";
 import { $, body, C, Child, close, doc, icon, Icon, logo, menucb, MenuItems, Size, w } from "./galhui.js";
@@ -156,7 +156,7 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
   return t(i.kd) ? r.p("tabIndex", 0).on("keydown", e => kbHandler(data as L<T>, e, i) && clearEvent(e)) : r;
 }
 
-export type RecordStyle = ((row: S, value: Dic, index: int) => void);
+export type RecordStyle = (row: S, value: Dic, index: int) => S|void;
 
 
 
@@ -359,7 +359,7 @@ export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never 
       d: S = div("_ tb" + (i.fill ? " fill" : ""), [hd, ft])
         .on("click", e => e.target == e.currentTarget && range.clear(data as L, "on"))
         .p('tabIndex', 0)
-        .on("keydown", (e) => kbHandler(data, e, i) && clearEvent(e));
+        .on("keydown", e => kbHandler(data, e, i) && clearEvent(e));
 
     data.bind(d, {
       insert: (s, j, p) => {
@@ -371,8 +371,7 @@ export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never 
           }),
           // i.options && div(C.options, i.options.map(opt => opt(s, _i)))
         ]);
-        i.style?.(t2, s, j);
-        p.place(j + 1, crudHandler(t2, s, data, i));
+        p.place(j + 1, crudHandler(i.style?.(t2, s, j)||t2, s, data, i));
       },
       tag(active, i, p) {
         let s = p.child(i + 1).c(C.current, active).e;
