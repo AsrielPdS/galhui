@@ -648,7 +648,7 @@ export class Grid<T extends Node> extends E<iGrid<T>>{
       dt = i.dt,
       d = div().attr("resize", true);
     setTimeout(() => this.resize());
-    return dt.bind(this.bind(d, () => d.c(cl("_", i.sz, "grid")), "sz"), {
+    return dt.bind(this.bind(d, () => d.c(["_", i.sz, "grid"]), "sz"), {
       insert: (v) => div(C.item, [
         logo(v.icon) || icon(i.defIcon),
         v.txt || v.key,

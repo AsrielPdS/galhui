@@ -23,6 +23,7 @@ declare global {
       invalidFmt?: str;
     }
     interface Settings {
+       fileURI?: (name: string) => string;
       /**shortcuts */
       sc?: { edit?: str[]; remove?: str[]; },
       // /**class */
@@ -275,7 +276,7 @@ export const menuitem = (i: Icon, text: any, action?: click, side?: any, disable
 export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, id = uuid(4), disabled?: bool) {
   let input = g("input", { id, checked, disabled, indeterminate: checked == null, type: "checkbox" });
   toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
-  return g("tr", cl("i", disabled && C.disabled), [
+  return g("tr", ["i", disabled && C.disabled], [
     g("td", 0, input.on("click", e => e.stopPropagation())),
     g("td", 0, g("label", 0, text).p("htmlFor", id)),
     g("td"), g("td")
@@ -311,7 +312,7 @@ export const mbsep = () => g("hr");
 export function barcb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, disabled?: bool) {
   let input = g("input", { checked, disabled, indeterminate: checked == null, type: "checkbox" });
   toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
-  return g("label", cl("i", disabled && C.disabled), [input, text]);
+  return g("label", ["i", disabled && C.disabled], [input, text]);
 }
 
 /**call back */

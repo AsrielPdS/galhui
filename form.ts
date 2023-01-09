@@ -1,7 +1,7 @@
-import { cl, div,wrap, E, g, m, MRender, One, onfocusout, S, span } from "galho";
+import { div, E, g, m, MRender, One, onfocusout, S, span } from "galho";
 import { any, fromArray } from "galho/dic.js";
 import { Alias, extend, L } from "galho/orray.js";
-import { assign, bool, byKey, date, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str } from "galho/util.js";
+import { assign, bool, byKey, date, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str, Task } from "galho/util.js";
 import { $, C, Color, ibt, Icon, icon, menuitem, w } from "./galhui.js";
 import { IRoot, Root, setRoot, setValue } from "./hover.js";
 import { errorMessage, TextInputTp } from "./io.js";
@@ -52,83 +52,6 @@ export const enum ErrorType {
   lessItems = "less_items",
   unsubmited = "unsubmited"
 }
-export interface iInput<V = unknown, D = V> {
-  //tp: Key;
-  k?: str;
-  g?: str[];
-  off?: bool;
-  /**@default true */
-  req?: bool;
-  text?: any;
-  outline?: bool;
-  /**place holder */
-  ph?: str;
-  value?: V;
-  def?: D;
-  // side?: bool;
-}
-export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A = never, Ev extends Dic<any[]> = {}> extends E<I, Ev> {// & { input: [V] }
-  public ctx?: IInputContext
-  constructor(i: I) {
-    super(i);
-    if (isU(i.text)) i.text = def(w[i.k], up(i.k));
-    if (isU(i.value)) i.value = this.def;
-  }
-  get key() { return this.i.k; }
-  get value() { return def<V>(this.i.value, null); }
-  set value(v) { this.set("value", v); }
-
-  fill?(value: Dic): any;
-  get def() { return def(<V>this.i.def, this.null); }
-  get inline() { return this.ctx?.inline; }
-  isDef(value = this.value, def = this.def) {
-    return def === value;
-  }
-  isNull(value = this.value) { return this.isDef(value, this.null); }
-
-  visited?: bool;
-  observeVisited(handler: () => any) {
-    onfocusout(g(this), () => {
-      this.visited = true;
-      handler();
-    });
-  }
-  field(outline: bool): One {
-    let i = this.i;
-    outline ||= i.outline;
-    return div(outline ? "_ oi" : "_ ii", [
-      g('label', "hd", i.text).attrs({ for: i.k, title: i.text }),
-      g(this).c("bd"),
-      !!i.req && g('span', "req", '*'),
-    ]);
-  }
-  /**show or hide errors */
-  error(state: bool) {
-    g(this).c(Color.error, state);
-    return this;
-  }
-  get invalid() {
-    let e = this.i.off ? [] : this.validate(this.value);
-    return l(e) ? e : null;
-  }
-  validate(value: V): Error[] {
-    let
-      i = this.i,
-      errs: Error[] = [];
-
-    if (i.req && this.isNull(value))
-      errs.push(req());
-
-    return errs;
-  }
-
-  submit(data: Dic, edited?: bool, req?: bool): void
-  submit(data: Dic) {
-    data[this.i.k] = this.value;
-  }
-  /**null value used for clear method */
-  get null(): V { return null; }
-}
 interface EError extends MRender { tp: ErrorType, params?: Dic }
 export function error(tp: ErrorType, msg?: str, params?: Dic): EError { return { tp, params, render: () => msg } }
 export const req = () => error(ErrorType.required, w.required);
@@ -162,7 +85,13 @@ export interface iFormBase {
 /** */
 export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends E<T, Ev> implements IInputContext {
   inputs: Input[];
-  constructor(i: T, inputs: Input[]) {
+  constructor(i: T, inputs?: Input[]);
+  constructor(inputs: (Input | falses)[]);
+  constructor(i: T | (Input | falses)[], inputs?: Input[]) {
+    if (isA(i)) {
+      inputs = filter(i);
+      i = {} as T;
+    }
     super(i);
 
     this.inputs = inputs.map(input => {
@@ -300,6 +229,15 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
     return target;
   }
 }
+async function dataAsync(form: FormBase, edited?: bool, req?: bool) {
+  let inputs = form.inputs;
+
+  let r: Dic = assign({}, form.i.hidden);
+  for (let input of edited ? inputs.filter(i => (req && i.i.req) || !i.isDef()) : inputs)
+    input.i.off || await input.submit(r, edited, req);
+  form.emit("submit", r);
+  return r;
+}
 function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
   let result: S[][] = [];
 
@@ -325,33 +263,29 @@ export interface iForm extends iFormBase {
 }
 
 export class Form extends FormBase<iForm> {
-  constructor(i: iForm, inputs?: Input[])
-  constructor(inputs: (Input | falses)[])
-  constructor(i: iForm | (Input | falses)[], inputs?: Input[]) {
-    if (isA(i)) {
-      inputs = filter(i);
-      i = {};
-    }
-    super(i, inputs);
+  errDiv: S;
 
+  constructor(i: iForm, inputs?: Input[]);
+  constructor(inputs: (Input | falses)[]);
+  constructor(i: iForm | (Input | falses)[], inputs?: Input[]) {
+    super(i as any, inputs as any);
     this.on('input', (input: Input) => setTimeout(() => {
-      g(input).parent().try(p => p.attr("edited", !input.isDef()));
+      g(input).parent()?.attr("edited", !input.isDef());
     }));
-    this._errorDiv = i.errorDiv || errorMessage();
+    this.errDiv = this.i.errorDiv || errorMessage();
   }
   view() {
     let { i, inputs: inp } = this;
     return g(i.intern ? 'div' : 'form', "_ form", [
       fields(inp, def(i.outline, $.oform)),
-      this._errorDiv
+      this.errDiv
     ]);
   }
 
   setErrors(key: str, errors?: Error[]) {
     super.setErrors(key, errors);
-    this._errorDiv.set(renderErrors(this.inputs, this.errors));
+    this.errDiv.set(renderErrors(this.inputs, this.errors));
   }
-  protected readonly _errorDiv: S;
 }
 export function fields(inputs: Input[], outline?: bool) {
   return inputs.map(input => input.field(outline));
@@ -360,11 +294,11 @@ export function expand(form: Form, ...main: str[]) {
   for (let input of form.inputs)
     g(input).c(C.side, !main.includes(input.key));
   g(form).add(m(
-    div(cl("ft", "_" + C.side), [
+    div(["ft", "_" + C.side], [
       g("span", 0, "Mostrar todos"),
       ibt($.i.down, null)
     ]),
-    div(cl("ft", C.side), [
+    div(["ft", C.side], [
       g("span", 0, "Mostrar principais"),
       ibt($.i.up, null),
     ])).on("click", () => g(form).tcls("expand")));
@@ -407,6 +341,83 @@ export function value(e: HTMLFormElement) {
       }
   }
   return r;
+}
+export interface iInput<V = unknown, D = V> {
+  //tp: Key;
+  k?: str;
+  g?: str[];
+  off?: bool;
+  /**@default true */
+  req?: bool;
+  text?: any;
+  outline?: bool;
+  /**place holder */
+  ph?: str;
+  value?: V;
+  def?: D;
+  // side?: bool;
+}
+export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A = never, Ev extends Dic<any[]> = {}> extends E<I, Ev> {// & { input: [V] }
+  public ctx?: IInputContext
+  constructor(i: I) {
+    super(i);
+    if (isU(i.text)) i.text = def(w[i.k], up(i.k));
+    if (isU(i.value)) i.value = this.def;
+  }
+  get key() { return this.i.k; }
+  get value() { return def<V>(this.i.value, null); }
+  set value(v) { this.set("value", v); }
+
+  fill?(value: Dic): any;
+  get def() { return def(<V>this.i.def, this.null); }
+  get inline() { return this.ctx?.inline; }
+  isDef(value = this.value, def = this.def) {
+    return def === value;
+  }
+  isNull(value = this.value) { return this.isDef(value, this.null); }
+
+  visited?: bool;
+  observeVisited(handler: () => any) {
+    onfocusout(g(this), () => {
+      this.visited = true;
+      handler();
+    });
+  }
+  field(outline: bool): One {
+    let i = this.i;
+    outline ||= i.outline;
+    return div(outline ? "_ oi" : "_ ii", [
+      g('label', "hd", i.text).attrs({ for: i.k, title: i.text }),
+      g(this, "bd"),
+      !!i.req && g('span', "req", '*'),
+    ]);
+  }
+  /**show or hide errors */
+  error(state: bool) {
+    g(this).c(Color.error, state);
+    return this;
+  }
+  get invalid() {
+    let e = this.i.off ? [] : this.validate(this.value);
+    return l(e) ? e : null;
+  }
+  validate(value: V): Error[] {
+    let
+      i = this.i,
+      errs: Error[] = [];
+
+    if (i.req && this.isNull(value))
+      errs.push(req());
+
+    return errs;
+  }
+
+  submit(data: Dic, edited?: bool, req?: bool): Task<void>
+  submit(data: Dic) {
+    data[this.i.k] = this.value;
+  }
+  /**null value used for clear method */
+  get null(): V { return null; }
 }
 // function inputBind<I, Inp extends InputElement>(e: E<I>, input: S<Inp>, prop: keyof I, field: keyof Inp = 'value') {
 //   e.bind(input, () => input.e[field as str] = e.i[prop], prop);
@@ -471,7 +482,7 @@ export class TextIn extends Input<str, iTextIn> {
   }
 }
 /**text input */
-export const textIn = (k: str, req?: bool, input?: TextInputTp) =>
+export const textIn = (k: str, req?: bool, input?: TextInputTp | "ta") =>
   new TextIn({ k, req, input });
 //------------NUMBER------------------------
 export interface NumberFormat {
@@ -717,9 +728,9 @@ export class SelectIn<T extends Dic = Dic> extends Input<Key, iSelectIn<T>, neve
   options: L;
   active: T;
   #l: S;
-  constructor(i: iSelectIn<T>, src: Alias<T>, key:keyof T = "key") {
+  constructor(i: iSelectIn<T>, src: Alias<T>, key: keyof T = "key") {
     super(i);
-    this.options = extend<T>(src,{key});
+    this.options = extend<T>(src, { key });
     this.onset("value", v => {
       this.active = this.options.find(v.value);
       setValue(this, this.#l)
@@ -830,6 +841,16 @@ export class PWIn extends Input<str, iPWIn> {
   }
 }
 
+export interface iCustomIn<V, O> extends iInput<V> {
+  submit?: (this: CustomIn<V> & O, data: Dic, edited?: bool, req?: bool) => Task<void>;
+  
+}
+export class CustomIn<V, O = {}> extends Input {
+  constructor(i: iCustomIn<V, O>, public view: (this: CustomIn<V> & O) => One) {
+    super(i);
+    i.submit && (this.submit = i.submit)
+  }
+}
 //------------
 interface iCompostIn extends iInput<Dic> {
   inputs?: Input<any>[];
@@ -843,7 +864,7 @@ export class CompostIn extends Input<Dic, iCompostIn> {
     for (let input of i.inputs)
       input.onset('value', () => this.set(['value']));
 
-    return div("_ in join", i.inputs);
+    return div("_ join", i.inputs);
   }
   get value() { return fromArray(this.ins, v => [v.key, v.value]); }
   set value(v: Dic) {

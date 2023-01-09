@@ -53,20 +53,20 @@ export async function goTo(path: string): Promise<void> {
     path = path.slice(1);
 
   _intercept && (path = def(<str>_intercept(path), path));
-  has(path) || (path = defRoute || "");
+  has(path) || (console.warn(`path '${path}' not found.`), path = defRoute || "");
   let keys = path.split('/'), newPath = keys.shift();
 
   if (newPath != currentPath) {
     current = null;
     let route = routes[newPath];
     if (!route) throw 404;
-    currentPath = newPath;
     let dt = isF(route) ? await route(...keys) : route;
     if (dt && isF(dt[1])) {
       current = dt[1];
       dt = dt[0] as S[];
     }
     if (dt) set(dt as S[]);
+    currentPath = newPath;
   }
   history.replaceState(null, null, "#" + path/*`#${}?${dicToQString(params)}`*/);
   getAll("a.on").do(e => e.c("on", false));

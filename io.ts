@@ -1,10 +1,8 @@
-import { cl, clearEvent, delay, div, E, g, One, S, wrap } from "galho";
+import { delay, div, E, g, HSElement, One, S, svg, wrap } from "galho";
 import { L, orray } from "galho/orray.js";
-import { assign, bool, call, Dic, fmt, int, isN, isS, isU, str, t, Task } from "galho/util.js";
-import { $, body, C, fluid, cancel, close, Color, confirm, hc, ibt, icon, Icon, mbitem, MBItems, menubar, panel, Size, w } from "./galhui.js";
+import { assign, bool, call, fmt, int, is, isS, str, t } from "galho/util.js";
+import { $, bt, C, cancel, close, Color, confirm, hc, ibt, icon, Icon, img, mbitem, MBItems, panel, Size, w } from "./galhui.js";
 import { modal, openModal, Select } from "./hover.js";
-import { kbHandler, list } from "./list.js";
-import { anim } from "./util.js";
 
 //#region input
 export type TextInputTp = "text" | "email" | "url" | "tel";
@@ -25,8 +23,6 @@ export function search(input?: (value: str) => any) {
   input && delay(t, "input", $.delay, () => input(t.e.value));
   return (i ? div(0, [t, i]) : t).c("_ in");
 }
-
-export const lever = (name: str) => g("input", { type: "checkbox", name }).c(C.lever);
 
 
 export interface IPagging {
@@ -95,21 +91,116 @@ export class Pagging extends E<IPagging>{
   }
 }
 
-export interface FilePath {
+export interface iImgSelector {
+  k?: str;
+  accept?: str;
+  /**placeholder */
+  ph?: str;
+  value?: Blob;
+  saveTo?: str;
+}
+export class ImgSelector extends E<iImgSelector>{
+  view() {
+    let
+      i = this.i,
+      input = g('input', { name: i.k, type: "file", accept: i.accept || "image/*" }).on("input", () => {
+        this.set("value", input.e.files[0]);
+        if (i.saveTo)
+          this.submit(i.saveTo);
+      });
+    return this.bind(div("_ img-in", input), async _ => {
+      if (i.value) {
+        let img = g("img"), fr = new FileReader();
+        fr.onload = () => img.e.src = fr.result as str;
+        fr.readAsDataURL(i.value);
+        _.set([img, close(() => this.set("value", input.e.value = null))]);
+      } else {
+        _.set(g("button", 0, [div(0, "+").css("fontSize", "6em"), i.ph])
+          .on("click", () => input.e.click()));
+      }
+    }, "value");
+  }
+  submit(url: str) {
+    return new Promise<str>((resolve, reject) => {
+      let r = new XMLHttpRequest;
+      r.onload = () => { resolve(r.responseText) };
+      r.onprogress = e => {
+        //TODO set busy
+      }
+      r.open("POST", url);
+      r.send(this.i.value);
+    })
+  }
+}
+
+const lever = (name: str) => g("input", { type: "checkbox", name }).c(C.lever);
+
+//#region output
+
+export const label = (content) => g("label", "_ tag", content);
+export const output = (...content) => g("span", "_ tag", content);
+export const keyVal = (key, val) => g("span", "_ in", [key + ": ", val]);
+
+export const message = (c?: Color, data?) => div(hc(C.message), data).c(c);
+export const errorMessage = (data?) => message(Color.error, data);
+/**@deprecated */
+export const tip = (e: S, value) => e.p("title", value);
+
+
+export interface iOutput<T> {
+  key?: str;
+  text?: str;
+  fmt?: str;
+  value?: T;
+  color?: Color;
+  def?: any;
+}
+export class Output<T = unknown> extends E<iOutput<T>>{
+  constructor(model: iOutput<T>);
+  constructor(text: string, value: T, format?: string)
+  constructor(text: string | iOutput<T>, value?: T, fmt?: string) {
+    super(isS(text) ? { text, value, fmt } : text);
+  }
+  get key() { return this.i.key; }
+
+  get value() { return this.i.value; }
+  set value(v) { this.set('value', v); }
+  // value(): T;
+  // value(value: T): this;
+  // value(v?: T) {
+  //   return isU(v) ? this.i.value : this.set('value', v);
+  // }
+  view() {
+    let i = this.i;
+    return this.bind(div(), (s) => {
+      s
+        .attr("class", false)
+        .c(["in", i.color])
+        .set([
+          i.text, ': ',
+          i.value == null ? i.def : i.fmt ? fmt(<any>i.value, i.fmt) : i.value
+        ]);
+    });
+  }
+}
+
+//#endregion
+
+//#region layouts
+//-----------------DEPRECATED---------------------------
+
+interface FilePath {
   path: string;
   name: string;
   type: string;
 }
 
-interface IFileRenderProvedor {
-  valid(file: FSValue): boolean
-  formats: string[],
-  render(file: FSValue): One;
-}
-export type ImageSelectorLayout = 'horizontal' | 'vertical' | 'grid';
+
+type FileRenderer = (type: str, file: FSValue) => One<HSElement> | void
+type ImageSelectorLayout = 'horizontal' | 'vertical' | 'grid';
 
 type FSValue = string | File | Blob;
-export interface IFileSelector {
+interface IFileSelector {
   maxSize?: number;
   formats?: string[];
   value?: L<FSValue, string>;
@@ -122,65 +213,27 @@ export interface IFileSelector {
   options?: MBItems;
   icon?: Icon;
 }
-export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { input: [FSValue[]], submit: [str[]]; }> {
+class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { input: [FSValue[]], submit: [str[]]; }> {
   input: S<HTMLInputElement>;
 
-  static default: Partial<IFileSelector> = {
-    icon: 'file-search',
-    //render(value: IFile) {
-    //  if (typeof value == 'string')
-    //    var type = value.split('.').pop();
-    //  else var type = value.type;
-    //  var img = m('img');
-    //  switch (type) {
-    //    case 'pdf':
-    //      img.p('src', './img/util/pdf.svg');
-    //      break;
+  constructor(i: T) {
+    super(i);
 
-    //    case 'docx':
-    //    case 'doc':
-    //      img.p('src', './img/util/doc.svg');
-    //      break;
-
-    //    default:
-    //      img.p('src', './img/util/file.svg');
-    //      break;
-    //  }
-    //  return img;
-    //}
-  };
-  constructor(dt: T) {
-    super(dt);
-
-    dt.value = orray<FSValue, string>(dt.value, {
+    i.value = orray<FSValue, string>(i.value, {
       parse: (file, index) => {
-        if (file instanceof Blob && dt.autosubmit)
-          setTimeout(() => {
-            this.submit(index, index + 1);
-          });
-        //else if (typeof file == 'string') {
-        //  let name = file.replace(/^.*[\\\/]/, '').split('.')
-
-        //  file = {
-        //    path: file,
-        //    type: name.pop(),
-        //    name: name.join('.'),
-        //  }
-        //}
+        if (is(file, Blob) && i.autosubmit)
+          setTimeout(() => this.submit(index, index + 1));
         return file;
       }
     });
-    this.on(e => {
-      if ("value" in e)
-        this.emit('input', dt.value.slice());
-    });
+    this.onset("value", () => this.emit('input', i.value.slice()));
   }
 
   view() {
     let
       i = this.i,
       values = i.value;
-    return div([C.fileSelector, i.inline ? C.inline : ""], [
+    return div(["_", C.fileSelector, i.inline && C.inline], [
       this.input = g('input', {
         type: 'file',
         accept: i.accept,
@@ -192,36 +245,29 @@ export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { i
 
         else values.set(t);
       }),
-      values.bind(div(C.body), {
+      values.bind(div("bd"), {
         insert(file) {
           let
-            tp = FileInput.getFileExt(file),
-            prov: IFileRenderProvedor;
-          for (let p of frp)
-            if (p.formats.indexOf(tp) != -1 && p.valid(file)) {
-              prov = p;
-              break;
-            }
-          //= model.render(value);
-          return div(C.item, [
-            prov.render(file),
-            close(() => values.remove(file))
+            name = isS(file) ? file : (file as File).name || "",
+            type = name.slice(name.lastIndexOf(".") + 1);
+          return g("figure", "i", [
+            close(() => values.remove(file)),
+            fileRenderers.find(p => p(type, file)),
+            g("figcaption", 0, name.slice(name.lastIndexOf("/") + 1))
           ]);
         },
         empty(active, s) {
-          s
-            .c("tag", active)
-            .set(active && icon(i.icon));
+          s.c("tag", active).set(active && icon(i.icon));
         }
       }),
-      menubar(
+      div("_ bar", [
         i.submit && !i.autosubmit && this.bind(ibt("upload", null, () => this.submit()).c(Color.accept),
           (s) => { g(s).p("disabled", !values.length || values.every((value) => isS(value))); }, 'value'
         ),
-        ibt('folder-open', null, () => this.input.e.click()),
+        ibt($.i.upload, null, () => this.input.e.click()),
         i.options as any,
         this.bind(close(() => values.set()), (s) => g(s).p("disabled", !values.length), 'value')
-      )
+      ])
     ]).p("tabIndex", 0);
   }
 
@@ -253,127 +299,98 @@ export class FileInput<T extends IFileSelector = IFileSelector> extends E<T, { i
   }
 
   static submitfile: (files: Blob[], progress?: (this: XMLHttpRequest, e: ProgressEvent) => any) => Promise<string[]>;
-  static filePath: (name: string) => string;
-
-  static getFileExt(file: FSValue) {
-    if (file instanceof File)
-      return file.name.split('.').pop().toLowerCase();
-
-    else if (typeof file == 'string')
-      return file.replace(/^.*[\\\/]/, '').split('.').pop().toLowerCase()
-
-    else if (file instanceof Blob)
-      return file.type.split('/')[1];
-
-    else return '';
-  }
-  static getFileName(file: FSValue) {
-    if (file instanceof File)
-      return file.name;
-    else if (typeof file == 'string')
-      return file.replace(/^.*[\\\/]/, '')
-    return '';
+}
+//file Render Provedors
+const
+  pdfRenderer: FileRenderer = (type: str) => type == "pdf" && svg("svg", { viewBox: "0 0 56 56"/*,style="enable-background:new 0 0 56 56;"*/ })
+    .html(`<g>
+  <path style="fill:#E9E9E0;" d="M36.985,0H7.963C7.155,0,6.5,0.655,6.5,1.926V55c0,0.345,0.655,1,1.463,1h40.074c0.808,0,1.463-0.655,1.463-1V12.978c0-0.696-0.093-0.92-0.257-1.085L37.607,0.257C37.442,0.093,37.218,0,36.985,0z"/>
+  <polygon style="fill:#D9D7CA;" points="37.5,0.151 37.5,12 49.349,12 	"/>
+  <path style="fill:#CC4B4C;" d="M19.514,33.324L19.514,33.324c-0.348,0-0.682-0.113-0.967-0.326c-1.041-0.781-1.181-1.65-1.115-2.242c0.182-1.628,2.195-3.332,5.985-5.068c1.504-3.296,2.935-7.357,3.788-10.75c-0.998-2.172-1.968-4.99-1.261-6.643c0.248-0.579,0.557-1.023,1.134-1.215c0.228-0.076,0.804-0.172,1.016-0.172c0.504,0,0.947,0.649,1.261,1.049c0.295,0.376,0.964,1.173-0.373,6.802c1.348,2.784,3.258,5.62,5.088,7.562c1.311-0.237,2.439-0.358,3.358-0.358c1.566,0,2.515,0.365,2.902,1.117c0.32,0.622,0.189,1.349-0.39,2.16c-0.557,0.779-1.325,1.191-2.22,1.191c-1.216,0-2.632-0.768-4.211-2.285c-2.837,0.593-6.15,1.651-8.828,2.822c-0.836,1.774-1.637,3.203-2.383,4.251C21.273,32.654,20.389,33.324,19.514,33.324z M22.176,28.198c-2.137,1.201-3.008,2.188-3.071,2.744c-0.01,0.092-0.037,0.334,0.431,0.692C19.685,31.587,20.555,31.19,22.176,28.198z M35.813,23.756c0.815,0.627,1.014,0.944,1.547,0.944c0.234,0,0.901-0.01,1.21-0.441c0.149-0.209,0.207-0.343,0.23-0.415c-0.123-0.065-0.286-0.197-1.175-0.197C37.12,23.648,36.485,23.67,35.813,23.756z M28.343,17.174c-0.715,2.474-1.659,5.145-2.674,7.564c2.09-0.811,4.362-1.519,6.496-2.02C30.815,21.15,29.466,19.192,28.343,17.174z M27.736,8.712c-0.098,0.033-1.33,1.757,0.096,3.216C28.781,9.813,27.779,8.698,27.736,8.712z"/>
+  <path style="fill:#CC4B4C;" d="M48.037,56H7.963C7.155,56,6.5,55.345,6.5,54.537V39h43v15.537C49.5,55.345,48.845,56,48.037,56z"/>
+  <g>
+   <path style="fill:#FFFFFF;" d="M17.385,53h-1.641V42.924h2.898c0.428,0,0.852,0.068,1.271,0.205c0.419,0.137,0.795,0.342,1.128,0.615c0.333,0.273,0.602,0.604,0.807,0.991s0.308,0.822,0.308,1.306c0,0.511-0.087,0.973-0.26,1.388c-0.173,0.415-0.415,0.764-0.725,1.046c-0.31,0.282-0.684,0.501-1.121,0.656s-0.921,0.232-1.449,0.232h-1.217V53z M17.385,44.168v3.992h1.504c0.2,0,0.398-0.034,0.595-0.103c0.196-0.068,0.376-0.18,0.54-0.335c0.164-0.155,0.296-0.371,0.396-0.649c0.1-0.278,0.15-0.622,0.15-1.032c0-0.164-0.023-0.354-0.068-0.567c-0.046-0.214-0.139-0.419-0.28-0.615c-0.142-0.196-0.34-0.36-0.595-0.492c-0.255-0.132-0.593-0.198-1.012-0.198H17.385z"/>
+   <path style="fill:#FFFFFF;" d="M32.219,47.682c0,0.829-0.089,1.538-0.267,2.126s-0.403,1.08-0.677,1.477s-0.581,0.709-0.923,0.937s-0.672,0.398-0.991,0.513c-0.319,0.114-0.611,0.187-0.875,0.219C28.222,52.984,28.026,53,27.898,53h-3.814V42.924h3.035c0.848,0,1.593,0.135,2.235,0.403s1.176,0.627,1.6,1.073s0.74,0.955,0.95,1.524C32.114,46.494,32.219,47.08,32.219,47.682z M27.352,51.797c1.112,0,1.914-0.355,2.406-1.066s0.738-1.741,0.738-3.09c0-0.419-0.05-0.834-0.15-1.244c-0.101-0.41-0.294-0.781-0.581-1.114s-0.677-0.602-1.169-0.807s-1.13-0.308-1.914-0.308h-0.957v7.629H27.352z"/>
+   <path style="fill:#FFFFFF;" d="M36.266,44.168v3.172h4.211v1.121h-4.211V53h-1.668V42.924H40.9v1.244H36.266z"/>
+  </g></g>`),
+  docRenderer: FileRenderer = (type: str) => (type == "docx" || type == "doc") && svg("svg", { viewBox: "0 0 56 56"/*,style="enable-background:new 0 0 56 56;"*/ })
+    .html(`<g>
+  <path style="fill:#E9E9E0;" d="M36.985,0H7.963C7.155,0,6.5,0.655,6.5,1.926V55c0,0.345,0.655,1,1.463,1h40.074c0.808,0,1.463-0.655,1.463-1V12.978c0-0.696-0.093-0.92-0.257-1.085L37.607,0.257C37.442,0.093,37.218,0,36.985,0z"/>
+  <polygon style="fill:#D9D7CA;" points="37.5,0.151 37.5,12 49.349,12 	"/>
+  <path style="fill:#8697CB;" d="M18.5,13h-6c-0.552,0-1-0.448-1-1s0.448-1,1-1h6c0.552,0,1,0.448,1,1S19.052,13,18.5,13z"/>
+  <path style="fill:#8697CB;" d="M21.5,18h-9c-0.552,0-1-0.448-1-1s0.448-1,1-1h9c0.552,0,1,0.448,1,1S22.052,18,21.5,18z"/>
+  <path style="fill:#8697CB;" d="M25.5,18c-0.26,0-0.52-0.11-0.71-0.29c-0.18-0.19-0.29-0.45-0.29-0.71c0-0.26,0.11-0.52,0.29-0.71c0.37-0.37,1.05-0.37,1.42,0c0.18,0.19,0.29,0.45,0.29,0.71c0,0.26-0.11,0.52-0.29,0.71C26.02,17.89,25.76,18,25.5,18z"/>
+  <path style="fill:#8697CB;" d="M37.5,18h-8c-0.552,0-1-0.448-1-1s0.448-1,1-1h8c0.552,0,1,0.448,1,1S38.052,18,37.5,18z"/>
+  <path style="fill:#8697CB;" d="M12.5,33c-0.26,0-0.52-0.11-0.71-0.29c-0.18-0.19-0.29-0.45-0.29-0.71c0-0.26,0.11-0.52,0.29-0.71c0.37-0.37,1.05-0.37,1.42,0c0.18,0.19,0.29,0.44,0.29,0.71c0,0.26-0.11,0.52-0.29,0.71C13.02,32.89,12.76,33,12.5,33z"/>
+  <path style="fill:#8697CB;" d="M24.5,33h-8c-0.552,0-1-0.448-1-1s0.448-1,1-1h8c0.552,0,1,0.448,1,1S25.052,33,24.5,33z"/>
+  <path style="fill:#8697CB;" d="M43.5,18h-2c-0.552,0-1-0.448-1-1s0.448-1,1-1h2c0.552,0,1,0.448,1,1S44.052,18,43.5,18z"/>
+  <path style="fill:#8697CB;" d="M34.5,23h-22c-0.552,0-1-0.448-1-1s0.448-1,1-1h22c0.552,0,1,0.448,1,1S35.052,23,34.5,23z"/>
+  <path style="fill:#8697CB;" d="M43.5,23h-6c-0.552,0-1-0.448-1-1s0.448-1,1-1h6c0.552,0,1,0.448,1,1S44.052,23,43.5,23z"/>
+  <path style="fill:#8697CB;" d="M16.5,28h-4c-0.552,0-1-0.448-1-1s0.448-1,1-1h4c0.552,0,1,0.448,1,1S17.052,28,16.5,28z"/>
+  <path style="fill:#8697CB;" d="M30.5,28h-10c-0.552,0-1-0.448-1-1s0.448-1,1-1h10c0.552,0,1,0.448,1,1S31.052,28,30.5,28z"/>
+  <path style="fill:#8697CB;" d="M43.5,28h-9c-0.552,0-1-0.448-1-1s0.448-1,1-1h9c0.552,0,1,0.448,1,1S44.052,28,43.5,28z"/>
+  <path style="fill:#0096E6;" d="M48.037,56H7.963C7.155,56,6.5,55.345,6.5,54.537V39h43v15.537C49.5,55.345,48.845,56,48.037,56z"/>
+  <g>
+   <path style="fill:#FFFFFF;" d="M23.5,47.682c0,0.829-0.089,1.538-0.267,2.126s-0.403,1.08-0.677,1.477s-0.581,0.709-0.923,0.937s-0.672,0.398-0.991,0.513c-0.319,0.114-0.611,0.187-0.875,0.219C19.503,52.984,19.307,53,19.18,53h-3.814V42.924H18.4c0.848,0,1.593,0.135,2.235,0.403s1.176,0.627,1.6,1.073s0.74,0.955,0.95,1.524C23.395,46.494,23.5,47.08,23.5,47.682z M18.633,51.797c1.112,0,1.914-0.355,2.406-1.066s0.738-1.741,0.738-3.09c0-0.419-0.05-0.834-0.15-1.244c-0.101-0.41-0.294-0.781-0.581-1.114s-0.677-0.602-1.169-0.807s-1.13-0.308-1.914-0.308h-0.957v7.629H18.633z"/>
+   <path style="fill:#FFFFFF;" d="M33.475,47.914c0,0.848-0.107,1.595-0.321,2.242c-0.214,0.647-0.511,1.185-0.889,1.613c-0.378,0.429-0.82,0.752-1.326,0.971s-1.06,0.328-1.661,0.328s-1.155-0.109-1.661-0.328s-0.948-0.542-1.326-0.971c-0.378-0.429-0.675-0.966-0.889-1.613c-0.214-0.647-0.321-1.395-0.321-2.242s0.107-1.593,0.321-2.235c0.214-0.643,0.51-1.178,0.889-1.606c0.378-0.429,0.82-0.754,1.326-0.978s1.06-0.335,1.661-0.335s1.155,0.111,1.661,0.335s0.948,0.549,1.326,0.978c0.378,0.429,0.674,0.964,0.889,1.606C33.367,46.321,33.475,47.066,33.475,47.914z M29.236,51.729c0.337,0,0.658-0.066,0.964-0.198c0.305-0.132,0.579-0.349,0.82-0.649c0.241-0.301,0.431-0.695,0.567-1.183s0.209-1.082,0.219-1.784c-0.009-0.684-0.08-1.265-0.212-1.743c-0.132-0.479-0.314-0.873-0.547-1.183s-0.497-0.533-0.793-0.67c-0.296-0.137-0.608-0.205-0.937-0.205c-0.337,0-0.659,0.063-0.964,0.191c-0.306,0.128-0.579,0.344-0.82,0.649c-0.242,0.306-0.431,0.699-0.567,1.183s-0.21,1.075-0.219,1.777c0.009,0.684,0.08,1.267,0.212,1.75c0.132,0.483,0.314,0.877,0.547,1.183s0.497,0.528,0.793,0.67C28.596,51.658,28.908,51.729,29.236,51.729z"/>
+   <path style="fill:#FFFFFF;" d="M42.607,51.975c-0.374,0.364-0.798,0.638-1.271,0.82c-0.474,0.183-0.984,0.273-1.531,0.273c-0.602,0-1.155-0.109-1.661-0.328s-0.948-0.542-1.326-0.971c-0.378-0.429-0.675-0.966-0.889-1.613c-0.214-0.647-0.321-1.395-0.321-2.242s0.107-1.593,0.321-2.235c0.214-0.643,0.51-1.178,0.889-1.606c0.378-0.429,0.822-0.754,1.333-0.978c0.51-0.224,1.062-0.335,1.654-0.335c0.547,0,1.057,0.091,1.531,0.273c0.474,0.183,0.897,0.456,1.271,0.82l-1.135,1.012c-0.228-0.265-0.481-0.456-0.759-0.574c-0.278-0.118-0.567-0.178-0.868-0.178c-0.337,0-0.659,0.063-0.964,0.191c-0.306,0.128-0.579,0.344-0.82,0.649c-0.242,0.306-0.431,0.699-0.567,1.183s-0.21,1.075-0.219,1.777c0.009,0.684,0.08,1.267,0.212,1.75c0.132,0.483,0.314,0.877,0.547,1.183s0.497,0.528,0.793,0.67c0.296,0.142,0.608,0.212,0.937,0.212s0.636-0.06,0.923-0.178s0.549-0.31,0.786-0.574L42.607,51.975z"/>
+  </g></g>`);
+function imgRenderer(type: str, file: FSValue,) {
+  if (['png', 'jpg', 'gif', 'svg', 'ico'].includes(type)) {
+    let img = g('img');
+    if (isS(file))
+      img.p('src', $.fileURI?.(file) || file)
+    else {
+      let reader = new FileReader();
+      reader.onload = (e) => {
+        img.p('src', (e.target as any).result);
+      };
+      reader.readAsDataURL(file);
+    }
+    return img;
   }
 }
-
-
-//file Render Provedors
-const frp: IFileRenderProvedor[] = [
-  {
-    valid() { return true; },
-    formats: ['pdf'],
-    render(file) {
-      return div(0, [
-        g("img", { src: './img/util/pdf.svg' })
-          .css("height", $.rem * 4 + "px"),
-        FileInput.getFileName(file)
-      ]);
-    }
-  },
-  {
-    valid() { return true; },
-    formats: ['docx', 'doc'],
-    render(file) {
-      return div(0, [
-        g("img", { src: './img/util/doc.svg' })
-          .css("height", $.rem * 4 + "px"),
-        FileInput.getFileName(file)
-      ]);
-    }
-  },
-  {
-    valid() { return true; },
-    formats: ['png', 'jpg', 'gif', 'svg', 'ico'],
-    render(file) {
-      var img = g('img');
-      if (file instanceof Blob) {
-        var reader = new FileReader();
-        reader.onload = (e) => {
-          img.p('src', (e.target as any).result);
-        };
-        reader.readAsDataURL(file);
-      } else img.p('src', FileInput.filePath(file));
-      return img;
-    }
-  }
-];
+const fileRenderers: FileRenderer[] = [];
 //-----------------------------------------------------------
 //--------------------image selector-------------------------
 //-----------------------------------------------------------
-export interface IImageSelector extends IFileSelector {
+interface IImageSelector extends IFileSelector {
   format?: ImageFormat;
-  camera?: boolean;
 }
 
+const ISCameraOption = () => ibt("camera", null, async () => {
+  let
+    i = null/*this.i*/,
+    camera = new Camera(i.format || {});
 
-export class ImageSelector extends FileInput<IImageSelector> {
+  await camera.show();
+  if (camera.i.value)
+    fetch(camera.i.value)
+      .then(v => v.blob())
+      .then(v => {
+        i.multiple ?
+          i.value.push(v) :
+          i.value.set([v]);
+      });
+});
+class ImageSelector extends FileInput<IImageSelector> {
   constructor(i: IImageSelector) {
-    if (i.camera)
-      i.options = [ibt("camera", null, () => this.openCamera())];
+    i.accept ||= 'image/*';
     super(i);
   }
-  static default: Partial<IImageSelector> = {
-    camera: true,
-    accept: 'image/*',
-    icon: 'image-search',
-    //render(value: string | Blob) {
-    //  var img = m('img');
-    //  if (typeof value == 'string') {
-    //    img.p('src', request.filePath(value));
-    //  } else {
-    //    var reader = new FileReader();
-    //    reader.onload = (e) => {
-    //      img.p('src', (<any>e.target).result);
-    //    };
-    //    reader.readAsDataURL(value);
-    //  }
-    //  return img;
-    //}
-  };
-  //view() {
-  //  return super.view();
+  //render(value: string | Blob) {
+  //  var img = m('img');
+  //  if (typeof value == 'string') {
+  //    img.p('src', request.filePath(value));
+  //  } else {
+  //    var reader = new FileReader();
+  //    reader.onload = (e) => {
+  //      img.p('src', (<any>e.target).result);
+  //    };
+  //    reader.readAsDataURL(value);
+  //  }
+  //  return img;
   //}
-  //view() {
-  //    return this.viewdata((value) => {
-
-  //    })
-  //}
-
-  async openCamera() {
-    let
-      i = this.i,
-      camera = new Camera(i.format || {});
-
-    await camera.show();
-    if (camera.i.value)
-      fetch(camera.i.value)
-        .then(v => v.blob())
-        .then(v => {
-          i.multiple ?
-            i.value.push(v) :
-            i.value.set([v]);
-        });
-  }
 }
 
 
@@ -381,7 +398,7 @@ export class ImageSelector extends FileInput<IImageSelector> {
 //--------------------camera---------------------------------
 //-----------------------------------------------------------
 
-export interface ImageFormat {
+interface ImageFormat {
   propotion?: "square" | [number, number],
   minW?: number,
   minH?: number,
@@ -389,19 +406,19 @@ export interface ImageFormat {
   maxH?: number;
 }
 
-export const enum CameraState {
+const enum CameraState {
   asking,
   preview,
   error,
   recording,
   inaccessible
 }
-export interface ICamera extends ImageFormat {
+interface ICamera extends ImageFormat {
   state?: CameraState;
   /**base64 */
   value?: string;
 }
-export class Camera extends E<ICamera, { input: [str]; }>{
+class Camera extends E<ICamera, { input: [str]; }>{
 
   constructor(model: ICamera) {
     super(model);
@@ -516,21 +533,21 @@ export class Camera extends E<ICamera, { input: [str]; }>{
   /** */
   show() { return openModal(assign(modal(), { body: g(this) })); }
 }
-export const readFile = (file: Blob) => new Promise<str>(cb => {
+const readFile = (file: Blob) => new Promise<str>(cb => {
   var reader = new FileReader();
   reader.onload = (e) => {
     cb(reader.result as str);
   };
   reader.readAsDataURL(file);
 });
-export interface IMobImgSelector {
+interface IMobImgSelector {
   value?: Blob;
   /**place holder */
   ph: Icon;
 }
 /**image select for smartphone/tablet */
 
-export class MobImgSelector extends E<IMobImgSelector, { input: [str] }>{
+class MobImgSelector extends E<IMobImgSelector, { input: [str] }>{
   view() {
     let
       i = this.i,
@@ -554,62 +571,11 @@ export class MobImgSelector extends E<IMobImgSelector, { input: [str] }>{
     }, "value")
   }
 }
-export function mobileImageSelector() {
+function mobileImageSelector() {
 
 }
 //#endregion
 
-//#region output
-
-export const label = (content) => g("label", "_ tag", content);
-export const output = (...content) => g("span", "_ tag", content);
-export const keyVal = (key, val) => g("span", "_ in", [key + ": ", val]);
-
-export const message = (c?: Color, data?) => div(hc(C.message), data).c(c);
-export const errorMessage = (data?) => message(data).c(Color.error);
-export const tip = (e: S, value) => e.p("title", value);
-
-
-export interface iOutput<T> {
-  key?: str;
-  text?: str;
-  fmt?: str;
-  value?: T;
-  color?: Color;
-  def?: any;
-}
-export class Output<T = unknown> extends E<iOutput<T>>{
-  constructor(model: iOutput<T>);
-  constructor(text: string, value: T, format?: string)
-  constructor(text: string | iOutput<T>, value?: T, fmt?: string) {
-    super(isS(text) ? { text, value, fmt } : text);
-  }
-  get key() { return this.i.key; }
-
-  get value() { return this.i.value; }
-  set value(v) { this.set('value', v); }
-  // value(): T;
-  // value(value: T): this;
-  // value(v?: T) {
-  //   return isU(v) ? this.i.value : this.set('value', v);
-  // }
-  view() {
-    let i = this.i;
-    return this.bind(div(), (s) => {
-      s
-        .attr("class", false)
-        .c(cl("in", i.color))
-        .set([
-          i.text, ': ',
-          i.value == null ? i.def : i.fmt ? fmt(<any>i.value, i.fmt) : i.value
-        ]);
-    });
-  }
-}
-
-//#endregion
-
-//#region layouts
 
 export type AccordionItem = [head: any, body: any];
 export interface IAccordion {

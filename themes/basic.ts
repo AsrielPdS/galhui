@@ -66,7 +66,7 @@ export interface Pallete {
 }
 export type Context = StyleCtx<Pallete>;
 
-export const enum consts {
+export const enum c {
   menuH = 2.4,
   tabH = 2.8,
   error = "rgb(159, 58, 56)",
@@ -75,7 +75,7 @@ export const enum consts {
   acentVPad = .3,
   acentHMarg = .3,
   acentVMarg = .2,
-  acentBorderRadius = .2
+  acentBordRad = .2
 }
 export const icon = (): Styles => ({
   [`.${C.icon}`]: {
@@ -98,7 +98,7 @@ export const button = (ctx: Context): Styles => ctx(icon) && ({
     ":active": { color: ctx.a.a },
   },
   "._.bt": {
-    borderRadius: consts.acentBorderRadius + "em",
+    borderRadius: c.acentBordRad + "em",
     ...box([0, .25, 0, 0], [.78, 1.5]),
     whiteSpace: "nowrap",
     height: "initial",
@@ -170,7 +170,7 @@ export function input(ctx: Context): Styles {
       color: fg,
       background: bg,
       border: `1px solid ${border.n}`,
-      borderRadius: consts.acentBorderRadius + "em",
+      borderRadius: c.acentBordRad + "em",
       height: "2.4em",
       outline: "0",
       // "&.min>input:not(:focus)": {
@@ -203,14 +203,14 @@ export function output(ctx: Context): Styles {
   // let { a } = theme;
   return {
     "._.tag": {
-      borderRadius: consts.acentBorderRadius + "em",
+      borderRadius: c.acentBordRad + "em",
       ...box([0, .3, 0, 0], [.4, .8]),
       background: "#d3e3f3",
       display: "inline-block",
     },
     [`._.${C.message}`]: {
       [`&.${Color.error}`]: {
-        ...bfg("rgb(255, 246, 246)", consts.error),
+        ...bfg("rgb(255, 246, 246)", c.error),
       },
       ...box([1, 0], [1, 1.5]),
       ":empty": { height: 0, padding: 0, margin: 0 },
@@ -221,10 +221,24 @@ export function output(ctx: Context): Styles {
       //para os filhos não removerem bordas do parent
       overflow: "hidden",
       padding: 0,
-      "*": { border: "none", flex: "1 auto" },
+      "*": {
+        // border: "none",
+        flex: "1 auto",
+        margin: 0,
+        borderRadius: 0,
+        paddingLeft: ".5em",
+        paddingRight: ".5em",
+      },
       ">:not(:last-child)": {
-        borderRadius: "0",
         borderRight: `1px solid ${ctx.in.border.n}`,
+      },
+      ">:first-child": {
+        paddingLeft: "1.5em",
+        borderRadius: `${c.acentBordRad}em 0 0 ${c.acentBordRad}em`,
+      },
+      ">:last-child": {
+        paddingRight: "1.5em",
+        borderRadius: `0 ${c.acentBordRad}em ${c.acentBordRad}em 0`,
       },
     },
   }
@@ -232,8 +246,8 @@ export function output(ctx: Context): Styles {
 export const menubar = ({ menu }: Context): Styles => ({
   "._.bar": {
     display: "flex",
-    height: consts.menuH + "em",
-    lineHeight: consts.menuH + "em",
+    height: c.menuH + "em",
+    lineHeight: c.menuH + "em",
     padding: "0 2vw",
     flex: "0 0 auto",
     background: menu,
@@ -280,7 +294,7 @@ export const menubar = ({ menu }: Context): Styles => ({
     },
     "&.main": {
       background: "#9eb6c0",
-      height: consts.tabH + "em",
+      height: c.tabH + "em",
       paddingTop: ".3em",
       ".i:active,.i.on": {
         background: menu,
@@ -372,7 +386,7 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
 export const menurow = ({ menu }: Context) => ({
   "._.menurow": {
     background: menu,
-    lineHeight: consts.menuH + "em",
+    lineHeight: c.menuH + "em",
     ".i": {
       padding: "0 2vw",
       display: "block",
@@ -481,17 +495,12 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
     width: "calc(100% - 1em)",
     height: "calc(100% - 1em)",
     margin: ".5em",
-    "&.xl,&.l": {
-
-    },
-    "&.xs,&.s": {
-
-    },
+    "&.xl,&.l": {},
+    "&.xs,&.s": {},
     // ".hd": {
     //   padding: "1.2em 1.7em",
     // },
     // ".bd": {
-
     // },
     // ".ft": {
     //   padding: "1em 1.7em",
@@ -501,7 +510,7 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
     "._.modal": {
       width: "55%",
       maxWidth: (ScreenSize.tablet - 20) + "px",
-      margin: "3em auto 0",
+      margin: "3em auto",
       height: "unset",
       /**full screen */
       "&.xl": {
@@ -643,7 +652,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       //cell
       "*": {
         // display: "inline-block",
-        padding: `${consts.acentVPad}em ${consts.acentHPad}em`,
+        padding: `${c.acentVPad}em ${c.acentHPad}em`,
         borderRadius: 0,
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -805,7 +814,7 @@ export function tab({ menu }: Context): Styles {
         [`._.${C.close}`]: {
           float: "right",
           opacity: 0,
-          height: consts.menuH + "rem",
+          height: c.menuH + "rem",
           ":hover": {
 
           }
@@ -817,7 +826,7 @@ export function tab({ menu }: Context): Styles {
         }
       },
       ["." + C.body]: {
-        height: `calc(100% - ${consts.menuH}px)`
+        height: `calc(100% - ${c.menuH}px)`
       }
     }
   }
@@ -825,6 +834,33 @@ export function tab({ menu }: Context): Styles {
 export function mobImgSelector(ctx: Context): Styles {
   ctx(button);
   return {
+    "._.img-in": {
+      position: "relative",
+      display: "flex",
+      ".cl": {
+        position: "absolute",
+        right: ".4rem",
+        top: ".1rem",
+      },
+      img: {
+        maxWidth: "100%",
+        maxHeight: "100%",
+      },
+      button: {
+        width: "calc(100% - 2em)",
+        height: "calc(100% - 2em)",
+        border: "7px dashed #656565",
+        margin: "1em",
+        opacity: .7,
+        ":hover": {
+          background: "#1113"
+        }
+      }
+    },
+
+    [`._.${C.fileSelector}`]: {
+      input: { display: "none" }
+    },
     "._.imgsel": {
       position: "relative",
       textAlign: "center",
@@ -953,14 +989,15 @@ export const stack = ({ brd }: Context): Styles => ({
 export const core = (p: Pallete, tag = css({})) => styleCtx(p)({
   html: {
     // fontSize: consts.rem + "px",
-    fontFamily: consts.ff,
+    fontFamily: c.ff,
   },
   body: { margin: 0 },
   button: {
     background: "none",
     color: "inherit",
     border: "none",
-    fontSize: "inherit"
+    fontSize: "inherit",
+    fontFamily: "inherit",
   },
   a: {
     color: "inherit",
