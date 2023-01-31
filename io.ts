@@ -1,7 +1,7 @@
 import { delay, div, E, g, HSElement, One, S, svg, wrap } from "galho";
 import { L, orray } from "galho/orray.js";
 import { assign, bool, call, fmt, int, is, isS, str, t } from "galho/util.js";
-import { $, bt, C, cancel, close, Color, confirm, hc, ibt, icon, Icon, img, mbitem, MBItems, panel, Size, w } from "./galhui.js";
+import { $, C, cancel, close, Color, confirm, hc, ibt, icon, Icon, mbitem, MBItems, panel, Size, w } from "./galhui.js";
 import { modal, openModal, Select } from "./hover.js";
 
 //#region input
