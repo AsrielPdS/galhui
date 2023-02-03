@@ -280,11 +280,10 @@ export const menubar = ({ menu }: Context): Styles => ({
     },
     ".hd": { fontWeight: 500 },
     ".r": {
-      flex: 1,
       border: "none",
       minWidth: 0,
       padding: 0,
-      margin: 0
+      margin: "0 auto"
     },
     hr: {
       height: "100%",
