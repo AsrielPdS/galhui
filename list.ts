@@ -1,6 +1,6 @@
 import { cl, clearEvent, div, E, g, HSElement, m, One, S, wrap } from "galho";
 import orray, { Alias, extend, L, range } from "galho/orray.js";
-import { bool, call, def, Dic, fmt, int, isF, isN, isS, l, str, t } from "galho/util.js";
+import { bool, call, def, Dic, fmt, int, isF, isN, isS, l, Primitive, str, t } from "galho/util.js";
 import { $, body, C, Child, close, doc, icon, Icon, logo, menucb, MenuItems, Size, w } from "./galhui.js";
 import { ctx, idropdown } from "./hover.js";
 import { up } from "./util.js";
@@ -19,17 +19,18 @@ export interface ICrud<T> {
   single?: boolean;
 }
 export interface FieldPlatform {
-  null: () => any;
-  invalidIcon: () => any;
+  null: () => S | str;
+  invalidIcon: () => S<any> | str;
+  wrap(v: any): S;
   /**format for number */
   numberFmt?: str;
   /**format for checkbox */
   checkboxFmt?: str;
   dateFmt?: str;
   timeFmt?: str;
-  html: boolean;
-  interactive: boolean;
-  format: boolean;
+  html: bool;
+  interactive: bool;
+  format: bool;
 }
 // export class OutputCtx {
 //   /**key of current field */
@@ -44,19 +45,20 @@ export interface FieldPlatform {
 //   // get interactive() { return this.p.interactive; }
 // }
 
-export interface OutputCtx<T = any> {
-  /**value */
-  v: T;
-  /**platform */
-  p?: FieldPlatform;
-  /**src */
-  s?: Dic;
-}
+// export interface OutputCtx<T = any> {
+//   /**value */
+//   v: T;
+//   /**platform */
+//   p?: FieldPlatform;
+//   /**src */
+//   s?: Dic;
+// }
 
 export const defRenderer: FieldPlatform = {
   null: () => div(0, icon($.i.null)),
   invalidIcon: () => icon('image-broken'),
   checkboxFmt: "icon",
+  wrap,
   html: true,
   interactive: true,
   format: true
@@ -142,7 +144,7 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
     r = dt.bind(g(t(i.enum) ? "ol" : "ul", "_ list"), {
       insert: v => crudHandler(wrap(i.item(v), "i").badd(div(C.side)), v, dt, i),
       tag(active, i, p, tag) {
-        let s = p.child(i);
+        let s = p.child(i).emit(new CustomEvent("current", { detail: active }));
         if (tag == "on") {
           s.c(C.current, active);
           active && s.e.scrollIntoView({
@@ -156,7 +158,7 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
   return t(i.kd) ? r.p("tabIndex", 0).on("keydown", e => kbHandler(data as L<T>, e, i) && clearEvent(e)) : r;
 }
 
-export type RecordStyle = (row: S, value: Dic, index: int) => S|void;
+export type RecordStyle = (row: S, value: Dic, index: int) => S | void;
 
 
 
@@ -222,7 +224,7 @@ export interface Column {
   desc?: bool;
   input?(): One;
   compare?(a: any, b: any): number;
-  fmt?: ((ctx: OutputCtx) => any) | str;
+  fmt?: ((v: any, p: FieldPlatform, src: Dic) => any) | str;
 }
 export interface ITable<T extends Dic> extends ICrud<T> {
   // data?: L<T>;
@@ -367,11 +369,11 @@ export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never 
           div(C.side),
           cols.map(c => {
             let v = s[c.key];
-            return this.ccss(wrap(c.fmt ? isS(c.fmt) ? fmt(v, c.fmt) : c.fmt({ v, p: i.p, s }) : v).css({ textAlign: c.align }), c);
+            return this.ccss(wrap(c.fmt ? isS(c.fmt) ? fmt(v, c.fmt) : c.fmt(v, i.p, s ) : v).css({ textAlign: c.align }), c);
           }),
           // i.options && div(C.options, i.options.map(opt => opt(s, _i)))
         ]);
-        p.place(j + 1, crudHandler(i.style?.(t2, s, j)||t2, s, data, i));
+        p.place(j + 1, crudHandler(i.style?.(t2, s, j) || t2, s, data, i));
       },
       tag(active, i, p) {
         let s = p.child(i + 1).c(C.current, active).e;

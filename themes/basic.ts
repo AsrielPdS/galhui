@@ -228,6 +228,7 @@ export function output(ctx: Context): Styles {
         borderRadius: 0,
         paddingLeft: ".5em",
         paddingRight: ".5em",
+        width: "100%"
       },
       ">:not(:last-child)": {
         borderRight: `1px solid ${ctx.in.border.n}`,

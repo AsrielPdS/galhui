@@ -1,7 +1,7 @@
 import { div, E, g, m, MRender, One, onfocusout, S, span } from "galho";
 import { any, fromArray } from "galho/dic.js";
 import { Alias, extend, L } from "galho/orray.js";
-import { assign, bool, byKey, date, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str, Task } from "galho/util.js";
+import { assign, bool, byKey, edate, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str, Task } from "galho/util.js";
 import { $, C, Color, ibt, Icon, icon, menuitem, w } from "./galhui.js";
 import { IRoot, Root, setRoot, setValue } from "./hover.js";
 import { errorMessage, TextInputTp } from "./io.js";
@@ -488,8 +488,10 @@ export const textIn = (k: str, req?: bool, input?: TextInputTp | "ta") =>
 export interface NumberFormat {
   min?: int;
   max?: int;
-  openMin?: int;
-  openMax?: int;
+  /**open min */
+  omin?: int;
+  /**open max */
+  omax?: int;
   format?: str;
   integer?: bool;
 }
@@ -506,6 +508,7 @@ export class NumbIn extends Input<float, iNumbIn> {
         name: i.k, id: i.k,
         step: i.integer ? <any>1 : 'any',
         placeholder: this.inline ? i.text : i.ph || '',
+        min: i.min || i.omin, max: i.max || i.omax,
         value: i.value
       })
       .on({
@@ -546,8 +549,8 @@ export function validateNumber(i: NumberFormat & iInput<int>, value: int) {
     let
       max = i.max,
       min = i.min,
-      omin = i.openMin,
-      omax = i.openMax;
+      omin = i.omin,
+      omax = i.omax;
 
     if ((max != null) && value > max)
       errs.push(error(ErrorType.numberTooBig, "", { max: max }));
@@ -676,7 +679,7 @@ export class DateIn extends Input<str, iDateIn> {
   }
   get def() {
     let y: int, m: int, d: int;
-    return this.i.def == "now" ? ([y, m, d] = date(new Date()), `${y}-${m}-${d}`) : null;
+    return this.i.def == "now" ? ([y, m, d] = edate(new Date()), `${y}-${m}-${d}`) : null;
   }
 }
 
@@ -698,7 +701,7 @@ export class MonthIn extends Input<str, iDateIn> {
   }
   get def() {
     let y: int, m: int, d: int;
-    return this.i.def == "now" ? ([y, m, d] = date(new Date()), `${y}-${m}`) : null;
+    return this.i.def == "now" ? ([y, m, d] = edate(new Date()), `${y}-${m}`) : null;
   }
 
   submit(data: Dic) {
@@ -843,7 +846,7 @@ export class PWIn extends Input<str, iPWIn> {
 
 export interface iCustomIn<V, O> extends iInput<V> {
   submit?: (this: CustomIn<V> & O, data: Dic, edited?: bool, req?: bool) => Task<void>;
-  
+
 }
 export class CustomIn<V, O = {}> extends Input {
   constructor(i: iCustomIn<V, O>, public view: (this: CustomIn<V> & O) => One) {
