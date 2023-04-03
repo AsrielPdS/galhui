@@ -1,7 +1,7 @@
 import { active, cl, clearEvent, div, E, g, HSElement, One, onfocusout, S, wrap } from "galho";
 import { Alias, extend, L, range } from "galho/orray.js";
-import { assign, bool, byKey, call, def, Dic, isO, isU, Key, l, str, sub, t, Task } from "galho/util.js";
-import { $, MenuItems, FluidRect, FluidAlign, fluid, body, C, cancel, close, close as closeBT, Color, confirm, hc, icon, Icon, menu, menuitem, negative, positive, VAlign, w } from "./galhui.js";
+import { assign, bool, byKey, call, def, Dic, isO, isP, isU, Key, l, Pair, str, sub, t, Task } from "galho/util.js";
+import { $, MenuItems, FluidRect, FluidAlign, fluid, body, C, cancel, close, close as closeBT, Color, confirm, hc, icon, Icon, menu, menuitem, negative, positive, VAlign, w, wait } from "./galhui.js";
 import { anim } from "./util.js";
 
 export interface IModal<K> {
@@ -109,7 +109,7 @@ export function popup(div: S, e: () => FluidRect, align: FluidAlign) {
     ctx = div.p("tabIndex", 0),
     // isOut: bool,
     wheelHandler = (e: Event) => clearEvent(e);
-  ctx.queryAll('button').on('click', function () { last.valid ? last.focus() : this.blur() });
+  ctx.queryAll('button').on('click', function () { last ? last.focus() : this.blur() });
 
   ctx.on({
     focusout: (e: FocusEvent) => ctx.contains(e.relatedTarget as HTMLElement) || (ctx.remove() && body.off("wheel", wheelHandler)),
@@ -133,16 +133,21 @@ export function ctx(e: MouseEvent, data: MenuItems) {
   popup(div("_ menu", g("table", 0, data)), () => new DOMRect(e.clientX, e.clientY, 0, 0), "ve");
 }
 export function tip<T extends HSElement>(root: One<T>, div: any, align?: FluidAlign): S<T>
-export function tip<T extends HSElement>(root: S<T>, div: S, align: FluidAlign = "v") {
-  div = wrap(div, "_ tip");
+export function tip<T extends HSElement>(root: S<T>, tip: S, align: FluidAlign = "v") {
+  if (isP(tip)) {
+    let t = tip;
+    tip = div("_ tip", wait);
+    t.then(v => { tip = wrap(v, "_ tip") });
+  }
+  else tip = wrap(tip, "_ tip");
   return (root = g(<any>root))?.on({
     mouseenter() {
-      body.add(div);
+      body.add(tip);
       anim(() => body.contains(root) ?
-        body.contains(div) && fluid(root.rect(), div as S, align) :
-        (div.remove(), false));
+        tip.parent && fluid(root.rect, tip as S, align) :
+        (tip.remove(), false));
     },
-    mouseleave() { div.remove() }
+    mouseleave() { tip.remove() }
   });
 }
 
@@ -179,7 +184,7 @@ export type Root = E<IRoot, { open?: [bool] }> & {
 export function setRoot(me: Root, options: L, label: S, menu: S) {
   let
     i = me.i,
-    root = onfocusout(div(["_", C.select], [label.c("bd"), t(i.icon) && icon($.i.dd)?.c(C.side)/*, me.menu*/]), () => me.set("open", false))
+    root = onfocusout(div(`_ in ${C.select}`, [label.c("bd"), t(i.icon) && icon($.i.dd)?.c(C.side)/*, me.menu*/]), () => me.set("open", false))
       .p("tabIndex", 0)
       .on({
         focus(e) {
@@ -200,15 +205,17 @@ export function setRoot(me: Root, options: L, label: S, menu: S) {
               range.move(options, "on", 1, range.tp(e.shiftKey, e.ctrlKey));
               break;
             case "Enter":
-              if (me.i.open)
+              if (me.i.open) {
                 me.value = l(options) == 1 ?
                   options[0][options.key] as any :
                   sub(range.list(options, "on"), options.key as any)[0];
-              else {
-                let frm = g(me).closest("form");
-                if (frm) frm?.e.requestSubmit();
-                else return;
-              }
+                me.set("open", false);
+              } else return;
+              // else {
+              //   let frm = g(me).closest("form");
+              //   if (frm) frm?.e.requestSubmit();
+              //   else return;
+              // }
               break;
             case "Escape":
               if (me.i.open) {
@@ -257,7 +264,7 @@ export function setRoot(me: Root, options: L, label: S, menu: S) {
       if (i.open) {
         menu.addTo(root);
         anim(() => {
-          let r = root.rect();
+          let r = root.rect;
           return body.contains(menu) && (menu.css("minWidth", r.width + "px"), fluid(r, menu, "ve"))
         });
       } else {
@@ -269,36 +276,41 @@ export function setRoot(me: Root, options: L, label: S, menu: S) {
 
   return root;
 }
-export async function setValue<K extends Key = any>(me: Root & { option(k: K): Task<Dic> }, label: S) {
+export async function setValue<K = any>(me: Root & { option(k: K): Task<Dic> }, label: S) {
   let v = me.value;
-  if (v == null) label.c("_ ph").set(me.i.ph);
-  else {
-    let o = await me.option(v as K);
-    label.c("ph", false).set([me.i.item(o), t(me.i.clear) && close(() => me.value = null)]);
-    me.set("open", false);
+  if (label.e.tagName == "INPUT") {
+    label.p("value", me.value == null ? "" : me.value);
+  } else {
+    if (v == null) label.c("_ ph").set(me.i.ph);
+    else {
+      let o = await me.option(v as any);
+      label.c("ph", false).set([me.i.item(o), t(me.i.clear) && close(() => me.value = null)]);
+      me.set("open", false);
+    }
   }
+}
+// interface SelectItem<K> {
+//   key: K;
+//   text?: str;
+//   i?: Icon;
+// }
 
-}
-interface SelectItem<K> {
-  key: K;
-  text?: str;
-  i?: Icon;
-}
-export interface iSelect<K extends Key = str> extends IRoot {
-  value?: K;
+export interface iSelect<K extends keyof T, T extends Dic> extends IRoot<T> {
+  key?: K;
+  value?: T[K];
   ph?: str;
   /**menu width will change acord to content */
   fluid?: boolean;
 }
-export class Select<K extends Key = str> extends E<iSelect<K>, { input: [K]; open: [bool] }> {
-  options: L<SelectItem<K>, K>;
+export class Select<K extends keyof T, T extends Dic = Pair> extends E<iSelect<K, T>, { input: [T[K]]; open: [bool] }> {
+  options: L<T, K>;
   get selected() { return byKey(this.options, this.i.value); }
-  constructor(i: iSelect<K>, options?: Alias<SelectItem<K>, K>) {
+  constructor(i: iSelect<K, T>, options?: Alias<T, T[K]>) {
     super(i);
-    i.item ||= v => def(v.text, v.key);
-    this.options = extend<SelectItem<K>, K>(options, {
-      key: "key",
-      parse: (e) => isO(e) ? e : { key: e }
+    i.item ||= (v) => def(v[1], v[i.key]);
+    this.options = extend<T, T[K]>(options, {
+      key: i.key ||= <any>0,
+      parse: (e) => isO(e) ? e : <T>{ [i.key]: e }
     });
   }
   get value() { return this.i.value; }
@@ -316,7 +328,7 @@ export class Select<K extends Key = str> extends E<iSelect<K>, { input: [K]; ope
     this.on(e => ("value" in e) && setValue(this, label));
 
     options.bind(items, {
-      insert: v => menuitem(v.i, i.item(v)),
+      insert: v => menuitem(v.i, i.item(v)).d(v[i.key]),
       tag(active, i, p, tag) {
         let s = p.child(i);
         s.c(tag, active);
@@ -329,7 +341,7 @@ export class Select<K extends Key = str> extends E<iSelect<K>, { input: [K]; ope
 
     return root;
   }
-  option(k: K) {
+  option(k: T[K]) {
     return this.options.find(k);
   }
 }
@@ -338,12 +350,12 @@ export const dropdown = (label: any, items: any, align: FluidAlign = "ve") =>
   call(div("_ dd", label), e => {
     let mn = items instanceof S ? items : null;
     e.on("click", () => {
-      if (mn?.parent()) {
+      if (mn?.parent) {
         mn.remove();
         e.c("on", false);
       } else {
         (mn ||= menu(items)).c(C.menu).addTo(e.c("on"));
-        anim(() => body.contains(mn) && fluid(e.rect(), mn, align));
+        anim(() => body.contains(mn) && fluid(e.rect, mn, align));
       }
     });
   });

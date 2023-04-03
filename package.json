@@ -1,16 +1,16 @@
 {
   "name": "galhui",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "",
   "main": "galhui.js",
   "scripts": {},
-  "keywords": [],
+  "keywords": ["galho","css","front-end","web"],
   "author": "",
   "license": "ISC",
   "sideEffects": false,
   "type":"module",
   "dependencies": {
     "csstype": "^3.0.11",
-    "galho": ""
+    "galho": "file:../galho"
   }
 }

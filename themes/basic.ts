@@ -1,7 +1,7 @@
-import { css, rgb, rgba, S, Style, Styles } from "galho";
+import { css, rgb, rgba, Style, Styles } from "galho";
 import { bool, int, str } from "galho/util.js";
 import { C, Color, Size } from "../galhui.js";
-import { bfg, border, box, styleCtx, StyleCtx, vmarg } from "../style.js";
+import { bfg, border, box, spc, styleCtx, StyleCtx } from "../style.js";
 
 export const enum ScreenSize {
   mobileS = 320,
@@ -132,9 +132,8 @@ export const button = (ctx: Context): Styles => ctx(icon) && ({
     },
     [`&.${C.icon}>.${C.icon}`]: {
       marginRight: ".5rem",
-      ":only-child": {
-        margin: "0 -.6em",
-      },
+      margin: "0 -.6em",
+      // ":only-child": {},
     },
     ["&." + Size.l]: {
       height: "5em",
@@ -202,11 +201,17 @@ export function input(ctx: Context): Styles {
 export function output(ctx: Context): Styles {
   // let { a } = theme;
   return {
-    "._.tag": {
+    "._.out": {
       borderRadius: c.acentBordRad + "em",
       ...box([0, .3, 0, 0], [.4, .8]),
       background: "#d3e3f3",
       display: "inline-block",
+      "tr&": {
+        display: "table-row",
+        td: {
+          padding: spc([.4, .8])
+        }
+      }
     },
     [`._.${C.message}`]: {
       [`&.${Color.error}`]: {
@@ -357,6 +362,9 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
         ":hover": {
           background: "#acc5cf",
         },
+        "&.on":{
+          background: "#acc5cf",
+        },
         ["&." + C.disabled]: {
           background: disabled,
         },
@@ -369,6 +377,8 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
     // display: "table",  
   },
   ".menu-c": { background: menu },
+});
+export const tip = ({ menu }: Context): Styles => ({
   "._.tip": {
     position: "fixed",
     background: menu,
@@ -399,7 +409,6 @@ export const menurow = ({ menu }: Context) => ({
     }
   },
 });
-const panelHelper = () => ({});
 export const panel = (ctx: Context): Styles => ({
   "._.panel": {
     // display: "flex",
@@ -442,6 +451,9 @@ export const panel = (ctx: Context): Styles => ({
       flexDirection: "row-reverse",
       padding: ".6em 1em",
       background: "#dfe5e8",
+      ".spc": {
+        border: "none", margin: "auto"
+      },
       hr: {
         border: "none",
         margin: "auto"
@@ -613,22 +625,22 @@ export const list = ({ brd, list: l }: Context): Styles => ({
     },
     tfoot: { position: "sticky", bottom: 0, background: "#fff" }
   },
-  "._.card": {
-    display: "grid!important",
-    gridTemplateColumns: "40px",
-    gridTemplateAreas: `
-"s m o" 
-"s e o"`,
-    ".bd": { gridArea: "m", },
-    ".sd": { gridArea: "s", marginRight: ".8em" },
-    ".ed": {
-      borderSpacing: "0 3px",
-      gridArea: "e",
-      tr: { background: "#d3e3f3", td: { padding: ".5em" } },
-      fontSize: "smaller",
-    },
-    paddingBottom: ".6rem"
-  }
+  //   "._.card": {
+  //     display: "grid!important",
+  //     gridTemplateColumns: "40px",
+  //     gridTemplateAreas: `
+  // "s m o" 
+  // "s e o"`,
+  //     ".bd": { gridArea: "m", },
+  //     ".sd": { gridArea: "s", marginRight: ".8em" },
+  //     ".ed": {
+  //       borderSpacing: "0 3px",
+  //       gridArea: "e",
+  //       tr: { background: "#d3e3f3", td: { padding: ".5em" } },
+  //       fontSize: "smaller",
+  //     },
+  //     paddingBottom: ".6rem"
+  //   }
 });
 export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
   "._.tb": {
@@ -736,7 +748,6 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
     }
   }
 });
-
 export function form(ctx: Context): Styles {
   ctx(input);
   return {
@@ -747,7 +758,7 @@ export function form(ctx: Context): Styles {
       ":not(.expand)>.sd": { display: "none" },
       "&.expand>._sd": { display: "none" },
       padding: "1rem",
-      //input outline
+      //outline input 
       "._.oi": {
         margin: `.8rem 0`,
         ".hd": {
@@ -913,12 +924,13 @@ export function dropdown(ctx: Context): Styles {
   ctx(menu);
   return {
     "._.dd": {
+      display: "inline-block",
       ["." + C.menu]: {
         position: "fixed",
         zIndex: zIndex.ctxMenu
       },
       ["." + C.icon]: {
-        padding: "0 .4em"
+        margin: "0 .4em"
       }
     }
   }
@@ -967,7 +979,6 @@ export function select(add: Context): Styles {
     }
   }
 }
-
 export const stack = ({ brd }: Context): Styles => ({
   "._.stack": {
     height: "100%",
@@ -1052,7 +1063,8 @@ export const style = (p: Pallete) =>
     (table)
     (mobImgSelector)
     (stack)
-    (form);
+    (form)
+    (tip);
 /**full style,dark theme */
 export const darkTheme: Pallete = {
   bg: "#1c313a",

@@ -263,10 +263,10 @@ export function divisor(o: Ori, endcallback?: (a: number, b: number) => any) {
   let hr = g('hr', LC.divisor);
   return hr.on('mousedown', function () {
     let
-      parent = hr.parent(),
-      parentRect = parent.rect(),
-      prev = hr.prev(),
-      next = hr.next(),
+      parent = hr.parent,
+      parentRect = parent.rect,
+      prev = hr.prev,
+      next = hr.next,
       l: number, r: number,
       div = $.lyDivW / 2,
       clamp = (value: float, min: float, max: float) => value < min ? min : value > max ? max : value,

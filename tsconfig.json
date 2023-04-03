@@ -10,7 +10,7 @@
     ],
     "alwaysStrict": true,
     "noImplicitThis": true,
-    // "module":"CommonJS",
+    "module":"ESNext",
     "moduleResolution": "Node"
   },
   "compileOnSave": true,

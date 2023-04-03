@@ -21,7 +21,7 @@ export interface ICrud<T> {
 export interface FieldPlatform {
   null: () => S | str;
   invalidIcon: () => S<any> | str;
-  wrap(v: any): S;
+  wrap?(v: any): S;
   /**format for number */
   numberFmt?: str;
   /**format for checkbox */
@@ -80,7 +80,7 @@ export const kbHTp = <T>(dt: L<T>, dist: int, { ctrlKey: ctrl, shiftKey: shift }
   shift ? range.move(dt, "on", dist, range.tp(ctrl, false)) :
     ctrl ? range.movePivot(dt, "on", dist) :
       range.move(dt, "on", dist, range.Tp.set);
-
+/**@returns true if event was already handled */
 export function kbHandler<T>(dt: L<T>, e: KeyboardEvent, i: ICrud<T>, noArrows?: bool) {
   switch (e.key) {
     case "Delete":
@@ -226,7 +226,7 @@ export interface Column {
   compare?(a: any, b: any): number;
   fmt?: ((v: any, p: FieldPlatform, src: Dic) => any) | str;
 }
-export interface ITable<T extends Dic> extends ICrud<T> {
+export interface iTable<T extends Dic> extends ICrud<T> {
   // data?: L<T>;
   /**columns */
   cols?: L<Column>
@@ -234,7 +234,7 @@ export interface ITable<T extends Dic> extends ICrud<T> {
   reqColumns?: str[];
   enum?: boolean;
   // options?: Option<T>[];
-
+  editable?: bool;
   resize?: boolean;
   head?(column: Column);
 
@@ -249,14 +249,14 @@ export interface ITable<T extends Dic> extends ICrud<T> {
   foot?: Foot[];
 }
 export type Foot = (tb: Table) => One;
-export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never }>{
+export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never }>{
   // get data() { return this.i.data as L<T>; }
   // get footData() { return this.i.foot as L<T>; }
   get cols() { return this.i.cols; }
 
   data: L<T>;
   // foot: Foot[];
-  constructor(i: ITable<T>, data?: Alias<T>) {
+  constructor(i: iTable<T>, data?: Alias<T>) {
     // i.data = data as L;
     super(i);
     this.data = extend(data, {
@@ -282,6 +282,10 @@ export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never 
         sz += cs[c + j].size;
     };
     return e.c("i").css("width", (sz || (c as Column).size) + (this.i.fill ? '%' : 'px'));
+  }
+  editing: bool;
+  edit() {
+
   }
   view() {
     let
@@ -311,7 +315,7 @@ export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never 
                 rows = d.childs().child(index);
               body.css({ cursor: 'col-resize', userSelect: "none" });
               function move(e: MouseEvent) {
-                c.size = (c.size = Math.max($.rem * 3, e.clientX - s.rect().left));
+                c.size = (c.size = Math.max($.rem * 3, e.clientX - s.rect.left));
                 rows.css({ width: c.size + 'px' });
               }
               doc.on('mousemove', move).one('mouseup', () => {
@@ -361,7 +365,14 @@ export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never 
       d: S = div("_ tb" + (i.fill ? " fill" : ""), [hd, ft])
         .on("click", e => e.target == e.currentTarget && range.clear(data as L, "on"))
         .p('tabIndex', 0)
-        .on("keydown", e => kbHandler(data, e, i) && clearEvent(e));
+        .on("keydown", e => {
+          // switch (e.key) {
+          //   case "Space":
+          //     if (i.editable && !this.editing)
+          //       this.edit();
+          // }
+          kbHandler(data, e, i) && clearEvent(e);
+        });
 
     data.bind(d, {
       insert: (s, j, p) => {
@@ -369,18 +380,21 @@ export class Table<T extends Dic = Dic> extends E<ITable<T>, { resizeCol: never 
           div(C.side),
           cols.map(c => {
             let v = s[c.key];
-            return this.ccss(wrap(c.fmt ? isS(c.fmt) ? fmt(v, c.fmt) : c.fmt(v, i.p, s ) : v).css({ textAlign: c.align }), c);
+            return this.ccss(wrap(c.fmt ? isS(c.fmt) ? v == null ? null : fmt(v, c.fmt) : c.fmt(v, i.p, s) : v).css({ textAlign: c.align }), c);
           }),
           // i.options && div(C.options, i.options.map(opt => opt(s, _i)))
         ]);
         p.place(j + 1, crudHandler(i.style?.(t2, s, j) || t2, s, data, i));
       },
-      tag(active, i, p) {
+      tag: (active, i, p) => {
         let s = p.child(i + 1).c(C.current, active).e;
         active && s.scrollIntoView({
           block: "nearest",
           inline: "nearest"
         });
+        if (this.editing) {
+
+        }
       },
       remove(_, i, p) { p.unplace(i + 1) },
       clear(s) { s.childs().slice(1).remove() },

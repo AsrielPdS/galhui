@@ -1,9 +1,11 @@
-import { Dic, float, int, isS, l, str } from "galho/util.js";
+import { float, int, str } from "galho/util.js";
 export const uuid = (length: int = 32) => Array
   .from({ length })
   .map(() => Math.round(Math.random() * 15).toString(16))
   .join('');
-
+/**request animation frame each frame, if fn returns false cancel animation
+ * @returns function that cancel the renderer of current animation
+ */
 export function anim(fn: () => void | boolean) {
   let t = requestAnimationFrame, t2 = () => fn() !== false && (i = t(t2)), i = t(t2);
   return () => cancelAnimationFrame(i);

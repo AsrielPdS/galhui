@@ -247,7 +247,7 @@ export function fluid({ x, y, right: r, bottom: b }: FluidRect, menu: S, [o, sid
   /*m:main,s:side */
   let
     { innerHeight: wh, innerWidth: ww } = window,
-    { width: mw, height: mh } = menu.rect(),
+    { width: mw, height: mh } = menu.rect,
     h = o == "h",
     e = $.rem * .4,
     [ws, wm, ms, mm, s0, m0, s1, m1] = h ? [wh, ww, mh, mw, y, x, b, r] : [ww, wh, mw, mh, x, y, r, b];
@@ -293,7 +293,7 @@ export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", "i
   let mn: S;
   e.on("click", () => {
     e.tcls(C.on).is('.' + C.on) ?
-      fluid(e.rect(), (mn ||= g("table", C.menu, items)).addTo(e), "h") :
+      fluid(e.rect, (mn ||= g("table", C.menu, items)).addTo(e), "h") :
       mn.remove();
   })
 });

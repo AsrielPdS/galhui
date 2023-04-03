@@ -31,7 +31,7 @@ export interface IPagging {
   total?: number;
   hideOnSingle?: boolean;
   setlimit?: boolean;
-  minLimit?: number;
+  min?: number;
   viewtotal?: boolean;
   extreme?: boolean;
 }
@@ -43,17 +43,17 @@ export class Pagging extends E<IPagging>{
       count = g('span'),
       total: S;
     if (i.setlimit) {
-      var limits = new Select<number>({
+      var limits = new Select<int>({
         value: i.limit,
         fluid: true,
-        clear: false,
+        clear: false
       }, [
-        i.minLimit,
-        i.minLimit * 2,
-        i.minLimit * 4,
-        i.minLimit * 10,
-        i.minLimit * 20,
-        { key: 0, text: 'Mostrar todos' }
+        i.min,
+        i.min * 5,
+        i.min * 10,
+        i.min * 10,
+        i.min * 20,
+        [0, 'Mostrar todos']
       ]);
       g(limits).c("in");
     }

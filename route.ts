@@ -1,49 +1,57 @@
-﻿import { getAll, S } from "galho";
-import { Dic, def, isF, isS, str, Task, z, falses, filter } from "galho/util.js";
+﻿import { g, getAll, isE, S } from "galho";
+import { Dic, def, isF, isS, str, Task, z, falses, filter, bool } from "galho/util.js";
+import { emitAsync, emit, on, EventObject } from "galho/event.js";
 
 export const hash = (s: S, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: S[]) {
-  root = routeRoot;
+  root = routeRoot.map(r => r.e);
   window.onhashchange = () => goTo(location.hash);
   current = currentPath = null;
 }
 export type Update = (...path: string[]) => void;
 export type RouteResult = S[] | [view: S[] | falses, onupdate: Update];
 export type Route = RouteResult | ((...path: string[]) => Task<RouteResult | void>);
-export var root: S[], current: Update, currentPath: str;
-const routes: { [index: string]: Route } = {};
-export function add(handlers: Dic<Route>): void;
-export function add(key: string, handler: Route): void;
-export function add(key: string | Dic<Route>, handler?: Route) {
+export type Routes = Dic<Route>;
+
+var root: Element[], current: Update;
+export var currentPath: str;
+const routes: Routes = {};
+export function add(handlers: Routes): void;
+export function add(key: str, handler: Route): void;
+export function add(key: str | Routes, handler?: Route) {
   if (isS(key))
     routes[key] = handler;
   else for (let k in key)
     routes[k] = key[k];
 }
+export function set(t: (S | Element | falses)[]) {
+  let p = g(root[0]).parent, i = -1;
+  while (p.child(++i).e != root[0]);
 
-export function set(t: (S | falses)[]) {
-  let p = root[0].parent(), i = -1;
-  while (p.child(++i).e != root[0].e);
-
-  for (let e of root) e.remove();
-  p.place(i, root = filter(t));
+  for (let e of root)
+    e.remove();
+  p.place(i, root = filter(t).map(v => isE(v) ? v.e : v));
 }
-export function push(...items: S[]) {
-  z(root).putAfter(items);
-  root.push(...items);
+export function push(...items: (S | Element | falses)[]) {
+  let t = filter(items).map(v => isE(v) ? v.e : v);
+  g(z(root)).after(t);
+  root.push(...t);
 }
 export function pop(...items: S[]) {
   for (let e of items) {
-    let index = root.findIndex(t => t.e == e.e);
+    let index = root.findIndex(t => t == e.e);
     if (index != -1) {
       root.splice(index, 1);
     }
     e.remove();
   }
 }
-type Intercept = (path: str) => void | str;
-var _intercept: Intercept, defRoute: str;
-export function intercept(v: Intercept) { _intercept = v; }
+type Intercept = (key: str, options: { path: str, sub: str[], cancel(): void }) => void | str;
+// _intercept: Intercept, 
+let e: Intercept[] = [], defRoute: str;
+export function intercept(v: Intercept) {
+  e.push(v);
+}
 export function has(path: str) {
   return path.split('/', 2)[0] in routes;
 }
@@ -52,24 +60,43 @@ export async function goTo(path: string): Promise<void> {
   if (path[0] == '#')
     path = path.slice(1);
 
-  _intercept && (path = def(<str>_intercept(path), path));
   has(path) || (console.warn(`path '${path}' not found.`), path = defRoute || "");
-  let keys = path.split('/'), newPath = keys.shift();
+  let sub = path.split('/'), key = sub.shift();
+  let canceled: bool, o = { cancel() { canceled = true }, sub, path };
+  for (let i of e) {
+    let t = i(key, o);
+    if (canceled) return;
+    if (t)
+      key = (o.sub = sub = (o.path = t).split("/")).shift();
+  }
+  history.replaceState(null, null, "#" + o.path);
 
-  if (newPath != currentPath) {
+  if (key != currentPath) {
     current = null;
-    let route = routes[newPath];
-    if (!route) throw 404;
-    let dt = isF(route) ? await route(...keys) : route;
+    let route = routes[key];
+    if (!route)
+      throw 404;
+    let dt = isF(route) ? await route(...sub) : route;
     if (dt && isF(dt[1])) {
       current = dt[1];
       dt = dt[0] as S[];
     }
-    if (dt) set(dt as S[]);
-    currentPath = newPath;
+    if (dt)
+      set(dt as S[]);
+    currentPath = key;
   }
-  history.replaceState(null, null, "#" + path/*`#${}?${dicToQString(params)}`*/);
   getAll("a.on").do(e => e.c("on", false));
   getAll(`a[href="#${path}"]`).do(e => e.c("on"));
-  current?.(...keys);
+  current?.(...sub);
+}
+
+export function hmr() {
+  let cp = currentPath;
+  currentPath = null;
+  try {
+    goTo(location.hash);
+  } catch {
+    currentPath = cp;
+    console.warn("err parsing current path");
+  }
 }

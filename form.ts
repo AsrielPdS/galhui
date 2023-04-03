@@ -3,8 +3,9 @@ import { any, fromArray } from "galho/dic.js";
 import { Alias, extend, L } from "galho/orray.js";
 import { assign, bool, byKey, edate, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str, Task } from "galho/util.js";
 import { $, C, Color, ibt, Icon, icon, menuitem, w } from "./galhui.js";
-import { IRoot, Root, setRoot, setValue } from "./hover.js";
+import { IRoot, Root, Select, setRoot, setValue } from "./hover.js";
 import { errorMessage, TextInputTp } from "./io.js";
+import { select } from "./list.js";
 import { up } from "./util.js";
 
 interface FormValidator {
@@ -270,7 +271,7 @@ export class Form extends FormBase<iForm> {
   constructor(i: iForm | (Input | falses)[], inputs?: Input[]) {
     super(i as any, inputs as any);
     this.on('input', (input: Input) => setTimeout(() => {
-      g(input).parent()?.attr("edited", !input.isDef());
+      g(input).parent?.attr("edited", !input.isDef());
     }));
     this.errDiv = this.i.errorDiv || errorMessage();
   }
@@ -438,7 +439,7 @@ export class TextIn extends Input<str, iTextIn> {
   view() {
     var i = this.i, r: S<HTMLInputElement | HTMLTextAreaElement>;
     if (i.input == 'ta') {
-      r = g('textarea', "_ in v").props({
+      r = g('textarea', "_ in v").p({
         name: i.k, id: i.k,
         placeholder: i.ph || ''
       }).on('keydown', (e) => {
@@ -448,11 +449,14 @@ export class TextIn extends Input<str, iTextIn> {
           else e.stopPropagation();
         }
       });
-    } else r = g("input", "_ in").props({
+    } else r = g("input", "_ in").p({
       type: i.input || 'text',
       name: i.k, id: i.k, placeholder: i.ph || ''
     });
-    r.on("input", () => this.set("value", r.e.value || null));
+    r.on({
+      input: () => this.set("value", r.e.value || null),
+      focus() { r.e.select() }
+    });
     return this.bind(r, () => r.e.value = i.value || '', "value");
   }
   validate(value: string) {
@@ -476,7 +480,7 @@ export class TextIn extends Input<str, iTextIn> {
   }
   focus() {
     if (this.i.input == 'ta' && this.inline)
-      g(this).first().focus();
+      g(this).first.focus();
     else g(this).focus();
     return this;
   }
@@ -515,7 +519,10 @@ export class NumbIn extends Input<float, iNumbIn> {
         input: () => this.set("value", inp.e.value ? inp.e.valueAsNumber : null),
         focus() { inp.e.select() }
       });
-    this.onset("value", () => inp.e.value = <any>i.value);
+    this.onset(["value", "off"], () => {
+      inp.e.value = <any>i.value;
+      inp.e.disabled = !!i.off;
+    });
 
     return (i.unit ? div(0, [inp, i.unit]) : inp).c("_ in");
   }
@@ -530,7 +537,7 @@ export class NumbIn extends Input<float, iNumbIn> {
   // }
   focus() {
     let { $, i } = this;
-    (i.unit ? $.first() : $).focus();
+    (i.unit ? $.first : $).focus();
     return this;
   }
 }
@@ -579,7 +586,7 @@ export interface iCheckIn extends iInput<bool> {
   fmt?: CBFmt;
   clear?: bool;
 }
-class CheckIn extends Input<bool, iCheckIn>  {
+export class CheckIn extends Input<bool, iCheckIn>  {
   view() {
     let i = this.i;
     switch (i.fmt) {
@@ -608,7 +615,7 @@ class CheckIn extends Input<bool, iCheckIn>  {
             'No'
           ])
         ]), (s) => {
-          s.child(i.value ? 0 : 1).first().prop('checked', true);
+          s.child(i.value ? 0 : 1).first.prop('checked', true);
         }, 'value');
 
       default:
@@ -631,9 +638,6 @@ class CheckIn extends Input<bool, iCheckIn>  {
     }
   }
 }
-/**check box input*/
-export const checkIn = (key: str, text?: str) =>
-  new CheckIn({ k: key, text });
 
 //------------ DATE & TIME ------------------------
 export interface iTimeIn extends iInput<str> {
@@ -659,7 +663,7 @@ export class TimeIn extends Input<str, iTimeIn> {
 
 export const time = (key: str, req?: bool) =>
   new TimeIn({ k: key, req });
-export interface iDateIn extends iInput<str, str> {
+export interface iDateIn extends iInput<str> {
   //tp: FT.date,
   min?: str | int;
   max?: str | int;
@@ -776,41 +780,38 @@ export interface iRadioIn extends iInput<Key> {
   enum?: str;
   //groupBy?: Val;
   clear?: bool;
-  layout?: 'wrap' | 'column';
+  layout?: 'wrap' | 'column' | 'select';
 }
 export class RadioIn extends Input<Key, iRadioIn>{
   view() {
-    let i = this.i;
-    if (this.inline)
-      throw "not implemented";
+    let i = this.i, o = i.options.map<Option>(v => isS(v) ? [v] : v);
+    i.layout ||= this.inline || l(o) > 5 ? "select" : l(o) > 3 ? "column" : "wrap";
 
-    return this.bind(span(i.layout == 'column' ? C.menu : '', i.options.map<Option>(v => isS(v) ? [v] : v).map(([key, text, ico]) => g('label', [C.checkbox, "i"], [
-      g("input", {
-        type: 'radio',
-        value: <string>key,
-        name: i.k,
-        checked: key == i.value,
-        oninput: () => { this.set('value', key); }
-      }),
-      ico && icon(ico),
-      text || key
-    ]))).on('click', (e: MouseEvent) => {
-      if (e.altKey) {
-        g(<Element>e.currentTarget).queryAll('input').p('checked', false);
-        this.set('value', null);
-      }
-    }), (s) => {
-      s.queryAll<HTMLInputElement>('input').forEach(input => {
-        input.checked = input.value == i.value;
-      });
-    }, 'value').css('position', 'relative');
-    //this.fill(options);
-    //return e;
+    return i.layout == "select" ?
+      new Select({ value: i.value, key: 0 }, o).on("input", v => this.set("value", v)) :
+      this.bind(span(i.layout == 'column' ? "_ col" : '', o.map(([key, text, ico]) => g('label', C.checkbox, [
+        g("input", {
+          type: 'radio',
+          value: <string>key,
+          name: i.k,
+          checked: key == i.value,
+          oninput: () => { this.set('value', key); }
+        }),
+        ico && icon(ico),
+        text || key
+      ]))).on('click', e => {
+        if (e.altKey) {
+          g(<Element>e.currentTarget).queryAll('input').p('checked', false);
+          this.set('value', null);
+        }
+      }), (s) => {
+        s.queryAll<HTMLInputElement>('input').forEach(input => {
+          input.checked = input.value == i.value;
+        });
+      }, 'value').css('position', 'relative');
+
   }
 }
-// export const radio = (key: str, options?: L<Option, str>, req?: bool) =>
-//   new RadioInput({ key, req, options });
-
 //------------ password ------------------------
 
 interface iPWIn extends iInput<str> {
