@@ -1,6 +1,6 @@
 {
   "name": "galhui",
-  "version": "1.1.2",
+  "version": "1.1.4",
   "description": "",
   "main": "galhui.js",
   "scripts": {},
@@ -11,6 +11,6 @@
   "type":"module",
   "dependencies": {
     "csstype": "^3.0.11",
-    "galho": "file:../galho"
+    "galho": ""
   }
 }
