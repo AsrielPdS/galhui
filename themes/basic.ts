@@ -623,7 +623,7 @@ export const list = ({ brd, list: l }: Context): Styles => ({
       //   borderLeft: border(brd),
       // },
     },
-    tfoot: { position: "sticky", bottom: 0, background: "#fff" }
+    // tfoot: { position: "sticky", bottom: 0, background: "#fff" }
   },
   //   "._.card": {
   //     display: "grid!important",
@@ -981,7 +981,7 @@ export function select(add: Context): Styles {
 }
 export const stack = ({ brd }: Context): Styles => ({
   "._.stack": {
-    height: "100%",
+    // height: "100%",
     display: "flex",
     hr: {
       flex: "0 0",

@@ -2,7 +2,7 @@ import { cl, clearEvent, div, E, g, HSElement, m, One, S, wrap } from "galho";
 import orray, { Alias, extend, L, range } from "galho/orray.js";
 import { bool, call, def, Dic, fmt, int, isF, isN, isS, l, Primitive, str, t } from "galho/util.js";
 import { $, body, C, Child, close, doc, icon, Icon, logo, menucb, MenuItems, Size, w } from "./galhui.js";
-import { ctx, idropdown } from "./hover.js";
+import { ctxmenu, idropdown } from "./hover.js";
 import { up } from "./util.js";
 
 export type CrudMenu<T> = (items: T[]) => void | MenuItems;
@@ -72,7 +72,7 @@ export function crudHandler<T>(e: S, v: T, dt: L<T>, i: ICrud<T>) {
     contextmenu: i.menu && (e => {
       click(e);
       let t = i.menu(range.list(dt, "on"));
-      t && ctx(e, t)
+      t && ctxmenu(e, t)
     })
   })
 }
@@ -218,6 +218,7 @@ export type TAlign = "center" | "justify" | "left" | "right" | "start" | "end";
 export interface Column {
   key: str;
   size?: int;
+  fixed?: bool;
   align?: TAlign;
   text?: any,
   dt?: DataType;
@@ -275,13 +276,12 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
   ccss(e: S, i: int, span?: int): S
   ccss(e: S, column: Column): S
   ccss(e: S, c: int | Column, span = 1) {
-    let sz = 0;
-    if (isN(c)) {
-      let cs = this.cols;
-      for (let j = 0; j < span; j++)
+    let sz: int;
+    if (isN(c)) 
+      for (let cs = this.cols, j = 0; j < span; j++)
         sz += cs[c + j].size;
-    };
-    return e.c("i").css("width", (sz || (c as Column).size) + (this.i.fill ? '%' : 'px'));
+     else sz = c.size;
+    return e.c("i").css("width", sz + (this.i.fill ? '%' : 'px'));
   }
   editing: bool;
   edit() {
@@ -520,7 +520,7 @@ export function tree(i: ITree) {
       click(e);
       let t = i.menu([i.s]);
       if (t) {
-        ctx(e, t);
+        ctxmenu(e, t);
         e.preventDefault();
       }
     })

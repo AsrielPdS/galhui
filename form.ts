@@ -3,7 +3,7 @@ import { any, fromArray } from "galho/dic.js";
 import { Alias, extend, L } from "galho/orray.js";
 import { assign, bool, byKey, edate, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str, Task } from "galho/util.js";
 import { $, C, Color, ibt, Icon, icon, menuitem, w } from "./galhui.js";
-import { IRoot, Root, Select, setRoot, setValue } from "./hover.js";
+import { IRoot, Root, Select, setRoot, setValue, tip } from "./hover.js";
 import { errorMessage, TextInputTp } from "./io.js";
 import { select } from "./list.js";
 import { up } from "./util.js";
@@ -78,7 +78,7 @@ export interface iFormBase {
   readOnly?: bool;
   validators?: FormValidator[];
   hidden?: Dic;
-  meta?: Dic;
+  // meta?: Dic;
   bots?: Bot[];
   parent?: IDataContext;
 }
@@ -223,8 +223,8 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
     //se for meta
     else if (i.hidden && key in i.hidden)
       target = i.hidden[key];
-    else if (i.meta && key in i.meta)
-      target = i.meta[key];
+    // else if (i.meta && key in i.meta)
+    //   target = i.meta[key];
     else target = i.parent ? i.parent.getData(key, onupdate) : null;
 
     return target;
@@ -351,6 +351,7 @@ export interface iInput<V = unknown, D = V> {
   /**@default true */
   req?: bool;
   text?: any;
+  tip?: any;
   outline?: bool;
   /**place holder */
   ph?: str;
@@ -388,7 +389,10 @@ export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A
     let i = this.i;
     outline ||= i.outline;
     return div(outline ? "_ oi" : "_ ii", [
-      g('label', "hd", i.text).attrs({ for: i.k, title: i.text }),
+      g('label', "hd", [
+        i.text,
+        i.tip && tip(icon($.i.info), i.tip)
+      ]).attrs({ for: i.k }),//, title: i.text
       g(this, "bd"),
       !!i.req && g('span', "req", '*'),
     ]);

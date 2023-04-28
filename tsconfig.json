@@ -4,6 +4,7 @@
     "removeComments": false,
     // "declaration": true,
     "inlineSourceMap": true,
+    "forceConsistentCasingInFileNames": true,
     "lib": [
       "ES2021",
       "DOM"

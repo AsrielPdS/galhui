@@ -102,35 +102,30 @@ export function ok(msg: any) {
 export function error(msg: any) {
   return openBody(modal(), msg, [confirm()], { cls: Color.error });
 }
-
-export function popup(div: S, e: () => FluidRect, align: FluidAlign) {
-  let
-    last = active(),
-    ctx = div.p("tabIndex", 0),
-    // isOut: bool,
-    wheelHandler = (e: Event) => clearEvent(e);
-  ctx.queryAll('button').on('click', function () { last ? last.focus() : this.blur() });
-
-  ctx.on({
-    focusout: (e: FocusEvent) => ctx.contains(e.relatedTarget as HTMLElement) || (ctx.remove() && body.off("wheel", wheelHandler)),
-    keydown(e) {
-      if (e.key == "Escape") {
-        e.stopPropagation();
-        ctx.blur();
-      }
-    }
-  }).addTo(body).focus();
-  // .css({
-  //   left: opts.clientX + 'px',
-  //   top: opts.clientY + 'px'
-  // })
-  anim(() => (fluid(e(), ctx, align), body.contains(ctx)));
-  body.on("wheel", wheelHandler, { passive: false });
+export function popup(area: () => FluidRect, div: S, align: FluidAlign) {
+  return anim(() => body.contains(div) && fluid(area(), div, align));
 }
 /**context menu */
-export function ctx(e: MouseEvent, data: MenuItems) {
+export function ctxmenu(e: MouseEvent, data: MenuItems, align: FluidAlign = "ve") {
   clearEvent(e);
-  popup(div("_ menu", g("table", 0, data)), () => new DOMRect(e.clientX, e.clientY, 0, 0), "ve");
+  let last = active();
+  let wheelHandler = (e: Event) => clearEvent(e);
+  let ctx = div("_ menu", g("table", 0, data)).p("tabIndex", 0)
+    .on({
+      focusout(e) {
+        ctx.contains(e.relatedTarget as HTMLElement) || (ctx.remove() && body.off("wheel", wheelHandler));
+      },
+      keydown(e) {
+        if (e.key == "Escape") {
+          e.stopPropagation();
+          ctx.blur();
+        }
+      }
+    }).addTo(body).focus();
+
+  ctx.queryAll('button').on('click', function () { last ? last.focus() : this.blur() });
+  body.on("wheel", wheelHandler, { passive: false });
+  popup(() => new DOMRect(e.clientX, e.clientY, 0, 0), ctx, align);
 }
 export function tip<T extends HSElement>(root: One<T>, div: any, align?: FluidAlign): S<T>
 export function tip<T extends HSElement>(root: S<T>, tip: S, align: FluidAlign = "v") {
@@ -143,11 +138,18 @@ export function tip<T extends HSElement>(root: S<T>, tip: S, align: FluidAlign =
   return (root = g(<any>root))?.on({
     mouseenter() {
       body.add(tip);
-      anim(() => body.contains(root) ?
-        tip.parent && fluid(root.rect, tip as S, align) :
+      anim(() => body.contains(root) && tip.parent ?
+        fluid(root.rect, tip as S, align) :
         (tip.remove(), false));
     },
-    mouseleave() { tip.remove() }
+    mouseleave() { tip.remove() },
+    //TODO:focusin,focusout
+    // focusout(e) {
+    //   tip.remove()
+    // },
+    // focusin(){
+
+    // }
   });
 }
 
@@ -355,7 +357,7 @@ export const dropdown = (label: any, items: any, align: FluidAlign = "ve") =>
         e.c("on", false);
       } else {
         (mn ||= menu(items)).c(C.menu).addTo(e.c("on"));
-        anim(() => body.contains(mn) && fluid(e.rect, mn, align));
+        popup(() => e.rect, mn, align);
       }
     });
   });

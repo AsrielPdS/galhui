@@ -7,8 +7,20 @@ export const uuid = (length: int = 32) => Array
  * @returns function that cancel the renderer of current animation
  */
 export function anim(fn: () => void | boolean) {
-  let t = requestAnimationFrame, t2 = () => fn() !== false && (i = t(t2)), i = t(t2);
-  return () => cancelAnimationFrame(i);
+  let r;
+  console.log("timer started: " + (r = uuid(4)))
+  console.time(r);
+  let t = requestAnimationFrame;
+  let t2 = () => {
+    if (fn() !== false)
+      i = t(t2)
+    else console.timeEnd(r);
+  };
+  let i = t(t2);
+  return () => {
+    console.timeEnd(r);
+    cancelAnimationFrame(i);
+  }
 }
 export const up = (v: str) => v && (v[0].toUpperCase() + v.slice(1).replace(/_/g, ' '));
 
@@ -22,9 +34,9 @@ export const enum TimeUnit {
   d = h * 24,
   w = d * 7,
   y = d * 365.24,//2
-  /**quinzena */
+  /** quinzena */
   f = y / 24,
-  /**month */
+  /** month */
   M = y / 12,
   M2 = y / 6,
   M3 = y / 4,
