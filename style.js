@@ -36,13 +36,13 @@ export const rem = (v) => v + "rem";
 export const border = (color, size = 1) => `${size}px solid ${color}`;
 export function tAlign(v) {
     switch (v) {
-        case "l" /* left */:
+        case "l" /* HAlign.left */:
             return "left";
-        case "c" /* center */:
+        case "c" /* HAlign.center */:
             return "center";
-        case "r" /* right */:
+        case "r" /* HAlign.right */:
             return "right";
-        case "j" /* justify */:
+        case "j" /* HAlign.justify */:
             return "justify";
     }
 }
