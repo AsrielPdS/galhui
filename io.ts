@@ -109,19 +109,19 @@ export class ImgSelector extends E<iImgSelector>{
           this.submit(i.saveTo);
       });
     return this.bind(div("_ img-in", input), async _ => {
-      if (i.value) {
+      if (i.value?.size) {
         let img = g("img"), fr = new FileReader();
         fr.onload = () => img.e.src = fr.result as str;
         fr.readAsDataURL(i.value);
         _.set([img, close(() => this.set("value", input.e.value = null))]);
       } else {
-        _.set(g("button", 0, [div(0, "+").css("fontSize", "6em"), i.ph])
+        _.set(g("button", { type: "button" }, [div(0, "+").css("fontSize", "6em"), i.ph])
           .on("click", () => input.e.click()));
       }
     }, "value");
   }
   submit(url: str) {
-    return new Promise<str>((resolve, reject) => {
+    return new Promise<str>((resolve) => {
       let r = new XMLHttpRequest;
       r.onload = () => { resolve(r.responseText) };
       r.onprogress = e => {
