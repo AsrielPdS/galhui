@@ -276,7 +276,7 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
   ccss(e: S, i: int, span?: int): S
   ccss(e: S, column: Column): S
   ccss(e: S, c: int | Column, span = 1) {
-    let sz: int;
+    let sz=0;
     if (isN(c)) 
       for (let cs = this.cols, j = 0; j < span; j++)
         sz += cs[c + j].size;

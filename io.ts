@@ -123,6 +123,7 @@ export class ImgSelector extends E<iImgSelector>{
   submit(url: str) {
     return new Promise<str>((resolve) => {
       let r = new XMLHttpRequest;
+      r.withCredentials = true;
       r.onload = () => { resolve(r.responseText) };
       r.onprogress = e => {
         //TODO set busy
