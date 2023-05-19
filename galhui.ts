@@ -23,7 +23,7 @@ declare global {
       invalidFmt?: str;
     }
     interface Settings {
-       fileURI?: (name: string) => string;
+      fileURI?: (name: string) => string;
       /**shortcuts */
       sc?: { edit?: str[]; remove?: str[]; },
       // /**class */
@@ -79,7 +79,7 @@ export const enum C {
   loading = "ld",
   lever = "lv",
   container = "container",
-  modalArea = "mda",
+  modalArea = "blank",
   modal = "modal",
   tree = "tree",
   table = "tb",
@@ -359,13 +359,18 @@ export function wait(type?: WaitType | WaitCB, body?: WaitCB): any {
 }
 
 
-export function busy(container: S) {
-  let e = wait(), t = setTimeout(() => {
-    container.add(e);
+//todo: colocar no galhui
+export const loading = (sz = Size.n) => div("._.blank", div("_ load " + sz));
+export function busy(container?: S, sz?: Size) {
+  let e = loading(sz), p;
+  let t = setTimeout(() => {
+    p = (container ||= body).add(e).css("position");
+    container.css({ position: "relative" });
   }, 750);
 
   return () => {
     e.remove();
     clearTimeout(t);
+    container?.css({ position: p });
   }
 }

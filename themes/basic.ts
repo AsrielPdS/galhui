@@ -198,6 +198,33 @@ export function input(ctx: Context): Styles {
     }
   }
 }
+export function loader(ctx: Context): Styles {
+  return {
+    "._.load": {
+      border: "10px solid #f3f3f3",
+      borderRadius: "50%",
+      borderTop: "10px solid #3498db",
+      animation: "spin 1s cubic-bezier(0.46, 0.03, 0.52, 0.96) infinite",
+      ...center(),
+      width: "60px",
+      height: "60px",
+      "&.s": {
+        width: "10px",
+        height: "10px",
+        borderWidth: "5px",
+      },
+      "&.l": {
+        width: "120px",
+        height: "120px",
+        borderWidth: "16px",
+      },
+    },
+    "@keyframes apin": {
+      "0%": { transform: "rotate(0deg)", },
+      "100%": { transform: "rotate(360deg)", }
+    }
+  }
+}
 export function output(ctx: Context): Styles {
   // let { a } = theme;
   return {
@@ -362,7 +389,7 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
         ":hover": {
           background: "#acc5cf",
         },
-        "&.on":{
+        "&.on": {
           background: "#acc5cf",
         },
         ["&." + C.disabled]: {
@@ -1063,6 +1090,7 @@ export const style = (p: Pallete) =>
     (table)
     (mobImgSelector)
     (stack)
+    (loader)
     (form)
     (tip);
 /**full style,dark theme */
