@@ -66,7 +66,7 @@ export interface Pallete {
 }
 export type Context = StyleCtx<Pallete>;
 
-export const enum c {
+export const enum $ {
   menuH = 2.4,
   tabH = 2.8,
   error = "rgb(159, 58, 56)",
@@ -89,7 +89,7 @@ export const icon = (): Styles => ({
     }
   }
 })
-export const button = (ctx: Context): Styles => ctx(icon) && ({
+export const button = (ctx: Context): Styles => (ctx(icon), {
   //style
   "._.a": {
     color: ctx.a.n,
@@ -98,7 +98,7 @@ export const button = (ctx: Context): Styles => ctx(icon) && ({
     ":active": { color: ctx.a.a },
   },
   "._.bt": {
-    borderRadius: c.acentBordRad + "em",
+    borderRadius: $.acentBordRad + "em",
     ...box([0, .25, 0, 0], [.78, 1.5]),
     whiteSpace: "nowrap",
     height: "initial",
@@ -155,8 +155,7 @@ export const button = (ctx: Context): Styles => ctx(icon) && ({
 
   },
 });
-export function input(ctx: Context): Styles {
-  let { bg, fg, border } = ctx.in;
+export function input({ in: { bg, fg, border } }: Context): Styles {
   return {
     "textarea._.in": {
       height: "6em",
@@ -169,12 +168,15 @@ export function input(ctx: Context): Styles {
       color: fg,
       background: bg,
       border: `1px solid ${border.n}`,
-      borderRadius: c.acentBordRad + "em",
+      borderRadius: $.acentBordRad + "em",
       height: "2.4em",
       outline: "0",
       // "&.min>input:not(:focus)": {
       //   width: 0,
       // },
+      "input&": {
+        display: "inline-block",
+      },
       ".bt": {
         height: "calc(100%  + 1.2em)",
         marginRight: "-1em",
@@ -198,7 +200,7 @@ export function input(ctx: Context): Styles {
     }
   }
 }
-export function loader(ctx: Context): Styles {
+export function loader(): Styles {
   return {
     "._.load": {
       border: "10px solid #f3f3f3",
@@ -219,17 +221,16 @@ export function loader(ctx: Context): Styles {
         borderWidth: "16px",
       },
     },
-    "@keyframes apin": {
+    "@keyframes spin": {
       "0%": { transform: "rotate(0deg)", },
       "100%": { transform: "rotate(360deg)", }
     }
   }
 }
-export function output(ctx: Context): Styles {
-  // let { a } = theme;
+export function output({ in: { border } }: Context): Styles {
   return {
     "._.out": {
-      borderRadius: c.acentBordRad + "em",
+      borderRadius: $.acentBordRad + "em",
       ...box([0, .3, 0, 0], [.4, .8]),
       background: "#d3e3f3",
       display: "inline-block",
@@ -242,7 +243,7 @@ export function output(ctx: Context): Styles {
     },
     [`._.${C.message}`]: {
       [`&.${Color.error}`]: {
-        ...bfg("rgb(255, 246, 246)", c.error),
+        ...bfg("rgb(255, 246, 246)", $.error),
       },
       ...box([1, 0], [1, 1.5]),
       ":empty": { height: 0, padding: 0, margin: 0 },
@@ -263,15 +264,15 @@ export function output(ctx: Context): Styles {
         width: "100%"
       },
       ">:not(:last-child)": {
-        borderRight: `1px solid ${ctx.in.border.n}`,
+        borderRight: `1px solid ${border.n}`,
       },
       ">:first-child": {
         paddingLeft: "1.5em",
-        borderRadius: `${c.acentBordRad}em 0 0 ${c.acentBordRad}em`,
+        borderRadius: `${$.acentBordRad}em 0 0 ${$.acentBordRad}em`,
       },
       ">:last-child": {
         paddingRight: "1.5em",
-        borderRadius: `0 ${c.acentBordRad}em ${c.acentBordRad}em 0`,
+        borderRadius: `0 ${$.acentBordRad}em ${$.acentBordRad}em 0`,
       },
     },
   }
@@ -279,8 +280,8 @@ export function output(ctx: Context): Styles {
 export const menubar = ({ menu }: Context): Styles => ({
   "._.bar": {
     display: "flex",
-    height: c.menuH + "em",
-    lineHeight: c.menuH + "em",
+    height: $.menuH + "em",
+    lineHeight: $.menuH + "em",
     padding: "0 2vw",
     flex: "0 0 auto",
     background: menu,
@@ -326,7 +327,7 @@ export const menubar = ({ menu }: Context): Styles => ({
     },
     "&.main": {
       background: "#9eb6c0",
-      height: c.tabH + "em",
+      height: $.tabH + "em",
       paddingTop: ".3em",
       ".i:active,.i.on": {
         background: menu,
@@ -413,7 +414,7 @@ export const tip = ({ menu }: Context): Styles => ({
     zIndex: zIndex.tip,
     borderRadius: ".5em",
     boxShadow: "0 0 5px 1px #0004",
-    "&.panel>.ft": {
+    "&.modal>.ft": {
       padding: 0,
       height: "unset",
       background: "inherit"
@@ -423,7 +424,7 @@ export const tip = ({ menu }: Context): Styles => ({
 export const menurow = ({ menu }: Context) => ({
   "._.menurow": {
     background: menu,
-    lineHeight: c.menuH + "em",
+    lineHeight: $.menuH + "em",
     ".i": {
       padding: "0 2vw",
       display: "block",
@@ -436,20 +437,37 @@ export const menurow = ({ menu }: Context) => ({
     }
   },
 });
-export const panel = (ctx: Context): Styles => ({
-  "._.panel": {
-    // display: "flex",
-    // flexDirection: "column",
+export const modal = (ctx: Context): Styles => (ctx(button), {
+  "._.blank": {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "#000000d9",
+    zIndex: zIndex.modalArea,
+    overflow: "auto",
+  },
+  "._.modal": {
+    zIndex: zIndex.modal,
+    borderRadius: ".4em",
+    width: "calc(100% - 1em)",
+    height: "calc(100% - 1em)",
+    margin: ".5em",
     position: "relative",
     textAlign: "start",
     overflow: "hidden",
     background: ctx.bg,
+    padding: ".2em 1em",
+    ...col(),
+    ["&." + Color.error]: {
+      border: "4px solid #e53935"
+    },
     ["." + C.close]: {
       position: "absolute",
       right: ".4rem",
       top: ".1rem",
       fontSize: "14pt",
-      // color: "#f44",
     },
     ".hd": {
       margin: 0,
@@ -461,17 +479,22 @@ export const panel = (ctx: Context): Styles => ({
       "&.bar": {
         padding: ".1em 2em",
       }
-      // height:"unset"
     },
     ".bd": {
-      padding: ".2em 1em",
-      overflow: "auto",
-      height: "calc(100% - 3.8em)",
-      ":first-child": { paddingTop: "1.2em", },
+      flex: 1,
+      height: "0",
+      overflow: "hidden auto",
+      padding: 0,
     },
-    ".hd+.bd": {
-      height: "calc(100% - 6em)",
-    },
+    // ".bd": {
+    //   padding: ".2em 1em",
+    //   overflow: "auto",
+    //   height: "calc(100% - 3.8em)",
+    //   ":first-child": { paddingTop: "1.2em", },
+    // },
+    // ".hd+.bd": {
+    //   height: "calc(100% - 6em)",
+    // },
     ".ft": {
       height: "3.8em",
       display: "flex",
@@ -485,78 +508,27 @@ export const panel = (ctx: Context): Styles => ({
         border: "none",
         margin: "auto"
       },
-      // ".field": {
-
-      //   position: "relative",
-      //   label: {
-      //     top: "-8px",
-      //     border: "1px solid #0000005c",
-      //     background: "#fff",
-      //     padding: "1px 2px",
-      //     borderRadius: "3px",
-      //     fontSize: "smaller",
-      //     position: "absolute",
-      //     zIndex: zIndex.modal, 
-      //     left: "5px",
-      //   },
-      //   ".in": { marginRight: "10px" }
-      // }
     },
-  },
-  [min(ScreenSize.laptop)]: {
-    "._.panel": {
-      ".bd": {
-        padding: ".5em 1.7em",
-      }
-    }
-  },
-})
-export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
-  [`._.${C.modalArea}`]: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background: "#0004",
-    zIndex: zIndex.modalArea,
-    overflow: "auto",
-    // display: "flex",
-    // flexDirection: "column",
-    // alignItems: "center",
-    // justifyContent: "center",
-    // padding: spc(1, "rem"),
-  },
-  "._.modal": {
-    // ...box(0, 0),
-    zIndex: zIndex.modal,
-    borderRadius: ".4em",
-    width: "calc(100% - 1em)",
-    height: "calc(100% - 1em)",
-    margin: ".5em",
     "&.xl,&.l": {},
-    "&.xs,&.s": {},
-    // ".hd": {
-    //   padding: "1.2em 1.7em",
-    // },
-    // ".bd": {
-    // },
-    // ".ft": {
-    //   padding: "1em 1.7em",
-    // }
+    "&.xs,&.s": {}
   },
   [min(ScreenSize.tablet)]: {
     "._.modal": {
       width: "55%",
       maxWidth: (ScreenSize.tablet - 20) + "px",
-      margin: "3em auto",
+      margin: "3em auto 2em",
       height: "unset",
+      maxHeight: "calc(100% - 5em)",
+      "&.scroll": {
+
+      },
       /**full screen */
       "&.xl": {
         width: "calc(100% - 3rem)",
         height: "calc(100% - 3rem)",
         margin: "1.5rem",
-        maxWidth: "unset"
+        maxWidth: "unset",
+        ...col()
       },
       "&.l": {
         width: "95%",
@@ -572,7 +544,15 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
     },
   },
   [min(ScreenSize.laptop)]: {
-
+    "._.modal": {
+      padding: ".5em 1.7em",
+      ".hd": {
+        margin: "-.5em -1.7em 1.2em"
+      },
+      ".ft": {
+        margin: "1.2em -1.7em -.5em"
+      },
+    }
   },
   "._.side": {
     ...col(),
@@ -590,8 +570,8 @@ export const modal = (ctx: Context): Styles => ctx(button)(panel) && {
       flex: 1,
     }
   }
-};
-export const index = (ctx: Context): Styles => ({
+});
+export const index = (): Styles => ({
   "._.index": {
     display: "flex",
     flexDirection: "row",
@@ -691,7 +671,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       //cell
       "*": {
         // display: "inline-block",
-        padding: `${c.acentVPad}em ${c.acentHPad}em`,
+        padding: `${$.acentVPad}em ${$.acentHPad}em`,
         borderRadius: 0,
         overflow: "hidden",
         textOverflow: "ellipsis",
@@ -768,6 +748,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       // },
     },
     "&.fill": {
+      overflow: "auto",
       ".tr": {
         width: "100%",
         ".i": { flexGrow: 1, flexShrink: 1, minWidth: 0 },
@@ -785,8 +766,27 @@ export function form(ctx: Context): Styles {
       ":not(.expand)>.sd": { display: "none" },
       "&.expand>._sd": { display: "none" },
       padding: "1rem",
+      [`.${C.message}.${Color.error}`]: {
+        position: "sticky",
+        bottom: 0,
+      },
+    },
+    "._.formg": {
+      background: "#aaaaaa36",
+      borderRadius: "4px",
+      margin: "6px -6px 6px 0",
+      paddingRight: "6px",
+      paddingBottom: "1px",
+      ".hd": {
+        padding: ".4em 2em",
+        background: "#cfd8dc",
+        margin: "0 -6px 10px 0",
+        borderRadius: "4px"
+      }
+    },
+    "._.form,._.formg": {
       //outline input 
-      "._.oi": {
+      ".oi": {
         margin: `.8rem 0`,
         ".hd": {
           display: "block",
@@ -808,7 +808,7 @@ export function form(ctx: Context): Styles {
         "&[edited]>.hd": { fontWeight: "bold" }
       },
       //input inline
-      "._.ii": {
+      ".ii": {
         marginBottom: ".6em",
 
         ".hd": {
@@ -826,21 +826,13 @@ export function form(ctx: Context): Styles {
           width: "60%",
         },
         ".req": {
-          lineHeight: 0.6,
+          lineHeight: 3,
+          verticalAlign: "middle",
           position: "absolute",
           right: ".7em"
         },
       },
-      [`.${C.message}.${Color.error}`]: {
-        position: "sticky",
-        bottom: 0,
-      }
     },
-
-    "._.form-g": {
-      "*": { width: "100%" }
-    },
-
   }
 }
 export function tab({ menu }: Context): Styles {
@@ -852,7 +844,7 @@ export function tab({ menu }: Context): Styles {
         [`._.${C.close}`]: {
           float: "right",
           opacity: 0,
-          height: c.menuH + "rem",
+          height: $.menuH + "rem",
           ":hover": {
 
           }
@@ -864,7 +856,7 @@ export function tab({ menu }: Context): Styles {
         }
       },
       ["." + C.body]: {
-        height: `calc(100% - ${c.menuH}px)`
+        height: `calc(100% - ${$.menuH}px)`
       }
     }
   }
@@ -874,7 +866,7 @@ export function mobImgSelector(ctx: Context): Styles {
   return {
     "._.img-in": {
       position: "relative",
-      display: "flex",
+      display: "inline-block",
       ".cl": {
         position: "absolute",
         right: ".4rem",
@@ -883,6 +875,8 @@ export function mobImgSelector(ctx: Context): Styles {
       img: {
         maxWidth: "100%",
         maxHeight: "100%",
+        margin: "auto",
+        display: "block",
       },
       button: {
         width: "calc(100% - 2em)",
@@ -1027,7 +1021,7 @@ export const stack = ({ brd }: Context): Styles => ({
 export const core = (p: Pallete, tag = css({})) => styleCtx(p)({
   html: {
     // fontSize: consts.rem + "px",
-    fontFamily: c.ff,
+    fontFamily: $.ff,
   },
   body: { margin: 0 },
   button: {
@@ -1078,8 +1072,6 @@ export const style = (p: Pallete) =>
     (dropdown)
     (select)
     (input)
-    (panel)
-    (modal)
     (menubar)
     (menurow)
     (table)
@@ -1092,6 +1084,7 @@ export const style = (p: Pallete) =>
     (stack)
     (loader)
     (form)
+    (modal)
     (tip);
 /**full style,dark theme */
 export const darkTheme: Pallete = {

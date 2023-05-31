@@ -1,8 +1,8 @@
-import { delay, div, E, g, HSElement, One, S, svg, wrap } from "galho";
-import { L, orray } from "galho/orray.js";
-import { assign, bool, call, fmt, int, is, isS, str, t } from "galho/util.js";
-import { $, C, cancel, close, Color, confirm, hc, ibt, icon, Icon, mbitem, MBItems, panel, Size, w } from "./galhui.js";
-import { modal, openModal, Select } from "./hover.js";
+import { active, cl, clearEvent, delay, div, E, g, HSElement, One, onfocusout, S, svg, wrap } from "galho";
+import { L, orray, range } from "galho/orray.js";
+import { assign, bool, call, Dic, fmt, int, is, isP, isS, isU, Key, l, str, sub, t, Task, unk } from "galho/util.js";
+import { $, body, busy, C, cancel, close, close as closeBT, Color, confirm, fluid, FluidAlign, FluidRect, hc, ibt, icon, Icon, Label, label, MBItems, menu, MenuItems, negative, positive, Size, VAlign, w, wait } from "./galhui.js";
+import { anim } from "./util.js";
 
 //#region input
 export type TextInputTp = "text" | "email" | "url" | "tel";
@@ -25,71 +25,6 @@ export function search(input?: (value: str) => any) {
 }
 
 
-export interface IPagging {
-  limit?: number;
-  pag?: number;
-  total?: number;
-  hideOnSingle?: boolean;
-  setlimit?: boolean;
-  min?: number;
-  viewtotal?: boolean;
-  extreme?: boolean;
-}
-export class Pagging extends E<IPagging>{
-  view() {
-    let
-      i = this.i,
-      pags: number,
-      count = g('span'),
-      total: S;
-    if (i.setlimit) {
-      var limits = new Select<int>({
-        value: i.limit,
-        fluid: true,
-        clear: false
-      }, [
-        i.min,
-        i.min * 5,
-        i.min * 10,
-        i.min * 10,
-        i.min * 20,
-        [0, 'Mostrar todos']
-      ]);
-      g(limits).c("in");
-    }
-
-    return this.bind(div("_ bar pag", [
-      i.extreme && mbitem($.i.first, null, () => this.set('pag', 1)),
-      mbitem($.i.prev, null, () => this.set('pag', i.pag - 1)),
-      output(),
-      mbitem($.i.next, null, () => this.set('pag', i.pag + 1)),
-      i.extreme && mbitem($.i.last, count, () => this.set('pag', pags)),
-      limits && [
-        g("hr"),
-        limits.on('input', (value) => { this.set('limit', value); })
-      ],
-      i.viewtotal && [g("hr"), total = output()]
-    ]), (s) => {
-      if (i.viewtotal)
-        total.set(`${Math.min(i.total - i.limit * (i.pag - 1), i.limit || i.total) || 0} / ${i.total || 0}`)
-      pags = i.limit ? Math.ceil((i.total || 0) / i.limit) : 1;
-      s.c(C.off, !!(pags < 2 && i.hideOnSingle));
-
-      let t = i.extreme ? 0 : 1
-      s.child(2 - t).set(i.pag);
-
-      s.childs<HTMLButtonElement>(0, 2 - t).p('disabled', i.pag == 1);
-      s.childs<HTMLButtonElement>(3 - t, 5 - t * 2).p('disabled', i.pag == pags);
-
-      count.set(pags);
-    });
-  }
-
-  get pags() {
-    let { limit: l, total: t } = this.i;
-    return l ? Math.ceil((t || 0) / l) : 1
-  }
-}
 
 export interface iImgSelector {
   k?: str;
@@ -97,16 +32,18 @@ export interface iImgSelector {
   /**placeholder */
   ph?: str;
   value?: Blob;
-  saveTo?: str;
+  save?: str | ((value: File) => unk);
 }
 export class ImgSelector extends E<iImgSelector>{
   view() {
     let
       i = this.i,
       input = g('input', { name: i.k, type: "file", accept: i.accept || "image/*" }).on("input", () => {
-        this.set("value", input.e.files[0]);
-        if (i.saveTo)
-          this.submit(i.saveTo);
+        let v = input.e.files[0];
+        this.set("value", v);
+        if (isS(i.save))
+          submitImg(i.save, v);
+        else i.save?.(v)
       });
     return this.bind(div("_ img-in", input), async _ => {
       if (i.value?.size) {
@@ -120,33 +57,29 @@ export class ImgSelector extends E<iImgSelector>{
       }
     }, "value");
   }
-  submit(url: str) {
-    return new Promise<str>((resolve) => {
-      let r = new XMLHttpRequest;
-      r.withCredentials = true;
-      r.onload = () => { resolve(r.responseText) };
-      r.onprogress = e => {
-        //TODO set busy
-      }
-      r.open("POST", url);
-      r.send(this.i.value);
-    })
-  }
+}
+export function submitImg(url: str, value: Blob) {
+  return new Promise<str>((resolve) => {
+    let r = new XMLHttpRequest;
+    r.withCredentials = true;
+    r.onload = () => { resolve(r.responseText) };
+    r.onprogress = e => {
+      //TODO set busy
+    }
+    r.open("POST", url);
+    r.send(value);
+  })
 }
 
 const lever = (name: str) => g("input", { type: "checkbox", name }).c(C.lever);
 
 //#region output
 
-export const label = (content) => g("label", "_ tag", content);
 export const output = (...content) => g("span", "_ tag", content);
-export const keyVal = (key, val) => g("span", "_ in", [key + ": ", val]);
+export const keyVal = (key, val) => g("span", "_ in", [key, ": ", val]);
 
 export const message = (c?: Color, data?) => div(hc(C.message), data).c(c);
 export const errorMessage = (data?) => message(Color.error, data);
-/**@deprecated */
-export const tip = (e: S, value) => e.p("title", value);
-
 
 export interface iOutput<T> {
   key?: str;
@@ -166,11 +99,7 @@ export class Output<T = unknown> extends E<iOutput<T>>{
 
   get value() { return this.i.value; }
   set value(v) { this.set('value', v); }
-  // value(): T;
-  // value(value: T): this;
-  // value(v?: T) {
-  //   return isU(v) ? this.i.value : this.set('value', v);
-  // }
+
   view() {
     let i = this.i;
     return this.bind(div(), (s) => {
@@ -186,6 +115,308 @@ export class Output<T = unknown> extends E<iOutput<T>>{
 }
 
 //#endregion
+
+interface IModal<K> {
+  valid?: (key: K) => Task<unknown>;
+  /**close on click out of modal */
+  blur?: bool;
+
+  // close?: bool;
+  // cls?: str | str[];
+  // valid?(key: K): any;
+  /**submit button(called when press enter) */
+  // submit?: S;
+}
+interface IBody { cls?: str, close?: bool }
+interface Modal<K> extends Promise<K>, IModal<K> {
+  area: S;
+  body: S;
+  cb: (v: K) => void;
+}
+export function mdOnBlur(area: S) {
+  area.on("click", (e) => {
+    if (e.target == e.currentTarget)
+      area.remove()
+  });
+}
+/**open modal 
+ * @returns modal container, to close modal only remove the modal container */
+export function modal(modal: One): S
+export function modal(hd: Label, bd: any, actions?: (close: () => void) => any, sz?: Size, blur?: bool): S;
+export function modal(modal: One | Label, bd?: any, actions?: (close: () => void) => any, sz?: Size, blur = true) {
+  if (isU(bd))
+    modal = g(modal as One, "_ modal");
+  else {
+    modal = div("_ modal " + (sz || ""), [
+      label(modal, "hd"),
+      bd,
+      div("ft", actions?.(() => area.remove()))
+    ]);
+  }
+  let area = div("_ blank", modal).addTo(body);
+  modal.p("tabIndex", 0).focus();
+  blur && mdOnBlur(area);
+  return area;
+}
+
+/**modal with ok and cancel buttons */
+export const mdOkCancel = (body: any, sz = Size.xs, valid = () => true) =>
+  new Promise<bool>(ok => {
+    let md = modal(div("_ modal " + sz, [
+      wrap(body).css({ minHeight: "4em" }),
+      div("_ row", [
+        confirm(() => { if (valid) { md.remove(); ok(true) } }).css({ width: "50%" }),
+        cancel(() => { md.remove(); ok(false) }).css({ width: "50%" })
+      ])
+    ]))
+  });
+/**modal with yes/no buttons */
+export const mdYN = (body: any, sz = Size.xs, valid = () => true) =>
+  new Promise<bool>(ok => {
+    let md = modal(div("_ modal " + sz, [
+      wrap(body).css({ minHeight: "4em" }),
+      div("_ row", [
+        positive(null, w.yes, () => { if (valid) { md.remove(); ok(true) } }).css({ width: "50%" }),
+        negative(null, w.no, () => { md.remove(); ok(false) }).css({ width: "50%" }),
+      ])
+    ]))
+  });
+/**modal with ok */
+export const mdOk = (body: any, sz = Size.xs) =>
+  new Promise<void>((ok) => {
+    let md = modal(div("_ modal " + sz, [
+      wrap(body).css({ minHeight: "4em" }),
+      confirm(() => { md.remove(); ok() }),
+    ]))
+  });
+/**md with error style and ok button */
+export const mdError = (msg: any, sz = Size.xs) =>
+  new Promise<void>((ok) => {
+    let md = modal(div(`_ modal ${Color.error} ${sz}`, [
+      wrap(body).css({ minHeight: "4em" }),
+      confirm(() => { md.remove(); ok() }),
+    ]))
+  });
+export function popup(area: () => FluidRect, div: S, align: FluidAlign) {
+  return anim(() => body.contains(div) && fluid(area(), div, align));
+}
+/**context menu */
+export function ctxmenu(e: MouseEvent, data: MenuItems, align: FluidAlign = "ve") {
+  clearEvent(e);
+  let last = active();
+  let wheelHandler = (e: Event) => clearEvent(e);
+  let ctx = div("_ menu", g("table", 0, data)).p("tabIndex", 0)
+    .on({
+      focusout(e) {
+        ctx.contains(e.relatedTarget as HTMLElement) || (ctx.remove() && body.off("wheel", wheelHandler));
+      },
+      keydown(e) {
+        if (e.key == "Escape") {
+          e.stopPropagation();
+          ctx.blur();
+        }
+      }
+    }).addTo(body).focus();
+
+  ctx.queryAll('button').on('click', function () { last ? last.focus() : this.blur() });
+  body.on("wheel", wheelHandler, { passive: false });
+  popup(() => new DOMRect(e.clientX, e.clientY, 0, 0), ctx, align);
+}
+export function tip<T extends HSElement>(root: One<T>, div: any, align?: FluidAlign): S<T>
+export function tip<T extends HSElement>(root: S<T>, tip: S, align: FluidAlign = "v") {
+  if (isP(tip)) {
+    let t = tip;
+    tip = div("_ tip", wait);
+    t.then(v => { tip = wrap(v, "_ tip") });
+  }
+  else tip = wrap(tip, "_ tip");
+  return (root = g(<any>root))?.on({
+    mouseenter() {
+      body.add(tip);
+      anim(() => body.contains(root) && tip.parent ?
+        fluid(root.rect, tip as S, align) :
+        (tip.remove(), false));
+    },
+    mouseleave() { tip.remove() },
+    //TODO:focusin,focusout
+    // focusout(e) {
+    //   tip.remove()
+    // },
+    // focusin(){
+
+    // }
+  });
+}
+
+export interface IRoot<T extends Dic = Dic> {
+
+  /**if should open when clicked 
+   * @default true */
+  click?: bool;
+  /**if should have menu-down icon 
+   * @default true */
+  icon?: bool;
+  open?: bool;
+  off?: bool;
+  /**gain focus via tab key 
+   * @default true
+  */
+  tab?: bool;
+  //TODO: change name to clean 'probable'
+  clear?: bool
+  /**placeholder */
+  ph?: any;
+  item?(v: T): any
+  /**label field */
+  // label?: Key;
+}
+export type Root = E<IRoot, { open?: [bool] }> & {
+  value: Key;
+};
+
+
+// export function keydown<T extends Object = any>(me: Root, e: KeyboardEvent, options: L<T, any>, set: (...values: Key[]) => any) {
+
+// }
+/**create root, add handlers */
+export function setRoot(me: Root, options: L, label: S, menu: S) {
+  let
+    i = me.i,
+    root = onfocusout(div(`_ in ${C.select}`, [label.c("bd"), t(i.icon) && icon($.i.dd)?.c(C.side)/*, me.menu*/]), () => me.set("open", false))
+      .p("tabIndex", 0)
+      .on({
+        focus(e) {
+          if (i.off) {
+            if (e.relatedTarget)
+              g(e.relatedTarget as Element).focus();
+            else root.blur();
+          } else root.c("on");
+        },
+        keydown(e) {
+          switch (e.key) {
+            case "ArrowUp":
+              me.set("open", true);
+              range.move(options, "on", -1, range.tp(e.shiftKey, e.ctrlKey));
+              break;
+            case "ArrowDown":
+              me.set("open", true);
+              range.move(options, "on", 1, range.tp(e.shiftKey, e.ctrlKey));
+              break;
+            case "Enter":
+              if (me.i.open) {
+                me.value = l(options) == 1 ?
+                  options[0][options.key] as any :
+                  sub(range.list(options, "on"), options.key as any)[0];
+                me.set("open", false);
+              } else return;
+              // else {
+              //   let frm = g(me).closest("form");
+              //   if (frm) frm?.e.requestSubmit();
+              //   else return;
+              // }
+              break;
+            case "Escape":
+              if (me.i.open) {
+                me.set("open", false);
+                break;
+              } else return;
+
+            default:
+              return;
+          }
+          clearEvent(e);
+        }
+      });
+  if (t(i.click))
+    root.on('click', (e) => {
+      if (i.off) {
+        e.stopImmediatePropagation();
+      } else {
+        //if (m(<Element>e.target).is('button'))
+        //  _this.set(C.open, false);
+        //else
+        if (!menu.contains(e.target as HTMLElement))
+          me.toggle("open");
+      }
+    });
+  me.on(state => {
+    if ("off" in state) {
+      if (i.off) {
+        me.set("open", false);
+        root.blur();
+        root.c(C.disabled);
+        root.p('tabIndex', -1);
+      } else {
+        root.c(C.disabled, false);
+        root.p('tabIndex', t(i.tab) ? 0 : -1);
+      }
+    }
+    if ("open" in state) {
+      if (i.open && i.off) {
+        me.set("open", false);
+        return;
+      }
+      me.emit('open', i.open);
+      root.c("on", i.open);
+
+      if (i.open) {
+        menu.addTo(root);
+        anim(() => {
+          let r = root.rect;
+          return body.contains(menu) && (menu.css("minWidth", r.width + "px"), fluid(r, menu, "ve"))
+        });
+      } else {
+        root.c([VAlign.bottom, VAlign.top], false);
+        menu.remove();
+      }
+    }
+  });
+
+  return root;
+}
+export async function setValue<K = any>(me: Root & { option(k: K): Task<Dic> }, label: S) {
+  let v = me.value;
+  if (label.e.tagName == "INPUT") {
+    label.p("value", me.value == null ? "" : me.value);
+  } else {
+    if (v == null) label.c("_ ph").set(me.i.ph);
+    else {
+      let o = await me.option(v as any);
+      label.c("ph", false).set([me.i.item(o), t(me.i.clear) && close(() => me.value = null)]);
+      me.set("open", false);
+    }
+  }
+}
+// interface SelectItem<K> {
+//   key: K;
+//   text?: str;
+//   i?: Icon;
+// }
+
+// export interface iSelect<K extends keyof T, T extends Dic> extends IRoot<T> {
+//   value?: T[K];
+//   ph?: str;
+//   /**menu width will change acord to content */
+//   fluid?: boolean;
+// }
+// export class Select<K extends keyof T, T extends Dic = Pair> extends E<iSelect<K, T>, { input: [T[K]]; open: [bool] }> {
+// }
+
+export const dropdown = (label: any, items: any, align: FluidAlign = "ve") =>
+  call(div("_ dd", label), e => {
+    let mn = items instanceof S ? items : null;
+    e.on("click", () => {
+      if (mn?.parent) {
+        mn.remove();
+        e.c("on", false);
+      } else {
+        (mn ||= menu(items)).c(C.menu).addTo(e.c("on"));
+        popup(() => e.rect, mn, align);
+      }
+    });
+  });
+export const idropdown = (label: any, items: any, align?: FluidAlign) =>
+  dropdown([label, icon($.i.dd)], items, align);
 
 //#region layouts
 //-----------------DEPRECATED---------------------------
@@ -450,89 +681,90 @@ class Camera extends E<ICamera, { input: [str]; }>{
         this.set('state', CameraState.inaccessible);
       });
 
-    return panel(
-      [icon('camera'), w.camera],
-      this.bind(div(), (s) => {
+    return null;
+    // return panel(
+    //   [icon('camera'), w.camera],
+    //   this.bind(div(), (s) => {
 
 
-        switch (model.state) {
-          case CameraState.preview:
-            s.set(g('img', {
-              src: model.value
-            }).css('width', '100%'));
-            if (stream)
-              stream.getVideoTracks().forEach(track => track.stop());
+    //     switch (model.state) {
+    //       case CameraState.preview:
+    //         s.set(g('img', {
+    //           src: model.value
+    //         }).css('width', '100%'));
+    //         if (stream)
+    //           stream.getVideoTracks().forEach(track => track.stop());
 
-            break;
-          case CameraState.asking:
-            //s.set(button({
-            //  tag: 'h1',
-            //  cls: C.heading,
-            //  icon: 'camera-plus',
-            //  text: 'Confirme o acesso',
-            //  info: 'Precisa dar accesso a sua camera'
-            //}));
-            break;
-          case CameraState.error:
-            //s.set(button({
-            //  tag: 'h1',
-            //  cls: C.heading,
-            //  icon: 'alert-circle',
-            //  text: 'Erro',
-            //  info: 'Erro na tentativa de aceder a camera'
-            //}));
-            break;
+    //         break;
+    //       case CameraState.asking:
+    //         //s.set(button({
+    //         //  tag: 'h1',
+    //         //  cls: C.heading,
+    //         //  icon: 'camera-plus',
+    //         //  text: 'Confirme o acesso',
+    //         //  info: 'Precisa dar accesso a sua camera'
+    //         //}));
+    //         break;
+    //       case CameraState.error:
+    //         //s.set(button({
+    //         //  tag: 'h1',
+    //         //  cls: C.heading,
+    //         //  icon: 'alert-circle',
+    //         //  text: 'Erro',
+    //         //  info: 'Erro na tentativa de aceder a camera'
+    //         //}));
+    //         break;
 
-          case CameraState.recording:
-            s.set(output);
-            output.srcObject = stream;
-            output.play();
+    //       case CameraState.recording:
+    //         s.set(output);
+    //         output.srcObject = stream;
+    //         output.play();
 
-            break;
-          case CameraState.inaccessible:
-            //s.set(button({
-            //  tag: 'h1',
-            //  cls: C.heading,
-            //  icon: 'lock-alert',
-            //  text: 'N�o consegui acceder',
-            //  info: 'Precisa dar accesso a sua camera'
-            //}));
-            break;
+    //         break;
+    //       case CameraState.inaccessible:
+    //         //s.set(button({
+    //         //  tag: 'h1',
+    //         //  cls: C.heading,
+    //         //  icon: 'lock-alert',
+    //         //  text: 'N�o consegui acceder',
+    //         //  info: 'Precisa dar accesso a sua camera'
+    //         //}));
+    //         break;
 
-        }
-      }, 'state'),
-      this.bind(div(), (s) => {
-        switch (model.state) {
-          case CameraState.recording:
-            s.set([
-              ibt('camera', w.save, () => {
-                var
-                  canvas = g('canvas').e,
-                  ctx = canvas.getContext("2d");
+    //     }
+    //   }, 'state'),
+    //   this.bind(div(), (s) => {
+    //     switch (model.state) {
+    //       case CameraState.recording:
+    //         s.set([
+    //           ibt('camera', w.save, () => {
+    //             var
+    //               canvas = g('canvas').e,
+    //               ctx = canvas.getContext("2d");
 
-                canvas.width = output.videoWidth;
-                canvas.height = output.videoHeight;
-                ctx.drawImage(output, 0, 0, canvas.width, canvas.height);
+    //             canvas.width = output.videoWidth;
+    //             canvas.height = output.videoHeight;
+    //             ctx.drawImage(output, 0, 0, canvas.width, canvas.height);
 
-                this.set({
-                  state: CameraState.preview,
-                  value: canvas.toDataURL()
-                });
-              })
-            ]);
-            break;
-          case CameraState.preview:
-            s.set(confirm(() => (<any>g(this).d())()));
-            break;
-          default:
-        }
-        if (g(this).d())
-          s.add(cancel(() => (<any>g(this).d())()));
-      }, 'state')
-    );
+    //             this.set({
+    //               state: CameraState.preview,
+    //               value: canvas.toDataURL()
+    //             });
+    //           })
+    //         ]);
+    //         break;
+    //       case CameraState.preview:
+    //         s.set(confirm(() => (<any>g(this).d())()));
+    //         break;
+    //       default:
+    //     }
+    //     if (g(this).d())
+    //       s.add(cancel(() => (<any>g(this).d())()));
+    //   }, 'state')
+    // );
   }
   /** */
-  show() { return openModal(assign(modal(), { body: g(this) })); }
+  show() { return null;/*openModal(assign(modal(), { body: g(this) }))*/ }
 }
 const readFile = (file: Blob) => new Promise<str>(cb => {
   var reader = new FileReader();
@@ -620,3 +852,296 @@ export function tab(initial: int, ...items: TabItem[]) {
   return d;
 }
 //#endregion
+// export interface IOpenSelect<T extends Object = Dic, K extends Key = Key> extends bg.ISelect<T, K> {
+//   input?: 'text' | 'number';
+//   valid?: (value: string) => boolean;
+// }
+// export function openSelect<T extends Object = Dic, K extends Key = Key>(input: (this: Select<T, K>, value) => any, options: (T | K)[], i: IOpenSelect<T, K> = {}) {
+//   let ip = i.labelE = g('input', { type: i.input }).on('input', function () {
+//     input.call(select, this.value);
+//   });
+//   i.label = (value) => {
+//     ip.p('value', <any>value);
+//   }
+//   let select = new Select<T, K>(i, options);
+//   return select;
+// }
+
+
+
+// export interface ISelectBase<T extends Object, K> extends IRoot {
+//   menuE?: S;
+//   labelE?: S;
+
+//   /**element in menu or menu itself where items will be added */
+//   items?: S<HTMLTableElement>;
+//   labelParent?: S;
+//   menu?: (this: this, value: T) => One;
+//   /**called when value change */
+//   setMenu?: (this: this, value: K) => void;
+//   /**elemento dentro da label onde a label vai ser renderizada */
+//   //labelItem?: S;
+
+//   //label: S | ((key: K) => void);
+
+// }
+// export abstract class SelectBase<M extends ISelectBase<T, K> = ISelectBase<any, any>, T extends Object = any, K = Key, E extends SelectEvents = SelectEvents> extends E<M, E>  {
+//   menu: S;
+//   label: S;
+
+//   options: L<T, K>;
+//   abstract setValue(...value: K[]): void;
+
+//   constructor(i: M, options?: Alias<T, K>) {
+//     super(i);
+//     this.options = extend<T, K>(options, {
+//       key: "key",
+//       parse: (e) => isO(e) ? e : { key: e } as any
+//     });
+//   }
+
+
+//   view(): S {
+//     let
+//       i = this.i,
+//       lb = g(i.labelE || 'div').c(C.body);
+
+//     this.label = i.labelParent || lb // model.labelItem || label;
+
+//     this.menu = (i.menuE || div(0, i.items = g("table"))).c("_ menu");
+
+//     //if (model.menuItems && model.menuItems != this.menu) {
+//     //  this.menu.setClass(Cls.fill);
+//     //  model.menuItems.setClass(Cls.full);
+//     //}
+
+//     i.open = false;
+
+
+//     //if (!md.menuRender)
+//     //  md.menuRender = value => div( null, value[md.key]);
+
+//     return root(this, i, this.options);
+//   }
+
+//   protected insertItem(value: T) {
+//     var model = this.i;
+
+//     return g(model.menu(value))
+//       //.setClass(Cls.option)
+//       .on('click', (e) => {
+//         e.stopPropagation();
+//         let k = value[model.key];
+//         this.setValue(k);
+//       });
+//   }
+// }
+// export interface IMultselect<T extends Object = any, K extends str | num = str> extends ISelectBase<T, K> {
+//   value?: L<K>;
+//   empty?: (empty: boolean, container?: S) => void;
+//   label?: (this: L<K>, value: K, index?: number, container?: S) => void | One;// Child | Promise;
+// }
+// export class Multselect<T extends Object = { key: str }, K extends str | num = str> extends SelectBase<IMultselect<T, K>, T, K, { add: K[], remove: K[]; input: K[] } & SelectEvents> {
+//   constructor(i: IMultselect<T, K>, options?: Array<T | K>) {
+//     super(i, options);
+//     this.options.addGroup("on");
+//     i.value = orray(i.value, {
+//       parse(item) {
+//         if (this.indexOf(item) == -1)
+//           return item;
+//       }
+//     });
+//     //.bindToE(this, "value");
+//   }
+//   get value() { return this.i.value; }
+//   view() {
+//     let
+//       i = this.i,
+//       values = i.value,
+//       options = this.options,
+//       div = super.view(),
+//       mItems = i.items,
+//       menu = i.items || this.menu;
+
+//     this.label.css('flexWrap', 'wrap');
+//     bind(options, menu, {
+//       insert: this.insertItem.bind(this),
+//       tag(s, active, tag) {
+//         s.c(tag, active);
+
+//         if (active) {
+//           vScroll(menu, s.e.offsetTop - menu.p('clientHeight') / 2 + s.p('clientHeight') / 2);
+//         }
+//       },
+//       groups: {
+//         ["on"](e, active) { e.c(C.on, active); }
+//       }
+//     });
+//     bind(values, menu, {
+//       insert(key) {
+//         let index = itemIndex(options, key);
+//         if (index != -1)
+//           mItems
+//             .child(index)
+//             .c(C.main);
+//       },
+//       remove(key) {
+//         let index = itemIndex(options, key);
+//         if (index != -1)
+//           mItems
+//             .child(index)
+//             .c(C.main, false);
+//       }
+//     });
+//     bind(values, this.label, {
+//       insert: i.label,
+//       empty: i.empty
+//     });
+
+//     return root(this, i).on("keydown", e => {
+//       switch (e.key) {
+//         case "Delete": {
+//           let target = g(e.target as HTMLElement);
+//           if (is(target, 'input') || is(target, 'textarea') || !this.delete())
+//             return;
+//           else break;
+//         }
+//         case "Backspace": {
+//           let target = g(e.target as HTMLElement);
+//           if (is(target, 'input') || is(target, 'textarea') || !this.backspace())
+//             return;
+//           else break;
+//         }
+//       }
+//       keydown(e, this.options);
+//     });
+//   }
+
+//   delete() {
+//     let vl = this.i.value;
+//     if (!vl.length)
+//       return false;
+
+//     this.removeValue(vl[0]);
+//     return true;
+//   }
+//   backspace() {
+//     let vl = this.i.value;
+
+//     if (!vl.length)
+//       return false;
+
+//     this.removeValue(z(vl));
+//     return true;
+//   }
+
+//   setValue(...values: K[]) {
+//     let md = this.i;
+
+//     //let list = this.model.value;
+//     if (values.length) {
+//       //let l = list.length;
+//       let inserted: K[] = [];
+
+//       for (let value of values) {
+//         if (md.value.indexOf(value) == -1) {
+//           inserted.push(value);
+//         }
+//       }
+
+
+//       //md.value.push(...values);
+
+//       if (inserted.length > 0) {
+//         md.value.push(...inserted);
+
+//         this.emit('add', inserted);
+//         this.emit('input', md.value.slice());
+
+//         if (md.open && this.$)
+//           this.setMenu(this.$)
+//       }
+//     }
+//   }
+
+//   removeValue(...values: K[]) {
+//     let
+//       md = this.i,
+//       removed: K[] = [];
+
+//     for (let value of values) {
+//       let i = md.value.indexOf(value);
+//       if (i != -1) {
+//         md.value.removeAt(i);
+//         removed.push(value);
+//       }
+//     }
+
+//     if (removed.length > 0) {
+//       this.emit('remove', removed);
+//       this.emit('input', md.value.slice());
+
+//       if (md.open && this.$)
+//         this.setMenu(this.$)
+//     }
+//   }
+
+//   //setLabel(value: T) {
+//   //  var model = this.model;
+//   //  return model.menuRender(<T>value)
+//   //    .setClass(Cls.option)
+//   //    .on('click', (e) => {
+//   //      e.stopPropagation();
+//   //      let k = value[model.key];
+//   //      this.set('value', k);
+//   //      model.child.setTag(focusKey, k);
+//   //    })
+//   //}
+
+// }
+
+
+
+// export interface IOpenMultselect<T extends Object = Dic, K extends Key = Key> extends IMultselect<T, K> {
+//   input?: 'text' | 'number';
+//   valid?: (value: string) => boolean;
+//   /**place holder */
+//   ph?: str;
+// }
+// export function openMultselect<T extends Object = Dic, K extends Key = Key>(i: IOpenMultselect<T, K>, allOptions: T[]) {
+//   let
+//     select = new Multselect<T, K>(assign(i, {
+//       label(value) {
+//         i.labelE.p('value', value);
+//       },
+//       labelE: g('input', { type: i.input, placeholder: i.ph }).on({
+//         input() {
+//           let arg: Arg<str> = { v: this.value };
+//           select.emit("type" as any, arg);
+//           if (!arg.p) {
+//             allOptions ||= opts.slice();
+//             let parts = valid(arg.v.split(/\s+/g)).map(q => new RegExp(q, "gu"));
+//             opts.set(allOptions.filter(o => parts.every(p => p.test(o[i.key]))));
+//           }
+//           if (l(opts) == 1)
+//             addSelection(opts, "on", opts[0], SelectionTp.set);
+//         },
+//         keydown(e) {
+//           if (e.key == "Enter" && !opts.tags["on"]) {
+//             clearEvent(e);
+//             let arg: Arg<str> = { v: this.value };
+//             if (i.valid ? i.valid(arg.v) : false) {
+//               select.emit("submit" as any, arg)
+//               if (!arg.p) {
+//                 opts.push({ [i.key]: arg.v } as any);
+//                 select.setValue(arg.v as K);
+//               }
+//             }
+//           }
+//         }
+//       })
+//     }), allOptions),
+//     opts = select.options;
+//   g(select).c(C.input)
+//   return select;
+// }

@@ -1,11 +1,9 @@
-import { div, E, g, m, MRender, One, onfocusout, S, span } from "galho";
+import { clearEvent, div, E, g, m, MRender, One, onfocusout, S } from "galho";
 import { any, fromArray } from "galho/dic.js";
 import { Alias, extend, L } from "galho/orray.js";
-import { assign, bool, byKey, edate, def, Dic, falses, filter, float, int, isA, isS, isU, Key, l, Primitive, str, Task } from "galho/util.js";
-import { $, C, Color, ibt, Icon, icon, menuitem, w } from "./galhui.js";
-import { IRoot, Root, Select, setRoot, setValue, tip } from "./hover.js";
-import { errorMessage, TextInputTp } from "./io.js";
-import { select } from "./list.js";
+import { assign, bool, byKey, def, Dic, edate, falses, filter, float, int, isA, isO, isS, isU, Key, l, Primitive, str, Task, unk, z } from "galho/util.js";
+import { $, busy, C, cancel, Color, confirm, ibt, Icon, icon, Label, label, menuitem, w } from "./galhui.js";
+import { errorMessage, IRoot, mdOnBlur, modal, Root, setRoot, setValue, TextInputTp, tip } from "./io.js";
 import { up } from "./util.js";
 
 interface FormValidator {
@@ -13,15 +11,6 @@ interface FormValidator {
   type?: str;
   fields: str[];
   msg?: str;
-}
-interface IDataContext {
-  parent?: IDataContext;
-  getData?(key: Key, onupdate?: (value: unknown) => void): unknown;
-}
-export interface IInputContext extends IDataContext {
-  inline?: bool;
-  /** */
-  tp?: str;
 }
 
 // export type Error = {
@@ -32,11 +21,8 @@ export interface IInputContext extends IDataContext {
 export type Error = MRender | S | str;
 
 /**coisas executadas quando alguma ação acontece dentro do form */
-export interface Bot {
-  srcs?: str[];
-  tp: str;
-}
-type BotCall = <T extends Bot = Bot>(this: FormBase<any, any>, src: Dic<any>, opts: T,) => any;
+type BotCallback = (src: Dic<any>, form: FormBase<any, any>) => any;
+export type Bot = [...src: str[], call: BotCallback];
 
 export const enum ErrorType {
   required = "req",
@@ -58,7 +44,6 @@ export function error(tp: ErrorType, msg?: str, params?: Dic): EError { return {
 export const req = () => error(ErrorType.required, w.required);
 export type Errors = Dic<() => any>;
 
-export const bots: Dic<BotCall> = {};
 // export const errors: Errors = {};
 //export const inputs: Dic<{ new(i: IInput, ctx?: IInputContext): Input; }> = {};
 
@@ -71,47 +56,55 @@ interface FormEvents extends Dic<any[]> {
 }
 
 export interface iFormBase {
-  /**set true if this form is inside another form
-   * when dis is true will be used div tag instead of form tag
-   * */
-  intern?: bool;
+  /**@default "form" */
+  tag?: keyof HTMLElementTagNameMap
   readOnly?: bool;
   validators?: FormValidator[];
   hidden?: Dic;
   // meta?: Dic;
   bots?: Bot[];
-  parent?: IDataContext;
 }
 
 /** */
-export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends E<T, Ev> implements IInputContext {
+export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends E<T, Ev> {
   inputs: Input[];
-  constructor(i: T, inputs?: Input[]);
+  constructor(i: T, inputs: (Input | falses)[]);
   constructor(inputs: (Input | falses)[]);
-  constructor(i: T | (Input | falses)[], inputs?: Input[]) {
+  constructor(i: T | (Input | falses)[], inputs?: (Input | falses)[]) {
     if (isA(i)) {
-      inputs = filter(i);
+      inputs = i;
       i = {} as T;
     }
+    inputs = filter(inputs);
     super(i);
 
-    this.inputs = inputs.map(input => {
-      //let input = <Input>Reflect.construct(inputs[i.tp], [i, this]);
-      input.onset(["value", "off"], () => {
-        input.visited && this.setErrors(input.key, input.invalid);
-        this.emit("input", input);
-      });
-      input.observeVisited(() => this.setErrors(input.key, input.invalid));
-      return input;
-    });
+    (this.inputs = inputs as Input[]).forEach(this.addInput, this);
 
-    if (i.bots)
+    if (i.bots) {
+      let form = this;
       for (let bot of i.bots) {
-        let srcs: Dic = {}
-        let calc = () => bots[bot.tp].call(this, srcs, bot);
-        for (let src of bot.srcs)
-          srcs[src] = this.getData(src, calc);
+        let srcs: Dic = {}, cb = z(bot) as BotCallback;
+        function calc(this: Input | void) {
+          if (this)
+            srcs[this.key] = this.value;
+          cb(srcs, form);
+        }
+        for (let i = 0; i < bot.length - 1; i++) {
+          let src = bot[i] as str;
+          let inp = this.input(src);
+          srcs[src] = inp.value;
+          inp.onset(["value", "off"], calc);
+        }
+        calc();
       }
+    }
+  }
+  addInput(input: Input) {
+    input.onset(["value", "off"], () => {
+      input.visited && this.setErrors(input.key, input.invalid);
+      this.emit("input", input);
+    });
+    input.observeVisited(() => this.setErrors(input.key, input.invalid));
   }
   view(): One { throw 1; }
   get isDef() {
@@ -158,24 +151,25 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
   //     r[key] = def;
   //   return r;
   // }
-  /**default data */
-  def(): Dic;
-  def(value: Dic): this;
-  def(value: null): this;
-  def(v?: Dic) {
-    if (isU(v)) {
-      let r: Dic = {};
-      for (let { key, def } of this.inputs)
-        r[key] = def;
-      return r;
-    } else this.inputs.forEach(i => v && i.key in v && i.set("def", v?.[i.key]));
-  }
+  // /**default data */
+  // def(): Dic;
+  // def(value: Dic): this;
+  // def(value: null): this;
+  // def(v?: Dic) {
+  //   if (isU(v)) {
+  //     let r: Dic = {};
+  //     for (let { key, def } of this.inputs)
+  //       r[key] = def;
+  //     return r;
+  //   } else this.inputs.forEach(i => v ?
+  //     i.key in v && i.set("def", v?.[i.key]) :
+  //     i.set("def", null)
+  //   );
+  // }
   fill(value: Dic, setAsDefault?: bool) {
-    if (setAsDefault)
-      this.def(value);
     this
       .emit("fill", value).inputs
-      .forEach(i => i.fill ? i.fill(value) : i.key in value && (i.value = value[i.key]));
+      .forEach(i => i.fill(value, setAsDefault));
     return this;
   }
   reset(...fields: str[]) {
@@ -212,23 +206,6 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
       r.append(key, <str>data[key]);
     return r;
   }
-
-  getData(key: Key, onupdate?: (value: unknown) => void) {
-    let i = this.i, target: unknown = this.inputs.find(f => f.key == key);
-
-    //se for input
-    if (target) {
-      onupdate && (<Input>target).on(onupdate);
-    }
-    //se for meta
-    else if (i.hidden && key in i.hidden)
-      target = i.hidden[key];
-    // else if (i.meta && key in i.meta)
-    //   target = i.meta[key];
-    else target = i.parent ? i.parent.getData(key, onupdate) : null;
-
-    return target;
-  }
 }
 async function dataAsync(form: FormBase, edited?: bool, req?: bool) {
   let inputs = form.inputs;
@@ -257,28 +234,38 @@ function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
   return result;
 }
 
+export const onOffHide = (e: S, isOff: bool) =>
+  e.parent.c("_ off", isOff);
+export const onOffDisable = (e: S, isOff: bool) =>
+  e.parent.c("_ off", isOff);
 /** */
 export interface iForm extends iFormBase {
   errorDiv?: S;
   outline?: bool;
+  /**called when input enter/exit off */
+  offFN?: (e: S, isOff: bool) => void
 }
 
 export class Form extends FormBase<iForm> {
   errDiv: S;
 
-  constructor(i: iForm, inputs?: Input[]);
+  constructor(i: iForm, inputs: (Input | falses)[]);
   constructor(inputs: (Input | falses)[]);
   constructor(i: iForm | (Input | falses)[], inputs?: Input[]) {
     super(i as any, inputs as any);
     this.on('input', (input: Input) => setTimeout(() => {
-      g(input).parent?.attr("edited", !input.isDef());
+      let e = g(input);
+      e.parent?.attr("edited", !input.isDef());
+      this.i.offFN?.(e, !!input.i.off);
     }));
     this.errDiv = this.i.errorDiv || errorMessage();
+    if (this.i.outline == null)
+      this.i.outline = $.oform;
   }
   view() {
     let { i, inputs: inp } = this;
-    return g(i.intern ? 'div' : 'form', "_ form", [
-      fields(inp, def(i.outline, $.oform)),
+    return g(i.tag || 'form', "_ form", [
+      fields(inp, this),
       this.errDiv
     ]);
   }
@@ -288,8 +275,40 @@ export class Form extends FormBase<iForm> {
     this.errDiv.set(renderErrors(this.inputs, this.errors));
   }
 }
-export function fields(inputs: Input[], outline?: bool) {
-  return inputs.map(input => input.field(outline));
+/**modal form */
+export function mdform(hd: Label, inputs: Input[], cb: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool): Form
+export function mdform(hd: Label, form: FormBase, cb: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool): Form
+export function mdform(hd: Label, form: Input[] | FormBase, cb: (dt: Dic, form: FormBase) => Task<unk>, ok = confirm(), noCancel?: bool) {
+  if (isA(form))
+    form = new Form(form);
+
+  let cl = () => md.remove();
+  g(form)
+    .badd(label(hd, "hd"))
+    .add(div("ft", [
+      ok.p({ type: "submit" }).on("click", async e => {
+        e.preventDefault();
+        if ((form as Form).valid()) {
+          clearEvent(e);
+          await busy(g(form as Form), () => cb((form as Form).data(), form as Form));
+          cl();
+        }
+      }),
+      noCancel || cancel(cl)
+    ]));
+  let md = modal(form);
+  noCancel || mdOnBlur(md);
+  form.focus();
+  return form;
+}
+export function fields(inputs: Input[], form?: Form) {
+  return inputs.map(input => input.field(form));
+}
+export function inputGroup(i: Icon, title: any, inputs: Input[], form?: Form) {
+  return div("_ formg", [
+    div("hd", [icon(i), title]),
+    fields(inputs, form)
+  ])
 }
 export function expand(form: Form, ...main: str[]) {
   for (let input of form.inputs)
@@ -360,7 +379,6 @@ export interface iInput<V = unknown, D = V> {
   // side?: bool;
 }
 export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A = never, Ev extends Dic<any[]> = {}> extends E<I, Ev> {// & { input: [V] }
-  public ctx?: IInputContext
   constructor(i: I) {
     super(i);
     if (isU(i.text)) i.text = def(w[i.k], up(i.k));
@@ -370,9 +388,15 @@ export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A
   get value() { return def<V>(this.i.value, null); }
   set value(v) { this.set("value", v); }
 
-  fill?(value: Dic): any;
+  fill?(src: Dic, setAsDefault?: bool) {
+    let { k } = this.i;
+    if (k in src) {
+      this.value = src[k];
+      if (setAsDefault)
+        this.set("def", src[k])
+    }
+  }
   get def() { return def(<V>this.i.def, this.null); }
-  get inline() { return this.ctx?.inline; }
   isDef(value = this.value, def = this.def) {
     return def === value;
   }
@@ -385,17 +409,18 @@ export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A
       handler();
     });
   }
-  field(outline: bool): One {
-    let i = this.i;
-    outline ||= i.outline;
-    return div(outline ? "_ oi" : "_ ii", [
+  field(form: Form): One {
+    let i = this.i, bd = g(this, "bd");
+    let t = div(def(form?.i.outline, i.outline) ? "oi" : "ii", [
       g('label', "hd", [
         i.text,
         i.tip && tip(icon($.i.info), i.tip)
-      ]).attrs({ for: i.k }),//, title: i.text
-      g(this, "bd"),
+      ]).attrs({ for: i.k }), bd,
       !!i.req && g('span', "req", '*'),
     ]);
+    if (i.off)
+      form?.i.offFN?.(bd, true);
+    return t;
   }
   /**show or hide errors */
   error(state: bool) {
@@ -417,9 +442,10 @@ export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A
     return errs;
   }
 
-  submit(data: Dic, edited?: bool, req?: bool): Task<void>
+  submit(this: this, data: Dic, edited?: bool, req?: bool): Task<void>
   submit(data: Dic) {
-    data[this.i.k] = this.value;
+    let { k, value } = this.i;
+    data[k] = value;
   }
   /**null value used for clear method */
   get null(): V { return null; }
@@ -482,12 +508,6 @@ export class TextIn extends Input<str, iTextIn> {
 
     return errs;
   }
-  focus() {
-    if (this.i.input == 'ta' && this.inline)
-      g(this).first.focus();
-    else g(this).focus();
-    return this;
-  }
 }
 /**text input */
 export const textIn = (k: str, req?: bool, input?: TextInputTp | "ta") =>
@@ -515,7 +535,7 @@ export class NumbIn extends Input<float, iNumbIn> {
         type: 'number',
         name: i.k, id: i.k,
         step: i.integer ? <any>1 : 'any',
-        placeholder: this.inline ? i.text : i.ph || '',
+        placeholder: i.ph || '',
         min: i.min || i.omin, max: i.max || i.omax,
         value: i.value
       })
@@ -655,13 +675,13 @@ export class TimeIn extends Input<str, iTimeIn> {
       _this = this,
       i = this.i;
 
-    return this.bind(g("input").props({
+    return this.bind(g("input").p({
       type: 'time',
       name: i.k, id: i.k,
       placeholder: i.ph,
     }).on('input', function () {
       _this.set('value', this.value + ':00');
-    }), (s) => s.prop('value', i.value && i.value.slice(0, 5)), 'value');
+    }), (s) => s.p('value', i.value && i.value.slice(0, 5)), 'value');
   }
 }
 
@@ -674,21 +694,24 @@ export interface iDateIn extends iInput<str> {
 }
 export class DateIn extends Input<str, iDateIn> {
   view() {
-    let
-      i = this.i,
-      inp = g("input", "_ in").p({
-        type: "date",
-        name: i.k, id: i.k,
-        placeholder: i.ph,
-        value: i.value
-      })
+    let i = this.i;
+    let inp = g("input", "_ in").p({
+      type: "date",
+      name: i.k, id: i.k,
+      placeholder: i.ph,
+      value: i.value
+    });
+    console.log(i.value);
     this.onset("value", () => inp.e.value = i.value);
     return inp.on("input", () => this.set("value", inp.e.value || null));
   }
   get def() {
-    let y: int, m: int, d: int;
-    return this.i.def == "now" ? ([y, m, d] = edate(new Date()), `${y}-${m}-${d}`) : null;
+    return this.i.def == "now" ? dateISO() : null;
   }
+}
+function dateISO(v = new Date()) {
+  let [y, m, d] = edate(v);
+  return `${y}-${(m + "").padStart(2, "0")}-${(d + "").padStart(2, "0")}`;
 }
 
 export const dateIn = (key: str, req?: bool, def?: str) =>
@@ -734,45 +757,64 @@ export class DTIn extends Input<str, iDTIn> {
   }
 }
 //------------ SELECT -----------------------
-export type iSelectIn<T extends Dic> = iInput<Key> & IRoot<T> & {}
-export class SelectIn<T extends Dic = Dic> extends Input<Key, iSelectIn<T>, never, { open: [bool] }> implements Root {
-  options: L;
-  active: T;
-  #l: S;
-  constructor(i: iSelectIn<T>, src: Alias<T>, key: keyof T = "key") {
+export type iSelectIn<T extends Dic, K extends keyof T = any> = iInput<T[K]> & IRoot<T> & {
+  /**menu width will change acord to content */
+  fluid?: boolean;
+}
+export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Input<T[K], iSelectIn<T, K>, never, { open: [bool] }> implements Root {
+  options: L<T, K>;
+  get active() { return byKey(this.options, this.i.value); }
+  constructor(i: iSelectIn<T, K>, options?: Alias<T, T[K]>, key: keyof T = <any>0) {
     super(i);
-    this.options = extend<T>(src, { key });
-    this.onset("value", v => {
-      this.active = this.options.find(v.value);
-      setValue(this, this.#l)
+    i.item ||= (v) => def(v[1], v[key]);
+    this.options = extend<T, T[K]>(options, {
+      key, parse: (e) => isO(e) ? e : <T>{ [key]: e }
     });
   }
-  // get value() { return this.i.value; }
-  // set value(v: Key) {
-  //   this.active = this.options.find(v);
-  //   setValue(this, this.#l);
-  //   this.set("value", v);
-  // }
-  option(k: Key) { return this.options.find(k); }
+  get value() { return this.i.value; }
+  set value(v) { this.i.value === v || this.set("value", v) }
 
   view() {
-    //TODO: checar se é mobile e usar o tag select nativo
     let
-      i = this.i,
-      label = this.#l = g("span"),
-      o = this.options,
-      menu = div("_ menu", [
-        o.bind(g("table"), {
-          insert: v => menuitem(0, i.item(v), () => this.value = v[o.key]),
-          tag(active, i, p, tag) {
-            let s = p.child(i).c(tag, active).e as HTMLElement;
-            active && menu.e.scroll({ top: s.offsetTop - menu.e.clientHeight / 2 + s.clientHeight / 2 });
-          }
-        })
-      ]),
-      m = setRoot(this, o, label, menu).p({ id: i.k }).c("in");
+      { i, options } = this,
+      label = g("span"),
+      items = g("table").on("click", ({ currentTarget: ct, target: t }) =>
+        ct != t && (this.set("open", false).value = g(t as Element).closest("tr").d())),
+      menu = div("_ menu", items),
+      root = setRoot(this, options, label, menu).attrs({ name: i.k });
     setValue(this, label);
-    return m;
+    this.on(e => ("value" in e) && setValue(this, label));
+
+    options.bind(items, {
+      insert: v => menuitem(v.i, i.item(v)).d(v[options.key]),
+      tag(active, i, p, tag) {
+        let s = p.child(i);
+        s.c(tag, active);
+
+        if (active) {
+          menu.e.scroll({ top: s.p('offsetTop') - menu.p('clientHeight') / 2 + s.p('clientHeight') / 2 });
+        }
+      }
+    });
+
+    return root;
+  }
+  option(k: T[K]) {
+    return this.options.find(k);
+  }
+}
+export interface iMobSelect<T = Dic> extends iInput<Key> {
+  item?(v: T): any
+}
+export class MobSelectIn<T = Dic, K extends keyof T = any> extends Input<Key, iMobSelect<T>, never, { open: [bool] }> {
+  constructor(i: iMobSelect<T>, private options: Alias<T>, private okey?: K) {
+    super(i);
+  }
+  view() {
+    let { i, options, okey } = this;
+    return g("select", "_ in",
+      options.map(v => g("option", { value: v[okey] as any }, i.item(v))))
+      .p({ name: i.k, placeholder: i.ph })
   }
 }
 //------------ RADIO ------------------------
@@ -784,35 +826,33 @@ export interface iRadioIn extends iInput<Key> {
   enum?: str;
   //groupBy?: Val;
   clear?: bool;
-  layout?: 'wrap' | 'column' | 'select';
+  layout?: 'wrap' | 'column';
 }
 export class RadioIn extends Input<Key, iRadioIn>{
   view() {
     let i = this.i, o = i.options.map<Option>(v => isS(v) ? [v] : v);
-    i.layout ||= this.inline || l(o) > 5 ? "select" : l(o) > 3 ? "column" : "wrap";
+    i.layout ||= l(o) > 3 ? "column" : "wrap";
 
-    return i.layout == "select" ?
-      new Select({ value: i.value, key: 0 }, o).on("input", v => this.set("value", v)) :
-      this.bind(span(i.layout == 'column' ? "_ col" : '', o.map(([key, text, ico]) => g('label', C.checkbox, [
-        g("input", {
-          type: 'radio',
-          value: <string>key,
-          name: i.k,
-          checked: key == i.value,
-          oninput: () => { this.set('value', key); }
-        }),
-        ico && icon(ico),
-        text || key
-      ]))).on('click', e => {
-        if (e.altKey) {
-          g(<Element>e.currentTarget).queryAll('input').p('checked', false);
-          this.set('value', null);
-        }
-      }), (s) => {
-        s.queryAll<HTMLInputElement>('input').forEach(input => {
-          input.checked = input.value == i.value;
-        });
-      }, 'value').css('position', 'relative');
+    return this.bind(g("span",i.layout == 'column' ? "_ col" : '', o.map(([key, text, ico]) => g('label', C.checkbox, [
+      g("input", {
+        type: 'radio',
+        value: <string>key,
+        name: i.k,
+        checked: key == i.value,
+        oninput: () => { this.set('value', key); }
+      }),
+      ico && icon(ico),
+      text || key
+    ]))).on('click', e => {
+      if (e.altKey) {
+        g(<Element>e.currentTarget).queryAll('input').p('checked', false);
+        this.set('value', null);
+      }
+    }), (s) => {
+      s.queryAll<HTMLInputElement>('input').forEach(input => {
+        input.checked = input.value == i.value;
+      });
+    }, 'value').css('position', 'relative');
 
   }
 }
@@ -850,13 +890,14 @@ export class PWIn extends Input<str, iPWIn> {
 }
 
 export interface iCustomIn<V, O> extends iInput<V> {
-  submit?: (this: CustomIn<V> & O, data: Dic, edited?: bool, req?: bool) => Task<void>;
-
+  submit?: CustomIn<V, O>["submit"];
+  isDef?: CustomIn<V, O>["isDef"];
 }
-export class CustomIn<V, O = {}> extends Input {
+export class CustomIn<V, O = {}> extends Input<V> {
   constructor(i: iCustomIn<V, O>, public view: (this: CustomIn<V> & O) => One) {
     super(i);
-    i.submit && (this.submit = i.submit)
+    i.submit && (this.submit = i.submit);
+    i.isDef && (this.isDef = i.isDef);
   }
 }
 //------------
@@ -878,7 +919,10 @@ export class CompostIn extends Input<Dic, iCompostIn> {
   set value(v: Dic) {
     this.ins.forEach(i => i.key in v && (i.value = v ? v[i.key] : i.null));
   }
-  fill(value: Dic) { this.value = value; }
+  fill(value: Dic, setAsDefault?: bool) {
+    for (let i of this.i.inputs)
+      i.fill(value, setAsDefault);
+  }
   validate(v: Dic) {
     let err: Error[] = [];
     for (let i of this.ins)

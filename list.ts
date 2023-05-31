@@ -2,7 +2,7 @@ import { cl, clearEvent, div, E, g, HSElement, m, One, S, wrap } from "galho";
 import orray, { Alias, extend, L, range } from "galho/orray.js";
 import { bool, call, def, Dic, fmt, int, isF, isN, isS, l, Primitive, str, t } from "galho/util.js";
 import { $, body, C, Child, close, doc, icon, Icon, logo, menucb, MenuItems, Size, w } from "./galhui.js";
-import { ctxmenu, idropdown } from "./hover.js";
+import { ctxmenu, idropdown } from "./io.js";
 import { up } from "./util.js";
 
 export type CrudMenu<T> = (items: T[]) => void | MenuItems;
@@ -158,7 +158,6 @@ export function list<T>(i: IList<T>, data: L<T> | T[]) {
   return t(i.kd) ? r.p("tabIndex", 0).on("keydown", e => kbHandler(data as L<T>, e, i) && clearEvent(e)) : r;
 }
 
-export type RecordStyle = (row: S, value: Dic, index: int) => S | void;
 
 
 
@@ -212,6 +211,7 @@ function defineSize(items: { size?: int }[]) {
 }
 export const editing = Symbol();
 
+export type RecordStyle = (row: S, value: Dic, index: int) => S | void;
 export type Option<T> = ((item: T, index: number) => One);
 export type DataType = 's' | 'd' | 'b' | 'n';
 export type TAlign = "center" | "justify" | "left" | "right" | "start" | "end";

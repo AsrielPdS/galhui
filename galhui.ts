@@ -1,5 +1,5 @@
-import { ANYElement, cl, div, g, Input, isE, Render, S, svg, toSVG, wrap } from "galho";
-import { bool, call, Dic, falses, float, int, isN, isP, isS, str, Task } from "galho/util.js";
+import { ANYElement, cl, div, g, Input, isE, One, Render, S, svg, toSVG, wrap } from "galho";
+import { bool, call, Dic, falses, float, int, isA, isN, isP, isS, str, Task } from "galho/util.js";
 import { uuid } from "./util.js";
 
 /*
@@ -32,7 +32,8 @@ declare global {
       /**icon scale */
       is?: str;
       delay?: int;
-
+      /**is mobile */
+      mob?: bool;
       /**icons */
       i?: Dic<Icon> & {
         /**dropdown */
@@ -186,6 +187,9 @@ export function icon(d: Icon, s?: Size) {
   }
 }
 
+export type Label = [icon: Icon, text: any] | One | str;
+export const label = (v: Label, cls?: str) => v && ((isS(v) ? div(0, v) : isA(v) ? div(0, [icon(v[0]), v[1]]) : g(v)))?.c(cls);
+
 export type click = ((this: HTMLButtonElement, e: MouseEvent) => any) | falses;
 
 export type ButtonType = "button" | "submit" | "clear";
@@ -214,7 +218,7 @@ export const close = (click?: click) => div(hc(C.close), icon($.i.close)).on("cl
 /**cancel button */
 export const cancel = (click?: click) => negative($.i.cancel, w.cancel, click,);
 /**confirm button */
-export const confirm = (click?: click) => positive($.i.check, w.confirm, click, "submit");
+export const confirm = (click?: click) => positive(null, w.confirm, click, "submit");
 
 export const buttons = (...buttons: S[]) => div(C.buttons, buttons);
 
@@ -235,11 +239,6 @@ export function logo(v: str | Icon) {
     } else return icon(v);
 }
 
-export const panel = (hd: any, bd: any, ft?: any) => g("section", "_ panel", [
-  hd && wrap(hd, "hd", "header"),
-  wrap(bd, "bd"),
-  ft && wrap(ft, "ft")
-]);
 type Tt = /*start*/"s" | /*end*/"e" |/*center*/ "c";
 export type FluidAlign = Ori | `${Ori}${Tt}` | `${Ori}${Tt}${Tt}` | [Ori, Tt?, Tt?];
 export interface FluidRect { x: float, y: float, right: float, bottom: float }
@@ -360,17 +359,25 @@ export function wait(type?: WaitType | WaitCB, body?: WaitCB): any {
 
 
 //todo: colocar no galhui
-export const loading = (sz = Size.n) => div("._.blank", div("_ load " + sz));
-export function busy(container?: S, sz?: Size) {
-  let e = loading(sz), p;
+export const loading = (sz = Size.n) => div("_ blank", div("_ load " + sz));
+export async function busy(container: S, cb: (close: () => void) => any, sz?: Size) {
+  let e = loading(sz), p: any;
   let t = setTimeout(() => {
-    p = (container ||= body).add(e).css("position");
+    p = container.add(e).css("position");
     container.css({ position: "relative" });
   }, 750);
-
-  return () => {
+  let close = () => {
     e.remove();
     clearTimeout(t);
     container?.css({ position: p });
-  }
+  };
+  try { await cb(close) }
+  finally { close(); }
 }
+
+export const blobToBase64 = (v: Blob) => new Promise<str>((rs, rj) => {
+  var reader = new FileReader();
+  reader.readAsDataURL(v);
+  reader.onloadend = () => rs(reader.result as str);
+  reader.onerror = rj;
+})
