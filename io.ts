@@ -1,6 +1,6 @@
 import { active, cl, clearEvent, delay, div, E, g, HSElement, One, onfocusout, S, svg, wrap } from "galho";
 import { L, orray, range } from "galho/orray.js";
-import { assign, bool, call, Dic, fmt, int, is, isP, isS, isU, Key, l, str, sub, t, Task, unk } from "galho/util.js";
+import { assign, bool, call, Dic, fmt, Fmts, int, is, isP, isS, isU, Key, l, str, sub, t, Task, unk } from "galho/util.js";
 import { $, body, busy, C, cancel, close, close as closeBT, Color, confirm, fluid, FluidAlign, FluidRect, hc, ibt, icon, Icon, Label, label, MBItems, menu, MenuItems, negative, positive, Size, VAlign, w, wait } from "./galhui.js";
 import { anim } from "./util.js";
 
@@ -84,15 +84,15 @@ export const errorMessage = (data?) => message(Color.error, data);
 export interface iOutput<T> {
   key?: str;
   text?: str;
-  fmt?: str;
+  fmt?: Fmts;
   value?: T;
   color?: Color;
   def?: any;
 }
 export class Output<T = unknown> extends E<iOutput<T>>{
   constructor(model: iOutput<T>);
-  constructor(text: string, value: T, format?: string)
-  constructor(text: string | iOutput<T>, value?: T, fmt?: string) {
+  constructor(text: string, value: T, format?: Fmts)
+  constructor(text: string | iOutput<T>, value?: T, fmt?: Fmts) {
     super(isS(text) ? { text, value, fmt } : text);
   }
   get key() { return this.i.key; }
@@ -142,15 +142,15 @@ export function mdOnBlur(area: S) {
 /**open modal 
  * @returns modal container, to close modal only remove the modal container */
 export function modal(modal: One): S
-export function modal(hd: Label, bd: any, actions?: (close: () => void) => any, sz?: Size, blur?: bool): S;
-export function modal(modal: One | Label, bd?: any, actions?: (close: () => void) => any, sz?: Size, blur = true) {
+export function modal(hd: Label, bd: any, actions?: (close: () => void, modal: S) => any, sz?: Size, blur?: bool, form?: bool): S;
+export function modal(modal: One | Label, bd?: any, actions?: (close: () => void, modal: S) => any, sz?: Size, blur = true, form?: bool) {
   if (isU(bd))
     modal = g(modal as One, "_ modal");
   else {
-    modal = div("_ modal " + (sz || ""), [
+    modal = g(form ? "form" : "div", "_ modal " + (sz || ""), [
       label(modal, "hd"),
       bd,
-      div("ft", actions?.(() => area.remove()))
+      div("ft", actions?.(() => area.remove(), modal as S))
     ]);
   }
   let area = div("_ blank", modal).addTo(body);

@@ -25,7 +25,7 @@ declare global {
     interface Settings {
       fileURI?: (name: string) => string;
       /**shortcuts */
-      sc?: { edit?: str[]; remove?: str[]; },
+      sc?: { edit?: str; remove?: str; },
       // /**class */
       // c: str;
 
@@ -59,7 +59,7 @@ export const enum C {
   disabled = "ds",
   //--components
   //----basic
-  icon = "c",
+  icon = "icon",
   button = "bt",
   //----composite
   column = "col",
@@ -179,11 +179,11 @@ export function icon(d: Icon, s?: Size) {
   if (d) {
     if (isS(d)) d = { d };
     else if (isE(d))
-      return d.c(cl(C.icon, s));
+      return d.c(cl("icon", s));
     return svg('svg', {
       fill: d.c || "currentColor",
       viewBox: $.is || "0 0 24 24",
-    }, svg('path', { d: d.d })).c(cl(C.icon, s));
+    }, svg('path', { d: d.d })).c(cl("icon", s));
   }
 }
 
@@ -258,8 +258,8 @@ export function fluid({ x, y, right: r, bottom: b }: FluidRect, menu: S, [o, sid
       [h ? "top" : "left"]: Math.max(0, Math.min(ws - ms, side == "s" ? s1 - ms : side == "e" ? s0 : s0 + (s1 - s0) / 2 - ms / 2)) + "px",
     });
 }
-type _MenuItems = Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems> | (() => MenuItems);
-export type MenuItems = Task<_MenuItems>;
+// type _MenuItems = | (() => MenuItems)
+export type MenuItems = Task<Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems>>;
 
 export function menu(items?: MenuItems) { return div("_ menu", g("table", 0, items)); }
 
@@ -360,12 +360,12 @@ export function wait(type?: WaitType | WaitCB, body?: WaitCB): any {
 
 //todo: colocar no galhui
 export const loading = (sz = Size.n) => div("_ blank", div("_ load " + sz));
-export async function busy(container: S, cb: (close: () => void) => any, sz?: Size) {
+export async function busy(container: S, cb: (close: () => void) => any, sz?: Size, time=750) {
   let e = loading(sz), p: any;
   let t = setTimeout(() => {
     p = container.add(e).css("position");
     container.css({ position: "relative" });
-  }, 750);
+  }, time);
   let close = () => {
     e.remove();
     clearTimeout(t);

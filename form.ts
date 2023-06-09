@@ -1,8 +1,8 @@
-import { clearEvent, div, E, g, m, MRender, One, onfocusout, S } from "galho";
+import { clearEvent, div, E, g, HSElement, m, MRender, One, onfocusout, S } from "galho";
 import { any, fromArray } from "galho/dic.js";
 import { Alias, extend, L } from "galho/orray.js";
 import { assign, bool, byKey, def, Dic, edate, falses, filter, float, int, isA, isO, isS, isU, Key, l, Primitive, str, Task, unk, z } from "galho/util.js";
-import { $, busy, C, cancel, Color, confirm, ibt, Icon, icon, Label, label, menuitem, w } from "./galhui.js";
+import { $, busy, C, cancel, Color, confirm, ibt, Icon, icon, Label, label, menuitem, Size, w } from "./galhui.js";
 import { errorMessage, IRoot, mdOnBlur, modal, Root, setRoot, setValue, TextInputTp, tip } from "./io.js";
 import { up } from "./util.js";
 
@@ -104,7 +104,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
       input.visited && this.setErrors(input.key, input.invalid);
       this.emit("input", input);
     });
-    input.observeVisited(() => this.setErrors(input.key, input.invalid));
+    input.observeVisited(input => this.setErrors(input.key, input.invalid));
   }
   view(): One { throw 1; }
   get isDef() {
@@ -243,7 +243,7 @@ export interface iForm extends iFormBase {
   errorDiv?: S;
   outline?: bool;
   /**called when input enter/exit off */
-  offFN?: (e: S, isOff: bool) => void
+  offFN?: (e: S, isOff: bool) => void;
 }
 
 export class Form extends FormBase<iForm> {
@@ -276,39 +276,65 @@ export class Form extends FormBase<iForm> {
   }
 }
 /**modal form */
-export function mdform(hd: Label, inputs: Input[], cb: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool): Form
-export function mdform(hd: Label, form: FormBase, cb: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool): Form
-export function mdform(hd: Label, form: Input[] | FormBase, cb: (dt: Dic, form: FormBase) => Task<unk>, ok = confirm(), noCancel?: bool) {
+export function mdform(hd: Label, inputs: Input[], cb: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Form
+export function mdform(hd: Label, form: FormBase, cb: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Form
+export function mdform(hd: Label, form: Input[] | FormBase, cb: (dt: Dic, form: FormBase) => Task<unk>, ok = confirm(), noCancel?: bool, sz?: Size) {
   if (isA(form))
     form = new Form(form);
 
-  let cl = () => md.remove();
-  g(form)
-    .badd(label(hd, "hd"))
-    .add(div("ft", [
+  modal(
+    label(hd, "hd"),
+    g(form.set("tag", "div"), "bd"),
+    (cl, md) => [
       ok.p({ type: "submit" }).on("click", async e => {
         e.preventDefault();
         if ((form as Form).valid()) {
           clearEvent(e);
-          await busy(g(form as Form), () => cb((form as Form).data(), form as Form));
+          await busy(md, () => cb((form as Form).data(), form as Form));
           cl();
         }
       }),
       noCancel || cancel(cl)
-    ]));
-  let md = modal(form);
-  noCancel || mdOnBlur(md);
+    ], sz,
+    !noCancel, true
+  );
   form.focus();
   return form;
 }
-export function fields(inputs: Input[], form?: Form) {
-  return inputs.map(input => input.field(form));
+export interface Field {
+  k?: str;
+  req?: bool;
+  outline?: bool;
+  text?: Label;
+  tip?: any;
+  off?: bool;
 }
-export function inputGroup(i: Icon, title: any, inputs: Input[], form?: Form) {
-  return div("_ formg", [
-    div("hd", [icon(i), title]),
+export function field(bd: One, i: Field, form?: Form) {
+  let t = div(def(form?.i.outline, i.outline) ? "oi" : "ii", [
+    g('label', "hd", [
+      i.text,
+      i.tip && tip(icon($.i.info), i.tip)
+    ]).attrs({ for: i.k }), bd = g(bd, "bd"),
+    !!i.req && g('span', "req", '*'),
+  ]);
+  if (i.off)
+    form?.i.offFN?.(bd, true);
+  return t;
+}
+export function fields(inputs: Input[], form?: Form): One[];
+export function fields(inputs: Input[], form?: Form) {
+  return inputs.map(input =>
+    input.field ?
+      input.field(form) :
+      field(input, input.i, form));
+}
+
+export function fieldGroup(title: Label, inputs: Input[], form?: Form) {
+  return g("fieldset", "_ formg", [
+    //TODO: remove sub element in label
+    g("legend", 0, label(title)),
     fields(inputs, form)
-  ])
+  ]);
 }
 export function expand(form: Form, ...main: str[]) {
   for (let input of form.inputs)
@@ -362,16 +388,8 @@ export function value(e: HTMLFormElement) {
   }
   return r;
 }
-export interface iInput<V = unknown, D = V> {
+export interface iInput<V = unknown, D = V> extends Field {
   //tp: Key;
-  k?: str;
-  g?: str[];
-  off?: bool;
-  /**@default true */
-  req?: bool;
-  text?: any;
-  tip?: any;
-  outline?: bool;
   /**place holder */
   ph?: str;
   value?: V;
@@ -403,25 +421,13 @@ export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A
   isNull(value = this.value) { return this.isDef(value, this.null); }
 
   visited?: bool;
-  observeVisited(handler: () => any) {
+  observeVisited(handler: (input: Input) => any) {
     onfocusout(g(this), () => {
       this.visited = true;
-      handler();
+      handler(this);
     });
   }
-  field(form: Form): One {
-    let i = this.i, bd = g(this, "bd");
-    let t = div(def(form?.i.outline, i.outline) ? "oi" : "ii", [
-      g('label', "hd", [
-        i.text,
-        i.tip && tip(icon($.i.info), i.tip)
-      ]).attrs({ for: i.k }), bd,
-      !!i.req && g('span', "req", '*'),
-    ]);
-    if (i.off)
-      form?.i.offFN?.(bd, true);
-    return t;
-  }
+
   /**show or hide errors */
   error(state: bool) {
     g(this).c(Color.error, state);
@@ -441,7 +447,7 @@ export abstract class Input<V = unknown, I extends iInput<V, any> = iInput<V>, A
 
     return errs;
   }
-
+  field?(form?: Form): One;
   submit(this: this, data: Dic, edited?: bool, req?: bool): Task<void>
   submit(data: Dic) {
     let { k, value } = this.i;
@@ -833,7 +839,7 @@ export class RadioIn extends Input<Key, iRadioIn>{
     let i = this.i, o = i.options.map<Option>(v => isS(v) ? [v] : v);
     i.layout ||= l(o) > 3 ? "column" : "wrap";
 
-    return this.bind(g("span",i.layout == 'column' ? "_ col" : '', o.map(([key, text, ico]) => g('label', C.checkbox, [
+    return this.bind(g("span", i.layout == 'column' ? "_ col" : '', o.map(([key, text, ico]) => g('label', C.checkbox, [
       g("input", {
         type: 'radio',
         value: <string>key,
@@ -900,37 +906,51 @@ export class CustomIn<V, O = {}> extends Input<V> {
     i.isDef && (this.isDef = i.isDef);
   }
 }
+// export interface iOutputIn extends iInput{
+// } 
+// export class OutputIn extends Input{
+//   constructor(i:iOutputIn){
+//     super(i);
+//   }
+//   view() {
+//     return div()
+//   }
+// }
 //------------
 interface iCompostIn extends iInput<Dic> {
-  inputs?: Input<any>[];
   sub?: bool;
 }
 export class CompostIn extends Input<Dic, iCompostIn> {
-  get ins() { return this.i.inputs; }
-  get def() { return fromArray(this.ins, v => [v.key, v.def]) }
+  constructor(i: iCompostIn, inputs?: Input<any>[]) {
+    i.value = null;
+    super(i);
+    for (let input of this.inputs = inputs)
+      input.onset(["value", "off"], () => this.set(["value"]));
+  }
+  inputs?: Input<any>[];
+  get def() { return fromArray(this.inputs, v => [v.key, v.def]) }
+  get value() { return fromArray(this.inputs, v => [v.key, v.value]); }
+  set value(v: Dic) {
+    this.inputs.forEach(i => i.key in v && (i.value = v ? v[i.key] : i.null));
+  }
   view(): S {
-    let i = this.i;
-    for (let input of i.inputs)
+    for (let input of this.inputs)
       input.onset('value', () => this.set(['value']));
 
-    return div("_ join", i.inputs);
-  }
-  get value() { return fromArray(this.ins, v => [v.key, v.value]); }
-  set value(v: Dic) {
-    this.ins.forEach(i => i.key in v && (i.value = v ? v[i.key] : i.null));
+    return div("_ join", this.inputs);
   }
   fill(value: Dic, setAsDefault?: bool) {
-    for (let i of this.i.inputs)
+    for (let i of this.inputs)
       i.fill(value, setAsDefault);
   }
   validate(v: Dic) {
     let err: Error[] = [];
-    for (let i of this.ins)
+    for (let i of this.inputs)
       err.push(...i.validate(v[i.key]));
     return err;
   }
   focus() {
-    this.ins[0]?.focus();
+    this.inputs[0]?.focus();
     return this;
   }
   // reset() {
@@ -939,31 +959,25 @@ export class CompostIn extends Input<Dic, iCompostIn> {
   //   return this;
   // }
   submit(data: Dic, edited: bool, req: bool) {
-    let { ins, i } = this;
+    let { inputs: ins, i } = this;
     if (i.sub) data = data[i.k] = {};
     for (let i of edited ? ins.filter(i => (req && i.i.req) || !i.isDef()) : ins)
       data[i.key] = i.value;
   }
   isDef(v = this.value, def = this.def) {
-    for (let i of this.ins)
+    for (let i of this.inputs)
       if (!i.isDef(v[i.key], def[i.key]))
         return false;
     return true;
   }
 }
-
 export class GroupIn extends CompostIn {
-  constructor(i: iCompostIn) {
-    i.outline = true; super(i);
+  view(): S { throw 1; }
+  field(form?: Form) {
+    return this.$ ||= fieldGroup(this.i.text, this.inputs, form);
   }
-  view() {
-    let i = this.i;
-    return g("fieldset", "_ g form io", [
-      g("legend", 0, i.text),
-      fields(i.inputs)
-    ])
-  }
-  field() {
-    return this;
+  observeVisited(handler: (input: Input) => any) {
+    for (let i of this.inputs)
+      i.observeVisited(handler);
   }
 }

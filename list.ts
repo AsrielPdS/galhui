@@ -1,6 +1,6 @@
 import { cl, clearEvent, div, E, g, HSElement, m, One, S, wrap } from "galho";
 import orray, { Alias, extend, L, range } from "galho/orray.js";
-import { bool, call, def, Dic, fmt, int, isF, isN, isS, l, Primitive, str, t } from "galho/util.js";
+import { bool, call, def, Dic, fmt, Fmts, int, isF, isN, isS, l, Primitive, str, t } from "galho/util.js";
 import { $, body, C, Child, close, doc, icon, Icon, logo, menucb, MenuItems, Size, w } from "./galhui.js";
 import { ctxmenu, idropdown } from "./io.js";
 import { up } from "./util.js";
@@ -196,18 +196,18 @@ export interface Sort {
   clear?: bool;
   call(column: Column, active: bool): any;
 }
-function defineSize(items: { size?: int }[]) {
+function defineSize(items: { size?: int }[], max = 100) {
   let
-    size = 0,
+    total = 0,
     l = items.length,
     sizes = [];
   for (let i of items) {
     let s = i.size || 1 / l;
     sizes.push(s);
-    size += s;
+    total += s;
   }
   for (let i = 0; i < l; i++)
-    items[i].size = (sizes[i] / size) * 100;
+    items[i].size = (sizes[i] / total) * max;
 }
 export const editing = Symbol();
 
@@ -225,16 +225,14 @@ export interface Column {
   desc?: bool;
   input?(): One;
   compare?(a: any, b: any): number;
-  fmt?: ((v: any, p: FieldPlatform, src: Dic) => any) | str;
+  fmt?: ((v: any, p: FieldPlatform, src: Dic) => any) | Fmts;
 }
 export interface iTable<T extends Dic> extends ICrud<T> {
-  // data?: L<T>;
   /**columns */
   cols?: L<Column>
   allColumns?: Column[];
   reqColumns?: str[];
   enum?: boolean;
-  // options?: Option<T>[];
   editable?: bool;
   resize?: boolean;
   head?(column: Column);
@@ -276,16 +274,17 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
   ccss(e: S, i: int, span?: int): S
   ccss(e: S, column: Column): S
   ccss(e: S, c: int | Column, span = 1) {
-    let sz=0;
-    if (isN(c)) 
-      for (let cs = this.cols, j = 0; j < span; j++)
-        sz += cs[c + j].size;
-     else sz = c.size;
-    return e.c("i").css("width", sz + (this.i.fill ? '%' : 'px'));
-  }
-  editing: bool;
-  edit() {
-
+    let sz = 0;
+    if (isN(c)) {
+      let cs = this.cols, i = c, j = 0
+      c = cs[c];
+      for (; j < span; j++)
+        sz += cs[i + j].size;
+    } else sz = c.size;
+    return e.c("i").css({
+      width: sz + 'px',
+      textAlign: c.align
+    });
   }
   view() {
     let
@@ -303,25 +302,31 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
           } else cols.remove(c);
         }, c.key, req && (req.includes(c.key)))
       })).on("click", e => clearEvent(e)),
-      hd = cols.bind(div("hd tr", wrap(i.corner, C.side)), {
+      hd = cols.bind(div("hd _ tr", wrap(i.corner, C.side)), {
         insert: (c, j, p) => {
-          let s = this.ccss(wrap(i.head(c), C.item), c);
+          let s = this.ccss(wrap(i.head(c), "i"), c).uncss(["textAlign"]);
           if (i.resize)
             div([C.separator]).addTo(s).on('mousedown', e => {
               clearEvent(e);
-              let
-                index = cols.indexOf(c) + 1,
-                //t = '.' + C.item + ':nth-child(' + (index + 2) + ')',
-                rows = d.childs().child(index);
-              body.css({ cursor: 'col-resize', userSelect: "none" });
-              function move(e: MouseEvent) {
-                c.size = (c.size = Math.max($.rem * 3, e.clientX - s.rect.left));
-                rows.css({ width: c.size + 'px' });
+              let newJ = cols.indexOf(c)+1;
+              if (!i.fill || newJ < l(cols)) {
+                let rows = d.childs().child(newJ);
+                let next = i.fill && rows.next();
+                let s2 = next?.e?.(0), r = s2?.rect?.right;
+                body.css({ cursor: 'col-resize', userSelect: "none" });
+                function move(e: MouseEvent) {
+                  c.size = (c.size = Math.max($.rem * 2, e.clientX - s.rect.left));
+                  rows.css({ width: c.size + 'px' });
+                  if (next) {
+                    let sz = cols[newJ].size = Math.max($.rem * 2, r - e.clientX);
+                    next.css({ width: sz + 'px' });
+                  }
+                }
+                doc.on('mousemove', move).one('mouseup', () => {
+                  doc.off('mousemove', move);
+                  body.uncss(["cursor", "userSelect"]);
+                });
               }
-              doc.on('mousemove', move).one('mouseup', () => {
-                doc.off('mousemove', move);
-                body.uncss(["cursor", "userSelect"]);
-              });
             });
 
           i.sort && s.on("click", () => {
@@ -362,7 +367,7 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
       }),
       foot = (v: Foot) => g(v(this), "_ ft tr"),
       ft = i.foot && m(...i.foot?.map(foot)),
-      d: S = div("_ tb" + (i.fill ? " fill" : ""), [hd, ft])
+      d: S = div("_ tb", [hd, ft])
         .on("click", e => e.target == e.currentTarget && range.clear(data as L, "on"))
         .p('tabIndex', 0)
         .on("keydown", e => {
@@ -380,7 +385,7 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
           div(C.side),
           cols.map(c => {
             let v = s[c.key];
-            return this.ccss(wrap(c.fmt ? isS(c.fmt) ? v == null ? null : fmt(v, c.fmt) : c.fmt(v, i.p, s) : v).css({ textAlign: c.align }), c);
+            return this.ccss(wrap(c.fmt ? isS(c.fmt) ? v == null ? null : fmt(v, c.fmt) : c.fmt(v, i.p, s) : v), c);
           }),
           // i.options && div(C.options, i.options.map(opt => opt(s, _i)))
         ]);
@@ -392,25 +397,25 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
           block: "nearest",
           inline: "nearest"
         });
-        if (this.editing) {
-
-        }
       },
       remove(_, i, p) { p.unplace(i + 1) },
       clear(s) { s.childs().slice(1).remove() },
       groups(v, i, p, g) { p.child(i + 1).c(g, v) }
     });
-    i.cols.onupdate(() => {
+    cols.onupdate(() => {
       this.data.reloadAll();
       ft?.eachS((f, j) => f.replace(foot(i.foot[j])));
     });
-    i.resize && d.c(C.bordered)
+    i.resize && d.c(C.bordered);
     return d;
   }
-  // /**rendered data */
-  // rData() {
-  //   return _rData(g(this).child('.bd'), this.cols);
-  // }
+  fillArea() {
+    let c = this.i.cols, s = g(this), tr = s.childs();
+    defineSize(c, s.e.clientWidth - 2 * $.rem - 3);
+    for (let i = 0; i < l(c); i++) {
+      tr.child(i + 1).css({ width: c[i].size + "px" })
+    }
+  }
 }
 /**rendered data */
 function _rData(p: S, cols: L<Column>) {

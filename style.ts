@@ -87,15 +87,15 @@ export const box = (mrg: SpaceFull, pad: SpaceFull): Style => ({
 export type StyleFnAdd<T> = ((style?: StyleFn<T> | Styles) => StyleFnAdd<T>) & { css?: str };
 export type StyleFn<T> = (ctx: StyleCtx<T>) => Styles;
 export type StyleCtx<T> = T & StyleFnAdd<T>;
-export function styleCtx<T = any>(options: T) {
+export function styleCtx<T = any>(options: T, sep?: str) {
   let
     list: StyleFn<T>[] = [],
     add: StyleFnAdd<T> = (style) => {
       if (isO(style))
-        add.css += css(<any>style);
+        add.css += css(<any>style, null, sep);
       else if (!list.includes(style)) {
         list.push(style);
-        add.css += css((<any>style)(add));
+        add.css += css((<any>style)(add), null, sep);
       }
       return add;
     };
