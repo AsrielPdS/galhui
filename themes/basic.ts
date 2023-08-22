@@ -2,6 +2,7 @@ import { rgb, rgba, Style, Styles } from "galho";
 import { bool, int, str } from "galho/util.js";
 import { C, Color, Size } from "../galhui.js";
 import { bfg, border, box, spc, styleCtx, StyleCtx } from "../style.js";
+import chroma, { Color as Cholor } from "chroma-js";
 
 export const enum ScreenSize {
   mobileS = 320,
@@ -47,10 +48,11 @@ interface State {
   /**hover  */h?: str
   /**active */a?: str
   /**visited*/v?: str;
+  txt?: str;
 }
 type ListState = State & {/**odd row*/o: str };
 export interface Pallete {
-  error: str;
+  error: State;
   menu: str;
   disabled: str;
   /**anchor(link) */
@@ -62,6 +64,8 @@ export interface Pallete {
   bg: str;
   fg: str;
   bt: State,
+  accept: State;
+  main: State;
   in: { bg: str, fg?: str, border: State };
 }
 export type Context = StyleCtx<Pallete>;
@@ -81,14 +85,30 @@ export const icon = (): Styles => ({
   ".icon": {
     height: "1.2em",
     verticalAlign: "middle",
-    "&.xl": {
+    "&.xxl": {
       height: "10em",
     },
+    "&.xl": {
+      height: "6em",
+    },
     "&.l": {
-      height: "5em",
+      height: "2em",
     }
   }
-})
+});
+/**black or white */
+function borw(color: str, v1: str, v2: str) {
+  return chroma.contrast(color, v1) >= 4.5 ? v1 : v2;
+}
+function state(v: State): Style {
+  return {
+    background: v.n,
+    color: v.txt,
+    ":hover": { background: v.h },
+    ":visited": { background: v.v },
+    ":active": { background: v.a },
+  }
+}
 export const button = (ctx: Context): Styles => (ctx(icon), {
   //style
   "._.a": {
@@ -99,41 +119,20 @@ export const button = (ctx: Context): Styles => (ctx(icon), {
   },
   "._.bt": {
     borderRadius: $.acentBordRad + "em",
-    ...box([0, .25, 0, 0], [.78, 1.5]),
+    // ...box([0, .25, 0, 0], [.78, 1.5]),
+    margin: "0 .15em",
+    padding: ".78em 1.5em",
     whiteSpace: "nowrap",
     height: "initial",
-    background: ctx.bt.n,
-    ":hover": { background: ctx.bt.h },
-    ":visited": { background: ctx.bt.v },
-    ":active": { background: ctx.bt.a },
-
+    textAlign: "center",
     ["&." + C.full]: { display: "block", width: "auto" },
-
-    [`.${C.icon}`]: {
-      marginRight: ".5em",
-    },
-    [`&.${Color.accept}`]: {
-
-    },
-    [`&.${Color.error}`]: {
-      ...bfg(ctx.error, "#fff"),
-      ":hover": {
-        // background:""
-      }
-    },
-    [`&.${Color.main}`]: {
-
-    },
-    [`&.${Color.side}`]: {
-
-    },
-    [`&.${Color.warning}`]: {
-
-    },
-    [`&.${C.icon}>.${C.icon}`]: {
-      marginRight: ".5rem",
+    [`.${C.icon}`]: { marginRight: ".5em", },
+    ...state(ctx.bt),
+    [`&.${Color.accept}`]: state(ctx.accept),
+    [`&.${Color.main}`]: state(ctx.main),
+    [`&.${Color.error}`]: state(ctx.error),
+    [`&.${C.icon}>.${C.icon}:only-child`]: {
       margin: "0 -.6em",
-      // ":only-child": {},
     },
     ["&." + Size.l]: {
       height: "5em",
@@ -155,51 +154,50 @@ export const button = (ctx: Context): Styles => (ctx(icon), {
 
   },
 });
-export function input({ in: { bg, fg, border } }: Context): Styles {
-  return {
-    "textarea._.in": {
-      height: "6em",
-      resize: "vertical",
-    },//.css("height", ($.rem * 6) + "px")
-    "._.in": {
-      padding: ".6em 1em",
-      display: "inline-flex",
-      alignItems: "center",
-      color: fg,
-      background: bg,
-      border: `1px solid ${border.n}`,
-      borderRadius: $.acentBordRad + "em",
-      height: "2.4em",
-      outline: "0",
-      // "&.min>input:not(:focus)": {
-      //   width: 0,
-      // },
-      "input&": {
-        display: "inline-block",
-      },
-      ".bt": {
-        height: "calc(100%  + 1.2em)",
-        marginRight: "-1em",
-        lineHeight: .2
-      },
-      ["." + C.icon]: {
+export const input = ({ in: { bg, fg, border } }: Context): Styles => ({
+  "textarea._.in": {
+    height: "6em",
+    resize: "vertical",
+  },
+  "div._.in": { display: "flex", },
+  "._.in": {
+    padding: ".6em 1em",
+    display: "inline-flex",
+    alignItems: "center",
+    color: fg,
+    background: bg,
+    border: `1px solid ${border.n}`,
+    borderRadius: $.acentBordRad + "em",
+    height: "2.4em",
+    outline: "0",
+    // "&.min>input:not(:focus)": {
+    //   width: 0,
+    // },
+    "input&": {
+      display: "inline-block",
+    },
+    ".bt": {
+      height: "calc(100%  + 1.2em)",
+      marginRight: "-1em",
+      lineHeight: .2
+    },
+    ["." + C.icon]: {
 
-      },
-      ":focus-within": {
-        borderColor: border.a,
-      },
-      input: {
-        width: "100%",
-        flex: "1 1",
-        outline: "none",
-        border: "none"
-      },
-      ["&." + Color.error]: {
-        borderColor: "#f44336",
-      }
+    },
+    ":focus-within": {
+      borderColor: border.a,
+    },
+    input: {
+      width: "100%",
+      flex: "1 1",
+      outline: "none",
+      border: "none"
+    },
+    ["&." + Color.error]: {
+      borderColor: "#f44336",
     }
   }
-}
+})
 export function loader(): Styles {
   return {
     "._.load": {
@@ -227,56 +225,62 @@ export function loader(): Styles {
     }
   }
 }
-export function output({ in: { border } }: Context): Styles {
-  return {
-    "._.out": {
-      borderRadius: $.acentBordRad + "em",
-      ...box([0, .3, 0, 0], [.4, .8]),
-      background: "#d3e3f3",
-      display: "inline-block",
-      "tr&": {
-        display: "table-row",
-        td: {
-          padding: spc([.4, .8])
-        }
+export const output = ({ in: { border }, bt, accept: a, error: e }: Context): Styles => ({
+  "._.out": {
+    fontSize: ".9em",
+    borderRadius: $.acentBordRad + "em",
+    ...box([.1, .2], [.1, .4]),
+    background: bt.n,
+    color: bt.txt,
+    display: "inline-block",
+    ":empty": { display: "none" },
+    // [`&.${Color.accept}`]: state(ctx.accept),
+    [`&.${Color.main}`]: { background: a.n, color: a.txt },
+    [`&.${Color.error}`]: { background: e.n, color: e.txt },
+    "tr&": {
+      display: "table-row",
+      td: {
+        padding: spc([.4, .8])
       }
+    }
+  },
+  [`._.${C.message}`]: {
+    [`&.${Color.error}`]: {
+      ...bfg("rgb(255, 246, 246)", $.error),
     },
-    [`._.${C.message}`]: {
-      [`&.${Color.error}`]: {
-        ...bfg("rgb(255, 246, 246)", $.error),
-      },
-      ...box([1, 0], [1, 1.5]),
-      ":empty": { height: 0, padding: 0, margin: 0 },
-      transition: "all .2s"
+    ...box([1, 0], [1, 1.5]),
+    ":empty": { height: 0, padding: 0, margin: 0 },
+    transition: "all .2s"
+  },
+  "div._.join": { display: "flex" },
+  "._.join": {
+    display: "inline-flex",
+    flexDirection: "row",
+    //para os filhos não removerem bordas do parent
+    overflow: "hidden",
+    padding: 0,
+    "*": {
+      // border: "none",
+      flex: "1 auto",
+      margin: 0,
+      borderRadius: 0,
+      // paddingLeft: ".5em",
+      // paddingRight: ".5em",
+      width: "100%"
     },
-    "._._.join": {
-      ...row(true),
-      //para os filhos não removerem bordas do parent
-      overflow: "hidden",
-      padding: 0,
-      "*": {
-        // border: "none",
-        flex: "1 auto",
-        margin: 0,
-        borderRadius: 0,
-        paddingLeft: ".5em",
-        paddingRight: ".5em",
-        width: "100%"
-      },
-      ">:not(:last-child)": {
-        borderRight: `1px solid ${border.n}`,
-      },
-      ">:first-child": {
-        paddingLeft: "1.5em",
-        borderRadius: `${$.acentBordRad}em 0 0 ${$.acentBordRad}em`,
-      },
-      ">:last-child": {
-        paddingRight: "1.5em",
-        borderRadius: `0 ${$.acentBordRad}em ${$.acentBordRad}em 0`,
-      },
+    ">:not(:last-child)": {
+      borderRight: `1px solid ${border.n}`,
     },
-  }
-}
+    ">:first-child": {
+      // paddingLeft: "1.5em",
+      borderRadius: `${$.acentBordRad}em 0 0 ${$.acentBordRad}em`,
+    },
+    ">:last-child": {
+      // paddingRight: "1.5em",
+      borderRadius: `0 ${$.acentBordRad}em ${$.acentBordRad}em 0`,
+    },
+  },
+})
 export const menubar = ({ menu }: Context): Styles => ({
   "._.bar": {
     display: "flex",
@@ -312,7 +316,7 @@ export const menubar = ({ menu }: Context): Styles => ({
         background: "#9eb6c0",
       }
     },
-    ".hd": { fontWeight: 500 },
+    ".hd": { fontWeight: "bold" },
     ".r": {
       border: "none",
       minWidth: 0,
@@ -346,7 +350,8 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
     boxShadow: "#0004 6px 6px 12px 0px",
     borderRadius: ".15em",
     padding: ".7em .2em",
-    minWidth: "16em",
+    textAlign: "start",
+    // minWidth: "16em",
     table: {
       width: "100%",
       borderCollapse: "collapse",
@@ -363,7 +368,8 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
         td: {
           //icon
           ":nth-child(1)": {
-            width: "1.2rem"
+            // minWidth: ".5em",
+            width: "1.5em",
           },
           //main content
           ":nth-child(2)": {
@@ -371,20 +377,27 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
           },
           //shortcut
           ":nth-child(3)": {
-            paddingLeft: "1rem",
             opacity: .7,
-            textAlign: "end"
+            textAlign: "end",
+            ".bt": {
+              padding: "2px 12px",
+              margin: 0,
+              background: "none",
+              ":hover": { color: "#888" }
+            },
+            "&:not(:empty)": {
+              paddingLeft: "1rem",
+            }
           },
           //submenu icon
           ":nth-child(4)": {
-            width: "1.4em",
+            minWidth: ".5em",
           },
         },
         [`&.${C.separator}`]: {
           borderBottom: "solid 1px #000"
         }
       },
-
       ".i,.dd": {
         cursor: "pointer",
         ":hover": {
@@ -394,7 +407,8 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
           background: "#acc5cf",
         },
         ["&." + C.disabled]: {
-          background: disabled,
+          color: "#0008",
+          background: "inherit"
         },
       },
       [`.${Color.error}`]: {
@@ -438,8 +452,8 @@ export const menurow = ({ menu }: Context) => ({
   },
 });
 export const modal = (ctx: Context): Styles => (ctx(button), {
-  "._.blank": {
-    position: "absolute",
+  "::backdrop,._.blank": {
+    position: "fixed",
     top: 0,
     left: 0,
     width: "100%",
@@ -451,15 +465,16 @@ export const modal = (ctx: Context): Styles => (ctx(button), {
   "._.modal": {
     zIndex: zIndex.modal,
     borderRadius: ".4em",
-    width: "calc(100% - 1em)",
-    height: "calc(100% - 1em)",
-    margin: ".5em",
-    position: "relative",
+    border: "none",
+    padding: 0,
+    ...row(),
+    // width: "calc(100% - 1em)",
+    // height: "calc(100% - 1em)",
+    // margin: ".5em",
+    // position: "relative",
     textAlign: "start",
     overflow: "hidden",
     background: ctx.bg,
-    padding: ".2em 1em",
-    ...col(),
     ["&." + Color.error]: {
       border: "4px solid #e53935"
     },
@@ -469,48 +484,68 @@ export const modal = (ctx: Context): Styles => (ctx(button), {
       top: ".1rem",
       fontSize: "14pt",
     },
-    ".hd": {
-      margin: 0,
-      height: "2.2em",
-      fontSize: "inherit",
-      padding: ".4em 2em",
-      background: "#cfd8dc",
-      "&:empty": { display: "none" },
-      "&.bar": {
-        padding: ".1em 2em",
+    "&.xl,&.l": {},
+    "&.xs,&.s": {
+      form: {
+        ".bd": { minHeight: "4em" },
+        ".ft": {
+          height: "unset",
+          padding: 0,
+          background: "none"
+        }
       }
     },
-    ".bd": {
-      flex: 1,
-      height: "0",
-      overflow: "hidden auto",
+    form: {
+      width: "100%",
+      ...col(),
+      padding: ".2em 1em",
+
+      ".hd": {
+        margin: 0,
+        height: "2.2em",
+        fontSize: "inherit",
+        padding: ".4em 2em",
+        background: "#cfd8dc",
+        "&:empty": { display: "none" },
+        "&.bar": {
+          padding: ".1em 2em",
+        }
+      },
+      ".bd": {
+        flex: 1,
+        height: "0",
+        overflow: "hidden auto",
+        padding: 0,
+      },
+      // ".bd": {
+      //   padding: ".2em 1em",
+      //   overflow: "auto",
+      //   height: "calc(100% - 3.8em)",
+      //   ":first-child": { paddingTop: "1.2em", },
+      // },
+      // ".hd+.bd": {
+      //   height: "calc(100% - 6em)",
+      // },
+      ".ft": {
+        height: "3.8em",
+        display: "flex",
+        flexDirection: "row-reverse",
+        padding: ".6em 1em",
+        background: "#dfe5e8",
+        ".spc": {
+          border: "none", margin: "auto"
+        },
+        hr: {
+          border: "none",
+          margin: "auto"
+        },
+      },
+    },
+    "&.no-margin>form": {
       padding: 0,
+      ".hd": { margin: 0 },
+      ".ft": { margin: 0 },
     },
-    // ".bd": {
-    //   padding: ".2em 1em",
-    //   overflow: "auto",
-    //   height: "calc(100% - 3.8em)",
-    //   ":first-child": { paddingTop: "1.2em", },
-    // },
-    // ".hd+.bd": {
-    //   height: "calc(100% - 6em)",
-    // },
-    ".ft": {
-      height: "3.8em",
-      display: "flex",
-      flexDirection: "row-reverse",
-      padding: ".6em 1em",
-      background: "#dfe5e8",
-      ".spc": {
-        border: "none", margin: "auto"
-      },
-      hr: {
-        border: "none",
-        margin: "auto"
-      },
-    },
-    "&.xl,&.l": {},
-    "&.xs,&.s": {}
   },
   "._.side": {
     ...col(),
@@ -527,15 +562,16 @@ export const modal = (ctx: Context): Styles => (ctx(button), {
     ".bd": {
       flex: 1,
     }
-  }
+  },
+  "body.dialog-on": { overflow: "hidden!important" }
 });
 export const pcModal = (ctx: Context): Styles => (ctx(button), {
   [min(ScreenSize.tablet)]: {
     "._.modal": {
       width: "55%",
       maxWidth: (ScreenSize.tablet - 20) + "px",
-      margin: "3em auto 2em",
-      height: "unset",
+      // margin: "3em auto 2em",
+      height: "fit-content",
       maxHeight: "calc(100% - 5em)",
       "&.scroll": {
 
@@ -544,10 +580,9 @@ export const pcModal = (ctx: Context): Styles => (ctx(button), {
       "&.xl": {
         width: "calc(100% - 3rem)",
         height: "calc(100% - 3rem)",
-        margin: "1.5rem",
+        // margin: "1.5rem",
         maxWidth: "unset",
         maxHeight: "unset",
-        ...col()
       },
       "&.l": {
         width: "95%",
@@ -560,20 +595,90 @@ export const pcModal = (ctx: Context): Styles => (ctx(button), {
         width: "31%",
         maxWidth: "360px"
       },
+      form: {
+        padding: ".5em 1.7em",
+        ".hd": {
+          margin: "-.5em -1.7em 1.2em"
+        },
+        ".ft": {
+          margin: "1.2em -1.7em -.5em"
+        },
+      }
     },
   },
   [min(ScreenSize.laptop)]: {
     "._.modal": {
-      padding: ".5em 1.7em",
-      ".hd": {
-        margin: "-.5em -1.7em 1.2em"
-      },
-      ".ft": {
-        margin: "1.2em -1.7em -.5em"
-      },
+
     }
   }
 });
+export const slideShow = (): Styles => ({
+  "._.sshow": {
+    position: "relative",
+    img: {
+      maxWidth: "100%",
+      height: "fit-content",
+    },
+    ".title": {
+      position: "absolute",
+      bottom: "2.5em",
+      fontSize: "1.3em",
+      marginLeft: "1em",
+      background: "#fff7",
+      padding: "2px 12px",
+      borderRadius: "10px"
+    },
+    ".indices": {
+      textAlign: "center",
+      position: "absolute",
+      bottom: "1em",
+      width: "100%",
+      "*": {
+        borderRadius: "50%",
+        height: "12px",
+        width: "12px",
+        display: "inline-block",
+        border: "1px solid #000",
+        background: "#fff",
+        margin: "0 6px",
+        ":hover": {
+          background: "#0004"
+        },
+        ":active,&.on": {
+          background: "#0008"
+        }
+      }
+    },
+    ".p,.n": {
+      position: "absolute",
+      fontSize: "5em",
+      color: "#fff",
+      textShadow: "#000 0 0 5px",
+      top: "30%",
+      padding:".2em .5em",
+      ":not(:hover)": { opacity: .3 }
+    },
+    ".p": { left: 0 },
+    ".n": { right: 0 }
+  },
+  "._.sshow-md": {
+    background: "none",
+    border: "none",
+    [" ." + C.close]: {
+      color: "#fff",
+      fontSize: "2em",
+      position: "absolute",
+      right: 0,
+      top: 0
+    },
+    " img": {
+      margin: "auto",
+      display: "block",
+      width: "90%"
+    }
+  }
+})
+
 /**@deprecated */
 export const index = (): Styles => ({
   "._.index": {
@@ -601,7 +706,7 @@ export const listItem = ({ h, a, v }: ListState): Style => ({
   ["&." + C.current]: {
     boxShadow: `inset 0 0 1px 2px ${a}`
   }
-})
+});
 export const list = ({ brd, list: l }: Context): Styles => ({
   "._.list": {
     width: "100%",
@@ -614,7 +719,7 @@ export const list = ({ brd, list: l }: Context): Styles => ({
     ".i": {
       minHeight: "1.2em",
       ...row(),
-      margin: "1px 0 0",
+      padding: ".1em .3em .1em 0",
       ...listItem(l),
       borderBottom: "solid 1px #0004",
       counterIncrement: "l",
@@ -625,8 +730,7 @@ export const list = ({ brd, list: l }: Context): Styles => ({
         borderRight: border(brd),
         ":empty::before": { content: 'counter(l)', },
       },
-      // ".bd": {
-      //   flex: 1,
+      ".bd": { flex: 1 },
       //   // display: "inline-block",
       //   padding: ".6em .4em"
       // },
@@ -808,12 +912,6 @@ export function form(ctx: Context): Styles {
           flex: "1 0",
           width: "100%",
         },
-        ".req": {
-          lineHeight: 0.6,
-          textShadow: "0.5px 0 #fff, -0.5px 0 #fff, 0 0.5px #fff, 0 -0.5px #fff",
-          position: "absolute",
-          right: ".7em"
-        },
         "&[edited]>.hd": { fontWeight: "bold" }
       },
       //input inline
@@ -834,13 +932,15 @@ export function form(ctx: Context): Styles {
           margin: 0,
           width: "60%",
         },
-        ".req": {
-          lineHeight: 3,
-          verticalAlign: "middle",
-          position: "absolute",
-          right: ".7em"
-        },
       },
+      "*>.req": {
+        lineHeight: 0.8,
+        verticalAlign: "middle",
+        position: "absolute",
+        right: 0,
+        // fontWeight: "bold",
+        fontSize: "1.3em"
+      }
     },
   }
 }
@@ -973,19 +1073,25 @@ export function select(add: Context): Styles {
       position: "relative",
       display: "inline-block",
       overflow: "hidden",
+      textAlign: "start",
       // ["." + C.side]: {
       //   float: "right"
       // },
       ".bd": {
         width: `calc(100% - 1rem)`,
-        display: "inline-flex",
+        // display: "inline-flex",
         margin: 0, padding: 0,
-        whiteSpace: "normal",
+        whiteSpace: "nowrap",
         background: "inherit",
         outline: "none",
         border: "none",
+        overflow: "hidden",
+        position: "relative",
         ["." + C.close]: {
-          marginLeft: "auto"
+          // marginLeft: "auto"
+          position: "absolute",
+          right: 0,
+          background: "inherit"
         }
       },
       ".menu": {
@@ -1039,6 +1145,7 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
     border: "none",
     fontSize: "inherit",
     fontFamily: "inherit",
+    outline: "none"
   },
   a: {
     color: "inherit",
@@ -1046,6 +1153,8 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
   },
   hr: {
     borderStyle: "solid",
+    borderTop: "none",
+    borderLeft: "none",
     // margin: 0,
     // border: "none",
     // borderLeft: "solid #0004 1px",
@@ -1059,9 +1168,10 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
   "*": {
     boxSizing: "border-box",
   },
-  h1: { fontSize: "1.5em" },
-  h2: { fontSize: "1.25em" },
-  h3: { fontSize: "1.1em" },
+  h1: { fontSize: "1.5em", },
+  h2: { fontSize: "1.25em", },
+  h3: { fontSize: "1.1em", },
+  "h1,h2,h3,h4,h5,h6": { marginBlock: ".5em" },
   "._.corner": {
     position: "absolute",
     right: ".4em",
@@ -1100,10 +1210,12 @@ export const style = (p: Pallete) =>
 export const darkTheme: Pallete = {
   bg: "#1c313a",
   fg: "#fff",
-  error: "#ab000d",
+  error: null,
   menu: "",
   disabled: "#999ea0",
   list: { n: "#e0f7fa", o: "" },
+  accept: null,
+  main: null,
   modal: {
     hd: "",
     ft: "",
@@ -1114,21 +1226,27 @@ export const darkTheme: Pallete = {
 };
 export const dark = () => style(darkTheme);
 
-export const lightTheme: Pallete = {
-  fg: "#000",
-  bg: "#fff",
-  error: "#ef5350",
-  menu: "#cfd8dc",
-  disabled: "#999ea0",
-  list: { n: "#fff", o: "#f6f6f6", h: "#e0f7fa", a: "#03a9f4", v: "#e0f7fa" },
-  modal: {
-    hd: "#e0f7fa",
-    ft: "#e0f7fa",
-  },
-  brd: rgba(34, 36, 38, .15),
-  bt: { n: "#73aae0", h: "#1976d2", a: "#1976d2", },
-  in: { bg: "#fff", border: { n: rgba(34, 36, 38, .15), a: rgb(133, 183, 217) } },
-  a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
-}
+export const lightTheme = ((): Pallete => {
+  // let main = , accept = ("#2185d0"), error = chroma("#db2828");
+  const state = (c: Cholor, txt = "#fff"): State => ({ n: c.css(), h: c.darken(.1).css(), a: c.darken(.4).css(), txt })
+  return {
+    fg: "#000",
+    bg: "#fff",
+    menu: "#cfd8dc",
+    disabled: "#999ea0",
+    list: { n: "#fff", o: "#f6f6f6", h: "#e0f7fa", a: "#03a9f4", v: "#e0f7fa" },
+    modal: {
+      hd: "#e0f7fa",
+      ft: "#e0f7fa",
+    },
+    brd: rgba(34, 36, 38, .15),
+    error: state(chroma("#db2828")),//{ n: "#ef5350", txt: "#fff" },
+    accept: state(chroma("#21ba45")),//{ n: , h: "#1678c2", a: "#1a69a4", txt: "#fff" },
+    main: state(chroma("#2185d0")),//{ n:, h: "#1678c2", a: "#1a69a4", txt: "#fff" },
+    bt: state(chroma("#e0e1e2"), "rgba(0,0,0,.6)"),//{ n: "#e0e1e2", h: "#cacbcd", a: "#babbbc", txt: "rgba(0,0,0,.6)" },
+    in: { bg: "#fff", border: { n: rgba(34, 36, 38, .15), a: rgb(133, 183, 217) } },
+    a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
+  }
+})();
 /**full style,light theme */
 export const light = () => style(lightTheme);

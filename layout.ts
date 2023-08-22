@@ -1,12 +1,12 @@
 import { div, E, g, One, Render, wrap } from "galho";
-import { $, body, C, close, doc, icon, Icon } from "./galhui.js";
-import { bool, call, extend, float, int, isA, isU, l, lazy, str, t } from "galho/util.js";
 import { Alias, L, orray } from "galho/orray.js";
+import { bool, call, extend, float, int, isA, isU, l, str, t } from "galho/util.js";
+import { $, body, C, close, doc, icon, Icon } from "./galhui.js";
 
 
 
 declare global {
-  namespace GalhoUI {
+  namespace Galhui {
     interface Settings {
       lyDivW?: float;
     }
@@ -65,7 +65,7 @@ export interface ICtx {
   bottom?: Alias<iBox>;
   edit?: bool
 }
-export class Ctx extends E<ICtx, { change: never }>{
+export class Ctx extends E<ICtx, { change: [] }>{
   public root: Item
   constructor(i: ICtx, root: iitems) {
     super(i);
@@ -242,7 +242,7 @@ class Box implements Item, Render {
     let i = this.i;
     return div(0, [
       icon(i.icon),
-      lazy(i.title),
+      i.title,
       close(() => { })
     ]);
   }

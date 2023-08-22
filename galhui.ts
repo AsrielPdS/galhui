@@ -1,6 +1,5 @@
-import { ANYElement, cl, div, g, Input, isE, One, Render, S, svg, toSVG, wrap } from "galho";
-import { bool, call, Dic, falses, float, int, isA, isN, isP, isS, str, Task } from "galho/util.js";
-import { uuid } from "./util.js";
+import { ANYElement, cl, div, g, Input, isE, One, Render, S, svg, toSVG } from "galho";
+import { bool, call, def, falsy, float, int, isA, isF, isN, isP, isS, str, Task } from "galho/util.js";
 
 /*
 ----GLOCARY----
@@ -10,7 +9,7 @@ i : Item
 mn: MeNu
 */
 declare global {
-  namespace GalhoUI {
+  namespace Galhui {
     interface Words {
       cancel?: str;
       confirm?: str;
@@ -21,6 +20,16 @@ declare global {
       save?: str;
       required?: str;
       invalidFmt?: str;
+    }
+    interface Icons {
+      /**dropdown */
+      dd: Icon;
+      close: Icon;
+      cancel: Icon;
+      search: Icon;
+      upload: Icon;
+      up: Icon; down: Icon;
+      minus: Icon;
     }
     interface Settings {
       fileURI?: (name: string) => string;
@@ -35,11 +44,7 @@ declare global {
       /**is mobile */
       mob?: bool;
       /**icons */
-      i?: Dic<Icon> & {
-        /**dropdown */
-        dd?: Icon;
-        close?: Icon;
-      };
+      i?: Partial<Icons>;
       rem: float;
       /**outline form */
       oform?: bool;
@@ -51,8 +56,6 @@ declare global {
 }
 export type FormatType = "s" | "d" | "b" | "n";
 
-export type Classes =
-  "mnb";
 /**@deprecated classes */
 export const enum C {
   full = "full",
@@ -66,7 +69,7 @@ export const enum C {
   row = "row",
   pagging = "pag",
   form = "f",
-  message = "ms",
+  message = "msg",
   buttons = "bs",
   heading = "heading",
   accordion = "ac",
@@ -113,13 +116,13 @@ export const enum C {
 }
 
 /**settings */
-export const $: GalhoUI.Settings = {
+export const $: Galhui.Settings = {
   // c: "_",
   delay: 500,
   rem: 14
 }
 /**words */
-export const w: GalhoUI.Words = {}
+export const w: Galhui.Words = {}
 
 export type Child = str | int | float | S<ANYElement> | Render;
 
@@ -149,12 +152,14 @@ export const enum OriOld {
 }
 export type Ori = "v" | "h";
 export const enum Size {
+  xxl = "xxl",
   xl = "xl",
   l = "l",
   normal = "n",
   n = "n",
   s = "s",
-  xs = "xs"
+  xs = "xs",
+  xxs = "xxs",
 }
 export const enum Color {
   error = "_e",
@@ -169,62 +174,79 @@ export const body = new S(document.body);
 export const doc = new S(document as any);
 
 /**css class */
-export const cc = (...cls: str[]) => `._.${cls.join('-')}`;
+export function cc(...cls: str[]) { return `._.${cls.join('-')}`; }
 /**html class */
-export const hc = (...cls: str[]) => ['_', cls.join('-')];
+export function hc(...cls: str[]) { return ['_', cls.join('-')]; }
 
-export type Icon = { d: str, c?: str | Color } | str | S<SVGSVGElement> | falses;
+/**selector for element that can gain focus*/
+export const focusable = ":not(:disabled):is(a[href],button,input,textarea,select,[tabindex])";
+
+export type Icon = { d: str, c?: str | Color } | str | S<SVGSVGElement> | falsy;
 export function icon(dt: Icon, size?: Size): S<SVGSVGElement>;
 export function icon(d: Icon, s?: Size) {
   if (d) {
     if (isS(d)) d = { d };
     else if (isE(d))
-      return d.c(cl("icon", s));
+      return d.c(`icon ${s}`);
     return svg('svg', {
       fill: d.c || "currentColor",
       viewBox: $.is || "0 0 24 24",
-    }, svg('path', { d: d.d })).c(cl("icon", s));
+    }, svg('path', { d: d.d })).c(`icon ${s}`);
   }
 }
 
-export type Label = [icon: Icon, text: any] | One | str;
-export const label = (v: Label, cls?: str) => v && ((isS(v) ? div(0, v) : isA(v) ? div(0, [icon(v[0]), v[1]]) : g(v)))?.c(cls);
+export type Label = [icon: Icon, text: any] | One | str | false | "";
+export function label(v: Label, cls?: str) {
+  return v && ((isS(v) ? div(0, v) : isA(v) ? div(0, [icon(v[0]), v[1]]) : g(v)))?.c(cls);
+}
 
-export type click = ((this: HTMLButtonElement, e: MouseEvent) => any) | falses;
+export type click = ((this: HTMLButtonElement, e: MouseEvent) => any) | falsy;
 
-export type ButtonType = "button" | "submit" | "clear";
-export const bt = (text: Child, click?: click, type: ButtonType = "button") =>
-  g("button", "_ bt", text).p("type", type).on("click", click);
+export type ButtonType = "submit" | "reset" | "button";
+export function bt(text: any, click?: click, type: ButtonType = "button") {
+  return g("button", "_ bt", text).p("type", type).on("click", click);
+}
 export const link = (text: Child, href?: str) => g("a", ["_", C.link], text).p("href", href);
 
 /** button with icon */
-export const ibt = (i: Icon, text: Child, click?: click, type: ButtonType = "button") =>
-  g("button", "_ bt", [icon(i), text])
+export function ibt(i: Icon, text: Child, click?: click, type: ButtonType = "button") {
+  return g("button", "_ bt", [icon(i), text])
     .p("type", type)
     .c(C.icon, !text).on("click", click);
+}
 
-/** @deprecated */
-export const ibutton = ibt;
-export const positive = (i: Icon, text: Child, click?: click, type?: ButtonType) =>
-  ibt(i, text, click, type).c(Color.accept);
-export const negative = (i: Icon, text: Child, click?: click, type?: ButtonType) =>
-  ibt(i, text, click, type).c(Color.error);
+export function positive(i: Icon, text: Child, click?: click, type?: ButtonType) {
+  return ibt(i, text, click, type).c(Color.accept);
+}
+export function negative(i: Icon, text: Child, click?: click, type?: ButtonType) {
+  return ibt(i, text, click, type).c(Color.error);
+}
 
 /** link with icon */
-export const ilink = (i: Icon, text: Child, href?: str) => g("a", C.link, [icon(i), text]).p("href", href);
+export function ilink(i: Icon, text: Child, href?: str) {
+  return g("a", C.link, [icon(i), text]).p("href", href);
+}
 
 /**close button */
-export const close = (click?: click) => div(hc(C.close), icon($.i.close)).on("click", click);
+export function close(click?: click) {
+  return g("span", `_ ${C.close}`, icon($.i.close)).on("click", click);
+}
 /**cancel button */
-export const cancel = (click?: click) => negative($.i.cancel, w.cancel, click,);
+export function cancel(click?: click) {
+  return negative($.i.cancel, w.cancel, click);
+}
 /**confirm button */
-export const confirm = (click?: click) => positive(null, w.confirm, click, "submit");
+export function confirm(click?: click) {
+  return positive(null, w.confirm, click, "submit");
+}
 
-export const buttons = (...buttons: S[]) => div(C.buttons, buttons);
+export function buttons(...buttons: S[]) {
+  return div(C.buttons, buttons);
+}
 
-export const img = (src: str, cls?: str | str[]) => g("img", cls).p("src", src)
-export const a = (href: str, content: any, cls?: str | str[]) => g("a", cls, content).p("href", href)
-export const hr = (cls?: str | str[]) => g("hr", cls);
+export function img(src: str, cls?: str | str[]) { return g("img", cls).p("src", src) }
+export function a(href: str, content: any, cls?: str | str[]) { return g("a", cls, content).p("href", href) }
+export function hr(cls?: str | str[]) { return g("hr", cls); }
 
 export function logo(v: str | Icon) {
   if (v)
@@ -239,50 +261,63 @@ export function logo(v: str | Icon) {
     } else return icon(v);
 }
 
+/**
+ * if vertical main axis is x
+ * start/end means that start/end border will be used as ref(will remein inplace)
+ */
 type Tt = /*start*/"s" | /*end*/"e" |/*center*/ "c";
 export type FluidAlign = Ori | `${Ori}${Tt}` | `${Ori}${Tt}${Tt}` | [Ori, Tt?, Tt?];
 export interface FluidRect { x: float, y: float, right: float, bottom: float }
-export function fluid({ x, y, right: r, bottom: b }: FluidRect, menu: S, [o, side, main]: FluidAlign) {
-  /*m:main,s:side */
+export function hoverBox(refRect: FluidRect, e: S, align: FluidAlign): void;
+export function hoverBox({ x, y, right: r, bottom: b }: FluidRect, e: S, [o, side, main]: FluidAlign) {
+  /*m:main,s:side,w:windows,e:Element,h:Horizontal */
   let
     { innerHeight: wh, innerWidth: ww } = window,
-    { width: mw, height: mh } = menu.rect,
+    { width: ew, height: eh } = e.rect,
     h = o == "h",
-    e = $.rem * .4,
-    [ws, wm, ms, mm, s0, m0, s1, m1] = h ? [wh, ww, mh, mw, y, x, b, r] : [ww, wh, mw, mh, x, y, r, b];
+    border = $.rem * .4,
+    [ws, wm, es, em, s0, m0, s1, m1] = h ? [wh, ww, eh, ew, y, x, b, r] : [ww, wh, ew, eh, x, y, r, b];
   main ||= (m0 + (m1 - m0) / 2) > (wm / 2) ? "s" : "e";
-  menu
+  e
     .css({
-      ["max" + (h ? "Width" : "Height")]: (main == "e" ? wm - m1 : m0) - e * 2 + "px",
-      [h ? "left" : "top"]: (main == "e" ? m1 + e : Math.max(0, m0 - mm) - e) + "px",
-      [h ? "top" : "left"]: Math.max(0, Math.min(ws - ms, side == "s" ? s1 - ms : side == "e" ? s0 : s0 + (s1 - s0) / 2 - ms / 2)) + "px",
+      //main
+      ["max" + (h ? "Width" : "Height")]: (main == "e" ? wm - m1 : m0) - border * 2 + "px",
+      [h ? "left" : "top"]: (main == "e" ? m1 + border : Math.max(0, m0 - em) - border) + "px",
+      //side
+      ["max" + (h ? "Height" : "Width")]: (side == "e" ? ws - s0 : s1) - border + "px",
+      [h ? "top" : "left"]: Math.max(0, Math.min(ws - es, side == "s" ? s1 - es : side == "e" ? s0 : s0 + (s1 - s0) / 2 - es / 2)) + "px",
     });
 }
-// type _MenuItems = | (() => MenuItems)
-export type MenuItems = Task<Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems>>;
 
-export function menu(items?: MenuItems) { return div("_ menu", g("table", 0, items)); }
+export type MenuItems = Task<Array<S<HTMLTableRowElement> | HTMLTableRowElement | MenuItems>>;
+export function menu(items?: any) { return div("_ menu", g("table", 0, items)); }
 
 /**menu item */
-export const menuitem = (i: Icon, text: any, action?: click, side?: any, disabled?: bool) => g("tr", "i" + (disabled ? " " + C.disabled : ""), [
-  g("td", 0, icon(i)),
-  g("td", 0, text),
-  g("td", C.side, side),
-  g("td")
-]).on("click", !disabled && action);
+export function menuitem(i: Icon, text: any, action?: click, side?: any, disabled?: bool) {
+  return g("tr", "i" + (disabled ? " " + C.disabled : ""), [
+    g("td", 0, icon(i)),
+    g("td", 0, text),
+    g("td", C.side, side),
+    g("td")
+  ]).on("click", !disabled && action);
+}
+// export function menuitemFull(){
+//   return g("tr","i",[g("td"),g("td",{colSpan:3})])
+// }
 
 /**checkbox */
-export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, id = uuid(4), disabled?: bool) {
+export function menucb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, id?: str, disabled?: bool) {
   let input = g("input", { id, checked, disabled, indeterminate: checked == null, type: "checkbox" });
   toggle && input.on("input", () => toggle.call(input, (input as Input).e.checked));
   return g("tr", ["i", disabled && C.disabled], [
-    g("td", 0, input.on("click", e => e.stopPropagation())),
-    g("td", 0, g("label", 0, text).p("htmlFor", id)),
+    g("td", 0, input),
+    g("td", 0, text).on("click", () => input.e.click()),
     g("td"), g("td")
-  ]);
+  ]).on("click", e => e.stopPropagation());
 }
-export const menuwait = (callback?: WaitCB) =>
-  call(g("tr", 0, g("td", 0, wait(WaitType.out)).p("colSpan", 4)), tr => waiter(tr, callback));
+export function menuwait(callback?: WaitCB) {
+  return call(g("tr", 0, g("td", 0, wait(WaitType.out)).p("colSpan", 4)), tr => waiter(tr, callback));
+}
 export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", "i", [
   g("td", 0, icon(i)),
   g("td", 0, text),
@@ -292,7 +327,7 @@ export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", "i
   let mn: S;
   e.on("click", () => {
     e.tcls(C.on).is('.' + C.on) ?
-      fluid(e.rect, (mn ||= g("table", C.menu, items)).addTo(e), "h") :
+      hoverBox(e.rect, (mn ||= g("table", C.menu, items)).addTo(e), "h") :
       mn.remove();
   })
 });
@@ -300,13 +335,15 @@ export const menusep = () => g("tr", "_ hr");
 
 export type MBItems = any;//Array<One | Array<Items>>;
 /** */
-export const menubar = (...items: MBItems) => div("_ bar", items);
+export function menubar(...items: MBItems) { return div("_ bar", items); }
 /** */
-export const right = () => div(HAlign.right);
-export const mbitem = (i: Icon, text: any, action?: (e: MouseEvent) => any) => g("button", "i", [icon(i), text]).on("click", action);
+export function right() { return div(HAlign.right); }
+export function mbitem(i: Icon, text: any, action?: (e: MouseEvent) => any) {
+  return g("button", "i", [icon(i), text]).p({ type: "button" }).on("click", action);
+}
 
 /**menubar separator */
-export const mbsep = () => g("hr");
+export function mbsep() { return g("hr"); }
 /**menubar checkbox */
 export function barcb(checked: bool, text: any, toggle?: (this: S<HTMLInputElement>, checked: bool) => any, disabled?: bool) {
   let input = g("input", { checked, disabled, indeterminate: checked == null, type: "checkbox" });
@@ -359,20 +396,41 @@ export function wait(type?: WaitType | WaitCB, body?: WaitCB): any {
 
 
 //todo: colocar no galhui
-export const loading = (sz = Size.n) => div("_ blank", div("_ load " + sz));
-export async function busy(container: S, cb: (close: () => void) => any, sz?: Size, time=750) {
-  let e = loading(sz), p: any;
-  let t = setTimeout(() => {
-    p = container.add(e).css("position");
-    container.css({ position: "relative" });
-  }, time);
-  let close = () => {
-    e.remove();
-    clearTimeout(t);
-    container?.css({ position: p });
-  };
-  try { await cb(close) }
-  finally { close(); }
+export function loading(sz = Size.n) { return div("_ blank", div("_ load " + sz)); }
+export function busy<T>(cb: () => Task<T>, sz?: Size, time?: int): S | T;
+export function busy(container: S, cb: (close: () => void) => any, sz?: Size, time?: int): Promise<void>
+export function busy(arg0: any, arg1?: any, arg2?: any, arg3?: any) {
+
+  if (isF(arg0)) {
+    let e = g("span");
+    (async () => {
+      let t = setTimeout(() => e.replace(e = loading(arg1)), def(arg2, 750));
+      e.replace(e = await arg0());
+      clearTimeout(t);
+    })();
+    // setTimeout(async () => e.replace(e = await arg0()), def(arg2, 750));
+    // let t = await arg0();
+    // e.parent && e.replace(t);
+    // e = t;
+    return e;
+  } else {
+    let
+      e = loading(arg2), p: any,
+      t = setTimeout(() => {
+        p = arg0.add(e).css("position");
+        arg0.css({ position: "relative" });
+      }, arg3);
+    let close = () => {
+      e.remove();
+      clearTimeout(t);
+      arg0.css({ position: p });
+    };
+    return (async () => {
+      try { await arg1(close) }
+      finally { close(); }
+    })();
+  }
+
 }
 
 export const blobToBase64 = (v: Blob) => new Promise<str>((rs, rj) => {

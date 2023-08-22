@@ -1,14 +1,11 @@
-import { float, int, str } from "galho/util.js";
-export const uuid = (length: int = 32) => Array
-  .from({ length })
-  .map(() => Math.round(Math.random() * 15).toString(16))
-  .join('');
+import { Dic, Key, float, int, str } from "galho/util.js";
+
 /**request animation frame each frame, if fn returns false cancel animation
  * @returns function that cancel the renderer of current animation
  */
 export function anim(fn: () => void | boolean) {
-  let r;
-  console.log("timer started: " + (r = uuid(4)))
+  let r: str;
+  console.log("timer started: " + (r = UUID(8)))
   console.time(r);
   let t = requestAnimationFrame;
   let t2 = () => {
@@ -23,66 +20,26 @@ export function anim(fn: () => void | boolean) {
   }
 }
 export const up = (v: str) => v && (v[0].toUpperCase() + v.slice(1).replace(/_/g, ' '));
-
-
-export const enum TimeUnit {
-  /**miliseconds */
-  z = 1,
-  s = 1000,
-  m = s * 60,
-  h = m * 60,
-  d = h * 24,
-  w = d * 7,
-  y = d * 365.24,//2
-  /** quinzena */
-  f = y / 24,
-  /** month */
-  M = y / 12,
-  M2 = y / 6,
-  M3 = y / 4,
-  M4 = y / 3,
-  M6 = y / 2,
+export function arrayToDic<T, U>(arr: Array<T>, callback: (value: T, index: number) => [Key, U]): Dic<U> {
+  let result = {};
+  for (let i = 0; i < arr.length; i++) {
+    let value = arr[i];
+    let temp = callback(value, i);
+    result[temp[0]] = temp[1];
+  }
+  return result;
 }
-export class TimeSpan {
-  value: float;
-  constructor()
-  constructor(value: float, unit: TimeUnit)
-  constructor(value?: float, unit?: TimeUnit) {
-    this.value = value * unit || 0;
-  }
-  addDay() { }
-  addYear(v = 1) {
-    this.value += v * TimeUnit.y;
-    return this;
-  }
-  addMonth(v = 1) {
-    this.value += v * TimeUnit.M;
-    return this;
-  }
-  addWeek(v = 1) {
-    this.value += v * TimeUnit.w;
-    return this;
-  }
-  to(unit: TimeUnit) { return Math.floor(this.value / unit); }
-  day() { return this.to(TimeUnit.d); }
-  get(ref: Date | int) {
-    return new Date(<int>ref + this.value);
-
-  }
-  toString() {
-
-    return ``
-  }
+export function anyProp<T = any>(dic: Dic<T>, fn?: (value: T, key: string) => unknown) {
+  for (let key in dic)
+    if (fn(dic[key], key))
+      return true;
+  return false;
 }
-export const timeDif = (start: Date, end: Date) => new TimeSpan(<any>end - <any>start, TimeUnit.z)
+export const UUID = (l?:int) => Math.floor(Math.random() * Math.pow(10, l)).toString(16);
 // export function day(d: Date): number;
 // export function day(d: Date, value: number): Date;
 // export function day(d: Date, value?: number) {
 //   if (value == null) return d.getDate();
-//   d.setDate(value); return d;
-// }
-// export type FormatValue = Date | number | string;
-// export type ValueType = 'd' | 'n';
 
 // export function fmt(value: FormatValue, pattern: string, options?: Dic): str;
 // export function fmt(value: FormatValue, pattern: string, type?: ValueType): str;

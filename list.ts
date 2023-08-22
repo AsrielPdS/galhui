@@ -1,6 +1,7 @@
-import { cl, clearEvent, div, E, g, HSElement, m, One, S, wrap } from "galho";
+import { clearEvent, div, E, g, m, One, S, wrap } from "galho";
 import orray, { Alias, extend, L, range } from "galho/orray.js";
-import { bool, call, def, Dic, fmt, Fmts, int, isF, isN, isS, l, Primitive, str, t } from "galho/util.js";
+import { bool, call, def, Dic, int, isF, isN, isS, l, str, t } from "galho/util.js";
+import { TForm } from "./form.js";
 import { $, body, C, Child, close, doc, icon, Icon, logo, menucb, MenuItems, Size, w } from "./galhui.js";
 import { ctxmenu, idropdown } from "./io.js";
 import { up } from "./util.js";
@@ -130,21 +131,23 @@ export interface IList<T> extends ICrud<T> {
   data?: L<T>;
   item(value: T): any;
   single?: boolean;
-  enum?: boolean;
+  enum?: bool;
   /**keydown 
    * @default true */
   kd?: bool;
+  tag?: keyof HTMLElementTagNameMap;
 }
-export function list<T>(i: IList<T>, data: L<T> | T[]) {
+export function list<T>(data: L<T> | T[], i: IList<T>) {
   let
     dt = extend(data, {
       g: i.single ? null : ["on"],
       clear: true, key: i.key
-    }),
-    r = dt.bind(g(t(i.enum) ? "ol" : "ul", "_ list"), {
-      insert: v => crudHandler(wrap(i.item(v), "i").badd(div(C.side)), v, dt, i),
+    }), e = t(i.enum),
+    r = dt.bind(g(i.tag || (e ? "ol" : "ul"), "_ list"), {
+      insert: v => crudHandler(wrap(i.item(v), "i").badd(e && div(C.side)), v, dt, i),
+      reload(v, j, p) { p.child(j).set(Array.from(wrap(i.item(v), "i").badd(div(C.side)).e.childNodes)) },
       tag(active, i, p, tag) {
-        let s = p.child(i).emit(new CustomEvent("current", { detail: active }));
+        let s = p.child(i);//.emit(new CustomEvent("current", { detail: active }));
         if (tag == "on") {
           s.c(C.current, active);
           active && s.e.scrollIntoView({
@@ -225,7 +228,7 @@ export interface Column {
   desc?: bool;
   input?(): One;
   compare?(a: any, b: any): number;
-  fmt?: ((v: any, p: FieldPlatform, src: Dic) => any) | Fmts;
+  fmt?: (v: any, p: FieldPlatform, src: Dic) => any;
 }
 export interface iTable<T extends Dic> extends ICrud<T> {
   /**columns */
@@ -254,6 +257,7 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
   get cols() { return this.i.cols; }
 
   data: L<T>;
+  form?: TForm;
   // foot: Foot[];
   constructor(i: iTable<T>, data?: Alias<T>) {
     // i.data = data as L;
@@ -301,72 +305,73 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
             cols.sort((a, b) => all.indexOf(a) - all.indexOf(b));
           } else cols.remove(c);
         }, c.key, req && (req.includes(c.key)))
-      })).on("click", e => clearEvent(e)),
-      hd = cols.bind(div("hd _ tr", wrap(i.corner, C.side)), {
-        insert: (c, j, p) => {
-          let s = this.ccss(wrap(i.head(c), "i"), c).uncss(["textAlign"]);
-          if (i.resize)
-            div([C.separator]).addTo(s).on('mousedown', e => {
-              clearEvent(e);
-              let newJ = cols.indexOf(c)+1;
-              if (!i.fill || newJ < l(cols)) {
-                let rows = d.childs().child(newJ);
-                let next = i.fill && rows.next();
-                let s2 = next?.e?.(0), r = s2?.rect?.right;
-                body.css({ cursor: 'col-resize', userSelect: "none" });
-                function move(e: MouseEvent) {
-                  c.size = (c.size = Math.max($.rem * 2, e.clientX - s.rect.left));
-                  rows.css({ width: c.size + 'px' });
-                  if (next) {
-                    let sz = cols[newJ].size = Math.max($.rem * 2, r - e.clientX);
-                    next.css({ width: sz + 'px' });
-                  }
+      })).on("click", e => clearEvent(e));
+    let hd = cols.bind(div("hd _ tr", wrap(i.corner, C.side)), {
+      insert: (c, j, p) => {
+        let s = this.ccss(wrap(i.head(c), "i"), c).uncss(["textAlign"]);
+        if (i.resize)
+          div([C.separator]).addTo(s).on('mousedown', e => {
+            clearEvent(e);
+            let newJ = cols.indexOf(c) + 1;
+            if (!i.fill || newJ < l(cols)) {
+              let rows = d.childs().child(newJ);
+              let next = i.fill && rows.next();
+              let s2 = next?.e?.(0), r = s2?.rect?.right;
+              body.css({ cursor: 'col-resize', userSelect: "none" });
+              function move(e: MouseEvent) {
+                c.size = (c.size = Math.max($.rem * 2, e.clientX - s.rect.left));
+                rows.css({ width: c.size + 'px' });
+                if (next) {
+                  let sz = cols[newJ].size = Math.max($.rem * 2, r - e.clientX);
+                  next.css({ width: sz + 'px' });
                 }
-                doc.on('mousemove', move).one('mouseup', () => {
-                  doc.off('mousemove', move);
-                  body.uncss(["cursor", "userSelect"]);
-                });
               }
-            });
-
-          i.sort && s.on("click", () => {
-            if (cols.tag("sort") == c)
-              if (c.desc) {
-                c.desc = false;
-                cols.tag("sort", null);
-              } else {
-                c.desc = true;
-                cols.retag("sort");
-              }
-            else {
-              c.desc = false;
-              cols.tag("sort", c);
+              doc.on('mousemove', move).one('mouseup', () => {
+                doc.off('mousemove', move);
+                body.uncss(["cursor", "userSelect"]);
+              });
             }
-          })
-          hdOpts && s.on({
-            mouseenter() { clearTimeout(hdOptsLeave); s.add(hdOpts) },
-            mouseleave() { hdOptsLeave = setTimeout(() => hdOpts.remove().child(".menu")?.remove(), 300); }
           });
-          p.place(j + 1, s);
-        },
-        tag(active, j, p, tag, v) {
-          let s = p.child(j + 1);
-          switch (tag) {
-            case "sort":
-              s.child(".sort")?.remove();
-              if (active)
-                s.add(icon($.i[v.desc ? 'desc' : 'asc']).c("sort"));
-              i.sort.call(v, active);
-              break;
-            default:
-              s.c(tag, active);
+
+        i.sort && s.on("click", () => {
+          if (cols.tag("sort") == c)
+            if (c.desc) {
+              c.desc = false;
+              cols.tag("sort", null);
+            } else {
+              c.desc = true;
+              cols.retag("sort");
+            }
+          else {
+            c.desc = false;
+            cols.tag("sort", c);
           }
-        },
-        remove(_, _i, p) { p.unplace(_i + 1); },
-        clear(p: S) { p.childs(1).remove(); }
-      }),
+        })
+        hdOpts && s.on({
+          mouseenter() { clearTimeout(hdOptsLeave); s.add(hdOpts) },
+          mouseleave() { hdOptsLeave = setTimeout(() => hdOpts.remove().child(".menu")?.remove(), 300); }
+        });
+        p.place(j + 1, s);
+      },
+      tag(active, j, p, tag, v) {
+        let s = p.child(j + 1);
+        switch (tag) {
+          case "sort":
+            s.child(".sort")?.remove();
+            if (active)
+              s.add(icon($.i[v.desc ? 'desc' : 'asc']).c("sort"));
+            i.sort.call(v, active);
+            break;
+          default:
+            s.c(tag, active);
+        }
+      },
+      remove(_, _i, p) { p.unplace(_i + 1); },
+      clear(p: S) { p.childs(1).remove(); }
+    });
+    let
       foot = (v: Foot) => g(v(this), "_ ft tr"),
-      ft = i.foot && m(...i.foot?.map(foot)),
+      ft = i.foot && m(...i.foot.map(foot)),
       d: S = div("_ tb", [hd, ft])
         .on("click", e => e.target == e.currentTarget && range.clear(data as L, "on"))
         .p('tabIndex', 0)
@@ -379,18 +384,17 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
           kbHandler(data, e, i) && clearEvent(e);
         });
 
+    let content = (v: T) => [
+      div(C.side),
+      cols.map(c => this.ccss(wrap(c.fmt ? c.fmt(v[c.key], i.p, v) : v[c.key]), c)),
+      // i.options && div(C.options, i.options.map(opt => opt(s, _i)))
+    ];
     data.bind(d, {
-      insert: (s, j, p) => {
-        let t2 = div("_ tr i", [
-          div(C.side),
-          cols.map(c => {
-            let v = s[c.key];
-            return this.ccss(wrap(c.fmt ? isS(c.fmt) ? v == null ? null : fmt(v, c.fmt) : c.fmt(v, i.p, s) : v), c);
-          }),
-          // i.options && div(C.options, i.options.map(opt => opt(s, _i)))
-        ]);
-        p.place(j + 1, crudHandler(i.style?.(t2, s, j) || t2, s, data, i));
+      insert: (v, j) => {
+        let t2 = div("_ tr i", content(v));
+        d.place(j + 1, crudHandler(i.style?.(t2, v, j) || t2, v, data, i));
       },
+      reload(v, j) { d.child(j + 1).set(content(v)) },
       tag: (active, i, p) => {
         let s = p.child(i + 1).c(C.current, active).e;
         active && s.scrollIntoView({
@@ -402,16 +406,16 @@ export class Table<T extends Dic = Dic> extends E<iTable<T>, { resizeCol: never 
       clear(s) { s.childs().slice(1).remove() },
       groups(v, i, p, g) { p.child(i + 1).c(g, v) }
     });
-    cols.onupdate(() => {
+    cols.on(() => {
       this.data.reloadAll();
       ft?.eachS((f, j) => f.replace(foot(i.foot[j])));
     });
     i.resize && d.c(C.bordered);
     return d;
   }
-  fillArea() {
+  fillArea(sideSize = 2 * $.rem) {
     let c = this.i.cols, s = g(this), tr = s.childs();
-    defineSize(c, s.e.clientWidth - 2 * $.rem - 3);
+    defineSize(c, s.e.clientWidth - sideSize);
     for (let i = 0; i < l(c); i++) {
       tr.child(i + 1).css({ width: c[i].size + "px" })
     }

@@ -1,6 +1,5 @@
-﻿import { g, getAll, isE, S } from "galho";
-import { Dic, def, isF, isS, str, Task, z, falses, filter, bool } from "galho/util.js";
-import { emitAsync, emit, on, EventObject } from "galho/event.js";
+﻿import { g, getAll, isE, M, S } from "galho";
+import { bool, Dic, falsy, filter, isF, isS, str, Task, z } from "galho/util.js";
 
 export const hash = (s: S, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: S[]) {
@@ -9,7 +8,7 @@ export function init(...routeRoot: S[]) {
   current = currentPath = null;
 }
 export type Update = (...path: string[]) => void;
-export type RouteResult = S[] | [view: S[] | falses, onupdate: Update];
+export type RouteResult = S[] | [view: S[] | falsy, onupdate: Update];
 export type Route = RouteResult | ((...path: string[]) => Task<RouteResult | void>);
 export type Routes = Dic<Route>;
 
@@ -24,7 +23,7 @@ export function add(key: str | Routes, handler?: Route) {
   else for (let k in key)
     routes[k] = key[k];
 }
-export function set(t: (S | Element | falses)[]) {
+export function set(t: (S | Element | falsy)[]) {
   let p = g(root[0]).parent, i = -1;
   while (p.child(++i).e != root[0]);
 
@@ -32,8 +31,8 @@ export function set(t: (S | Element | falses)[]) {
     e.remove();
   p.place(i, root = filter(t).map(v => isE(v) ? v.e : v));
 }
-export function push(...items: (S | Element | falses)[]) {
-  let t = filter(items).map(v => isE(v) ? v.e : v);
+export function push(...items: (S | Element | falsy)[]) {
+  let t = filter(items.map(v => v && (isE(v) ? v.e : v)), v => v && !root.includes(v));
   g(z(root)).after(t);
   root.push(...t);
 }
@@ -85,9 +84,12 @@ export async function goTo(path: string): Promise<void> {
       set(dt as S[]);
     currentPath = key;
   }
-  getAll("a.on").do(e => e.c("on", false));
-  getAll(`a[href="#${path}"]`).do(e => e.c("on"));
+  updateAnchors();
   current?.(...sub);
+}
+export function updateAnchors() {
+  getAll('a.on[href^="#"]').do(e => e.c("on", false));
+  getAll(`a[href="${location.hash}"]`).do(e => e.c("on"));
 }
 
 export function hmr() {

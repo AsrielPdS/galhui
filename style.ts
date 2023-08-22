@@ -1,12 +1,16 @@
 import { Property } from "csstype";
 import { css, Style, Styles } from "galho";
-import { filter } from "galho/dic.js";
 import { assign, bool, def, float, isA, isB, isN, isO, str, toStr } from "galho/util.js";
 import { HAlign } from "./galhui.js";
+import { dic } from "../../www/bridge.js";
 
+export function bold(v: bool | Property.FontWeight) {
+  return v ? isB(v) ? "bold" : v : null;
+}
+export function italic(v: bool | Property.FontStyle) {
+  return v ? isB(v) ? "italic" : v : null;
+}
 export const
-  bold = (v: bool | Property.FontWeight): any => v ? isB(v) ? "bold" : v : null,
-  italic = (v: bool | Property.FontStyle): any => v ? isB(v) ? "italic" : v : null,
   isDark = () => matchMedia && matchMedia('(prefers-color-scheme: dark)').matches,
   font = (v: Font) => v && (isN(v) ?
     { fontSize: v + "rem" } :
@@ -30,7 +34,7 @@ export const
       borderBottom: bord(def(b[2], b[0])),
       borderLeft: bord(def(b[3], b[1]))
     } : { border: bord(b) }),
-  block = (v: TBlock): Style => v && filter({
+  block = (v: TBlock): Style => v && dic.filter({
     color: v.fg,
     padding: spc(v.pad),
     margin: spc(v.mrg),
@@ -39,7 +43,7 @@ export const
     background: v.bg,
     ...font(v.f)
   }),
-  state = (v: Stateble): Style => v && filter({
+  state = (v: Stateble): Style => v && dic.filter({
     ...block(v),
     ":hover": v.h && block(v.h),
     ":visited": v.v && block(v.v),

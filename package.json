@@ -1,6 +1,6 @@
 {
   "name": "galhui",
-  "version": "1.1.12",
+  "version": "1.1.13",
   "description": "",
   "main": "galhui.js",
   "scripts": {},
@@ -11,6 +11,10 @@
   "type":"module",
   "dependencies": {
     "csstype": "^3.0.11",
-    "galho": ""
+    "galho": "",
+    "chroma-js":""
+  },
+  "devDependencies": {
+    "@types/chroma-js":"^2.4.0"
   }
 }
