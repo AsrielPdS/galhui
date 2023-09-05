@@ -1,4 +1,5 @@
-import { Dic, Key, float, int, str } from "galho/util.js";
+import { G } from "galho";
+import { Dic, Key, bool, int, isU, str } from "galho/util.js";
 
 /**request animation frame each frame, if fn returns false cancel animation
  * @returns function that cancel the renderer of current animation
@@ -29,13 +30,40 @@ export function arrayToDic<T, U>(arr: Array<T>, callback: (value: T, index: numb
   }
   return result;
 }
+/**
+ * map dictionary
+ * @param dic
+ * @param fn
+ */
+export function filterDic<T>(dic: Dic<T>, fn?: (value: T, key: string) => any): Dic<T>
+export function filterDic<T extends Dic>(dic: T, fn?: (value: any, key: any) => any): T
+export function filterDic(dic: Dic, fn: (value, key) => any = v => v) {
+  let result = {};
+  for (let key in dic)
+    if (fn(dic[key], key))
+      result[key] = dic[key];
+  return result;
+}
 export function anyProp<T = any>(dic: Dic<T>, fn?: (value: T, key: string) => unknown) {
   for (let key in dic)
     if (fn(dic[key], key))
       return true;
   return false;
 }
+
+export function extend<T extends object, U = Partial<T>>(obj: T, extension: U, override?: bool) {
+  for (let key in extension) {
+    let e = extension[key];
+    isU(e) || ((override || isU(obj[key as any])) && (obj[key as any] = e));
+  }
+  return obj as T & U;
+}
 export const UUID = (l?:int) => Math.floor(Math.random() * Math.pow(10, l)).toString(16);
+export type Input = G<HTMLInputElement>;
+export type Div = HTMLDivElement;
+export type Button = HTMLButtonElement;
+export type InputElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+
 // export function day(d: Date): number;
 // export function day(d: Date, value: number): Date;
 // export function day(d: Date, value?: number) {

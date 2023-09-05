@@ -1,14 +1,14 @@
-﻿import { g, getAll, isE, M, S } from "galho";
-import { bool, Dic, falsy, filter, isF, isS, str, Task, z } from "galho/util.js";
+﻿import { G, g, getAll, isE } from "galho";
+import { Dic, Task, bool, falsy, filter, isF, isS, str, z } from "galho/util.js";
 
-export const hash = (s: S, value: str) => s.on("click", () => location.hash = value);
-export function init(...routeRoot: S[]) {
+export const hash = (s: G, value: str) => s.on("click", () => location.hash = value);
+export function init(...routeRoot: G[]) {
   root = routeRoot.map(r => r.e);
   window.onhashchange = () => goTo(location.hash);
   current = currentPath = null;
 }
 export type Update = (...path: string[]) => void;
-export type RouteResult = S[] | [view: S[] | falsy, onupdate: Update];
+export type RouteResult = G[] | [view: G[] | falsy, onupdate: Update];
 export type Route = RouteResult | ((...path: string[]) => Task<RouteResult | void>);
 export type Routes = Dic<Route>;
 
@@ -23,7 +23,7 @@ export function add(key: str | Routes, handler?: Route) {
   else for (let k in key)
     routes[k] = key[k];
 }
-export function set(t: (S | Element | falsy)[]) {
+export function set(t: (G | Element | falsy)[]) {
   let p = g(root[0]).parent, i = -1;
   while (p.child(++i).e != root[0]);
 
@@ -31,12 +31,12 @@ export function set(t: (S | Element | falsy)[]) {
     e.remove();
   p.place(i, root = filter(t).map(v => isE(v) ? v.e : v));
 }
-export function push(...items: (S | Element | falsy)[]) {
+export function push(...items: (G | Element | falsy)[]) {
   let t = filter(items.map(v => v && (isE(v) ? v.e : v)), v => v && !root.includes(v));
   g(z(root)).after(t);
   root.push(...t);
 }
-export function pop(...items: S[]) {
+export function pop(...items: G[]) {
   for (let e of items) {
     let index = root.findIndex(t => t == e.e);
     if (index != -1) {
@@ -78,10 +78,10 @@ export async function goTo(path: string): Promise<void> {
     let dt = isF(route) ? await route(...sub) : route;
     if (dt && isF(dt[1])) {
       current = dt[1];
-      dt = dt[0] as S[];
+      dt = dt[0] as G[];
     }
     if (dt)
-      set(dt as S[]);
+      set(dt as G[]);
     currentPath = key;
   }
   updateAnchors();

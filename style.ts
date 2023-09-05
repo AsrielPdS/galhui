@@ -2,8 +2,11 @@ import { Property } from "csstype";
 import { css, Style, Styles } from "galho";
 import { assign, bool, def, float, isA, isB, isN, isO, str, toStr } from "galho/util.js";
 import { HAlign } from "./galhui.js";
-import { dic } from "../../www/bridge.js";
+import { filterDic } from "./util.js";
 
+
+export const rgba = (r: float, g: float, b: float, a: float) => `rgba(${r},${g},${b},${a})`;
+export const rgb = (r: float, g: float, b: float) => `rgb(${r},${g},${b})`;
 export function bold(v: bool | Property.FontWeight) {
   return v ? isB(v) ? "bold" : v : null;
 }
@@ -34,7 +37,7 @@ export const
       borderBottom: bord(def(b[2], b[0])),
       borderLeft: bord(def(b[3], b[1]))
     } : { border: bord(b) }),
-  block = (v: TBlock): Style => v && dic.filter({
+  block = (v: TBlock): Style => v && filterDic({
     color: v.fg,
     padding: spc(v.pad),
     margin: spc(v.mrg),
@@ -43,7 +46,7 @@ export const
     background: v.bg,
     ...font(v.f)
   }),
-  state = (v: Stateble): Style => v && dic.filter({
+  state = (v: Stateble): Style => v && filterDic({
     ...block(v),
     ":hover": v.h && block(v.h),
     ":visited": v.v && block(v.v),

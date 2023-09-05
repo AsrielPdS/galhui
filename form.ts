@@ -1,8 +1,7 @@
-import { clearEvent, div, E, g, m, MRender, One, onfocusout, S } from "galho";
-import { Alias, extend, L } from "galho/orray.js";
-import { assign, bool, byKey, def, Dic, falsy, filter, float, int, is, isA, isO, isS, isU, Key, l, Primitive, str, Task, unk, z } from "galho/util.js";
-import { $, busy, C, cancel, Color, confirm, focusable, ibt, Icon, icon, Label, label, menuitem, Size, w } from "./galhui.js";
-import { errorMessage, iRoot, iSelectBase, iSingleSelectBase, modal, Root, SelectBase, selectRoot, setValue, SingleSelectBase, TextInputTp, tip } from "./io.js";
+import { Component, G, One, Render, clearEvent, div, g, m, onfocusout } from "galho";
+import { Alias, L, extend } from "galho/orray.js";
+import { Dic, Key, Primitive, Task, assign, bool, byKey, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str, z } from "galho/util.js";
+import { $, C, Color, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
 import { anyProp, arrayToDic, up } from "./util.js";
 
 
@@ -11,7 +10,7 @@ import { anyProp, arrayToDic, up } from "./util.js";
 //   info?: str;
 //   params?: Dic<Key>;
 // } | str;
-export type Error = MRender | S | str;
+export type Error = Render | G | str;
 
 /**coisas executadas quando alguma ação acontece dentro do form */
 type BotCallback = (src: Dic<any>, form: FormBase) => any;
@@ -31,8 +30,9 @@ export const enum ErrorType {
   lessItems = "less_items",
   unsubmited = "unsubmited"
 }
-interface EError extends MRender { tp: ErrorType, params?: Dic }
-export function error(tp: ErrorType, msg?: str, params?: Dic): EError { return { tp, params, render: () => msg } }
+interface EError extends Render { tp: ErrorType, params?: Dic }
+export const error = (tp: ErrorType, msg?: str, params?: Dic): EError =>
+  ({ tp, params, render: () => msg })
 export const req = () => error(ErrorType.required, w.required);
 export type Errors = Dic<() => any>;
 
@@ -57,7 +57,7 @@ export interface iFormBase {
 }
 
 /** */
-export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends E<T, Ev> {
+export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends Component<T, Ev> {
   inputs: Input[];
   constructor(i: T, inputs: (Input | falsy)[]);
   constructor(inputs: (Input | falsy)[]);
@@ -76,7 +76,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
         let srcs: Dic = {}, cb = z(bot) as BotCallback;
         function calc(this: Input | void) {
           if (this)
-            srcs[this.key] = this.value;
+            srcs[this.name] = this.value;
           cb(srcs, form);
         }
         for (let i = 0; i < bot.length - 1; i++) {
@@ -92,10 +92,10 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
   addInput(input: Input) {
     input.form = this;
     input.onset(["value", "off"], () => {
-      input.visited && this.setErrors(input.key, input.invalid);
+      input.visited && this.setErrors(input.name, input.invalid);
       this.emit("input", input);
     });
-    input.observeVisited(input => this.setErrors(input.key, input.invalid));
+    input.observeVisited(input => this.setErrors(input.name, input.invalid));
   }
   view(): One { throw 1; }
   get isDef() {
@@ -107,7 +107,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
   }
   input<T extends Input>(key: str) {
     for (let input of this.inputs)
-      if (input.key == key || (is(input, CompostIn) && (input = input.input(key))))
+      if (input.name == key || (is(input, CompostIn) && (input = input.input(key))))
         return input as T;
   }
   errors: Dic<Error[]> = {};
@@ -122,7 +122,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
 
     for (let input of this.inputs) {
       let inv = input.invalid;
-      this.setErrors(input.key, inv);
+      this.setErrors(input.name, inv);
 
       if (inv && focus) {
         input.focus();
@@ -134,7 +134,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
   }
   focus() {
     for (let input of this.inputs)
-      if (!input.i.off) {
+      if (!input.p.off) {
         input.focus();
         break;
       }
@@ -168,7 +168,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
     return this;
   }
   reset(...fields: str[]) {
-    for (let i of l(fields) ? this.inputs.filter(i => fields.includes(i.key)) : this.inputs) {
+    for (let i of l(fields) ? this.inputs.filter(i => fields.includes(i.name)) : this.inputs) {
       i.visited = false;
       i.value = i.def;
     }
@@ -187,9 +187,9 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
   data(edited?: bool, req?: bool) {
     let inputs = this.inputs;
 
-    let r: Dic = assign({}, this.i.hidden);
-    for (let input of edited ? inputs.filter(i => (req && i.i.req) || !i.isDef()) : inputs)
-      input.i.off || input.submit(r, edited, req);
+    let r: Dic = assign({}, this.p.hidden);
+    for (let input of edited ? inputs.filter(i => (req && i.p.req) || !i.isDef()) : inputs)
+      input.p.off || input.submit(r, edited, req);
     this.emit("submit", r);
     return r;
   }
@@ -205,18 +205,18 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
 async function dataAsync(form: FormBase, edited?: bool, req?: bool) {
   let inputs = form.inputs;
 
-  let r: Dic = assign({}, form.i.hidden);
-  for (let input of edited ? inputs.filter(i => (req && i.i.req) || !i.isDef()) : inputs)
-    input.i.off || await input.submit(r, edited, req);
+  let r: Dic = assign({}, form.p.hidden);
+  for (let input of edited ? inputs.filter(i => (req && i.p.req) || !i.isDef()) : inputs)
+    input.p.off || await input.submit(r, edited, req);
   form.emit("submit", r);
   return r;
 }
 function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
-  let result: S[][] = [];
+  let result: G[][] = [];
 
   for (let key in errs) {
-    let i = byKey(inputs, key);
-    result.push(errs[key]?.map(err => div(0, [i && [g("b", 0, i.i.text), ": "], err])));
+    let i = byKey(inputs, key, "name");
+    result.push(errs[key]?.map(err => div([i && [g("b", 0, i.p.text), ": "], err])));
     // {
     // (isS(error)) && (error = { tp: error });
     // result.push(div(0, [
@@ -229,19 +229,19 @@ function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
   return result;
 }
 
-export const onOffHide = (e: S, isOff: bool) =>
+export const onOffHide = (e: G, isOff: bool) =>
   e.parent.c("_ off", isOff);
-export const onOffDisable = (e: S, isOff: bool) =>
+export const onOffDisable = (e: G, isOff: bool) =>
   e.parent.c("_ off", isOff);
 /** */
 export interface iForm extends iFormBase {
-  errorDiv?: S;
+  errorDiv?: G;
   outline?: bool;
   /**called when input enter/exit off */
-  offFN?: (e: S, isOff: bool) => void;
+  offFN?: (e: G, isOff: bool) => void;
 }
 export class Form extends FormBase<iForm> {
-  errDiv: S;
+  errDiv: G;
 
   constructor(i: iForm, inputs: (Input | falsy)[]);
   constructor(inputs: (Input | falsy)[]);
@@ -250,14 +250,14 @@ export class Form extends FormBase<iForm> {
     this.on('input', (input: Input) => setTimeout(() => {
       let e = g(input);
       e.parent?.attr("edited", !input.isDef());
-      this.i.offFN?.(e, !!input.i.off);
+      this.p.offFN?.(e, !!input.p.off);
     }));
-    this.errDiv = this.i.errorDiv || errorMessage();
-    if (this.i.outline == null)
-      this.i.outline = $.oform;
+    this.errDiv = this.p.errorDiv || errorMessage();
+    if (this.p.outline == null)
+      this.p.outline = $.oform;
   }
   view() {
-    let { i, inputs: inp } = this;
+    let { p: i, inputs: inp } = this;
     return g(i.tag || 'form', "_ form", [
       fields(inp, this),
       this.errDiv
@@ -270,48 +270,9 @@ export class Form extends FormBase<iForm> {
   }
 }
 
-export interface iTForm extends iFormBase {
-
-}
-export class TForm extends FormBase<iTForm> {
-  #f: Input;
-  constructor(i: iFormBase, public cols: One[], inputs: Input[]) {
-    super(i, inputs);
-    g("form").e.requestSubmit();
-    inputs.map(i => g(i).on("focusin", () => this.#f = i));
-  }
-  view() {
-    return g("form", "ft tr", [div(C.side), this.cols]).on({
-      submit: async e => {
-        clearEvent(e);
-        this.emit("requestsubmit", e);
-      },
-      keydown: e => {
-        let _ = g(this.#f);
-        switch (e.key) {
-          case "ArrowLeft":
-            while (_ = _.prev)
-              if (_.is(focusable)) {
-                _.focus();
-                clearEvent(e);
-                break;
-              }
-            break;
-          case "ArrowRight":
-            while (_ = _.next)
-              if (_.is(focusable)) {
-                _.focus();
-                clearEvent(e);
-                break;
-              }
-        }
-      }
-    })
-  }
-}
-/**modal form */
 // export function mdform(hd: Label, inputs: Input[], cb?: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Promise<Dic>
 // export function mdform(hd: Label, form: FormBase, cb?: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Promise<Dic>
+/**modal form */
 export function mdform<T = Dic>(hd: Label, form: Input[] | FormBase, cb: (dt: Dic, form: FormBase) => Task<T | void>, ok = confirm(), noCancel?: bool, sz?: Size) {
   if (isA(form))
     form = new Form(form);
@@ -339,7 +300,8 @@ export function mdform<T = Dic>(hd: Label, form: Input[] | FormBase, cb: (dt: Di
   })
 }
 export interface Field {
-  k?: str;
+  name?: str;
+  info?: str;
   req?: bool;
   outline?: bool;
   text?: Label;
@@ -347,15 +309,15 @@ export interface Field {
   off?: bool;
 }
 export function field(bd: One, i: Field, form?: Form) {
-  let t = div(def(form?.i.outline, i.outline) ? "oi" : "ii", [
+  let t = div(def(form?.p.outline, i.outline) ? "oi" : "ii", [
     g('label', "hd", [
       i.text,
-      i.tip && tip(icon($.i.info), i.tip)
-    ]).attrs({ for: i.k }), bd = g(bd, "bd"),
+      i.tip && tip(icon(icons.info), i.tip)
+    ]).attr({ for: i.name }), bd = g(bd, "bd"),
     !!i.req && g('span', "req", '*'),
   ]);
   if (i.off)
-    form?.i.offFN?.(bd, true);
+    form?.p.offFN?.(bd, true);
   return t;
 }
 export function fields(inputs: Input[], form?: Form): One[];
@@ -363,7 +325,7 @@ export function fields(inputs: Input[], form?: Form) {
   return inputs.map(input =>
     input.field ?
       input.field(form) :
-      field(input, input.i, form));
+      field(input, input.p, form));
 }
 
 export function fieldGroup(title: Label, inputs: Input[], form?: Form) {
@@ -375,15 +337,15 @@ export function fieldGroup(title: Label, inputs: Input[], form?: Form) {
 }
 export function expand(form: Form, ...main: str[]) {
   for (let input of form.inputs)
-    g(input).c(C.side, !main.includes(input.key));
+    g(input).c(C.side, !main.includes(input.name));
   g(form).add(m(
-    div(["ft", "_" + C.side], [
+    div(`ft _${C.side}`, [
       g("span", 0, "Mostrar todos"),
-      ibt($.i.down, null)
+      ibt(icons.down, null)
     ]),
-    div(["ft", C.side], [
+    div(`ft ${C.side}`, [
       g("span", 0, "Mostrar principais"),
-      ibt($.i.up, null),
+      ibt(icons.up, null),
     ])).on("click", () => g(form).tcls("expand")));
 }
 export function valid(e: HTMLFormElement) {
@@ -433,26 +395,26 @@ export interface iInput<V = unknown> extends Field {
   def?: V;
   // side?: bool;
 }
-export abstract class Input<V = unknown, I extends iInput<V> = iInput<V>, Ev extends Dic<any[]> = {}> extends E<I, Ev> {
+export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev extends Dic<any[]> = {}> extends Component<P, Ev> {
   form: FormBase;
-  constructor(i: I) {
-    super(i);
-    if (isU(i.text)) i.text = def(w[i.k], up(i.k));
-    if (isU(i.value)) i.value = this.def;
+  constructor(p: P) {
+    super(p);
+    if (isU(p.text)) p.text = def(w[p.name], up(p.name));
+    if (isU(p.value)) p.value = this.def;
   }
-  get key() { return this.i.k; }
-  get value() { return def<V>(this.i.value, null); }
+  get name() { return this.p.name; }
+  get value() { return def<V>(this.p.value, null); }
   set value(v) { this.set("value", v); }
 
   fill?(src: Dic, setAsDefault?: bool) {
-    let k = this.i.k;
+    let k = this.p.name;
     if (k in src) {
       this.value = src[k];
       if (setAsDefault)
         this.set("def", src[k])
     }
   }
-  get def() { return def(<V>this.i.def, this.null); }
+  get def() { return def(<V>this.p.def, this.null); }
   isDef(value = this.value, def = this.def) {
     return def === value;
   }
@@ -472,12 +434,12 @@ export abstract class Input<V = unknown, I extends iInput<V> = iInput<V>, Ev ext
     return this;
   }
   get invalid() {
-    let e = this.i.off ? [] : this.validate(this.value);
+    let e = this.p.off ? [] : this.validate(this.value);
     return l(e) ? e : null;
   }
   validate(value: V): Error[] {
     let
-      i = this.i,
+      i = this.p,
       errs: Error[] = [];
 
     if (i.req && this.isNull(value))
@@ -488,7 +450,7 @@ export abstract class Input<V = unknown, I extends iInput<V> = iInput<V>, Ev ext
   field?(form?: Form): One;
   submit(this: this, data: Dic, edited?: bool, req?: bool): any//Task<void>
   submit(data: Dic) {
-    let { k, value } = this.i;
+    let { name: k, value } = this.p;
     data[k] = value;
   }
   /**null value used for clear method */
@@ -511,10 +473,10 @@ export interface iTextIn extends iInput<str> {
 }
 export class TextIn extends Input<str, iTextIn, { input: [str] }> {
   view() {
-    var i = this.i, r: S<HTMLInputElement | HTMLTextAreaElement>;
+    var i = this.p, r: G<HTMLInputElement | HTMLTextAreaElement>;
     if (i.input == 'ta') {
       r = g('textarea', "_ in v").p({
-        name: i.k, id: i.k,
+        name: i.name, id: i.name,
         placeholder: i.ph || ''
       }).on('keydown', (e) => {
         if (e.key == "Enter") {
@@ -525,7 +487,7 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
       });
     } else r = g("input", "_ in").p({
       type: i.input || 'text',
-      name: i.k, id: i.k, placeholder: i.ph || ''
+      name: i.name, id: i.name, placeholder: i.ph || ''
     });
     r.on({
       input: () => {
@@ -538,7 +500,7 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
   }
   validate(value: string) {
     var
-      i = this.i,
+      i = this.p,
       errs: Error[] = [];
 
     if (value) {
@@ -558,7 +520,7 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
 }
 /**text input */
 export const textIn = (k: str, req?: bool, input?: TextInputTp | "ta") =>
-  new TextIn({ k, req, input });
+  new TextIn({ name: k, req, input });
 //------------NUMBER------------------------
 export interface NumberFormat {
   min?: int;
@@ -577,12 +539,12 @@ export type iNumbIn = iInput<int> & NumberFormat & {
 };
 export class NumbIn extends Input<float, iNumbIn> {
   view() {
-    let i = this.i, inp = <S<HTMLInputElement>>g("input", {
+    let i = this.p, inp = <G<HTMLInputElement>>g("input", {
       type: 'number',
       placeholder: i.ph || '',
       step: i.integer ? <any>1 : 'any',
-      name: i.k, id: i.k, value: i.value as any,
-      min: (i.min || i.omin) as any, max: (i.max || i.omax) as any,
+      name: i.name, id: i.name, value: i.value as any,
+      min: (i.min ?? i.omin) as any, max: (i.max ?? i.omax) as any,
       oninput: () => this.value = inp.v() ? inp.e.valueAsNumber : null,
       onfocus() { inp.e.select() }
     });
@@ -594,7 +556,7 @@ export class NumbIn extends Input<float, iNumbIn> {
     return (i.unit ? g("span", 0, [inp, i.unit]) : inp).c("_ in");
   }
   validate(value: number) {
-    return validateNumber(this.i, value);
+    return validateNumber(this.p, value);
   }
   // calc(...values: number[]) {
   //   var r = 0;
@@ -603,13 +565,13 @@ export class NumbIn extends Input<float, iNumbIn> {
   //   return r;
   // }
   focus() {
-    let { $, i } = this;
+    let { $, p: i } = this;
     (i.unit ? $.first : $).focus();
     return this;
   }
 }
 export const numbIn = (k: str, req?: bool, text?: str, unit?: str) =>
-  new NumbIn({ k, req, text, unit });
+  new NumbIn({ name: k, req, text, unit });
 export function validateNumber(i: NumberFormat & iInput<int>, value: int) {
   let errs: Error[] = [];
   if (value == null) {
@@ -620,19 +582,15 @@ export function validateNumber(i: NumberFormat & iInput<int>, value: int) {
       errs.push(error(ErrorType.isDecimal));
     //if (i.unsigned && value < 0)
     //    errs.push({ type: form.ErrorType.isNegative, key });
-    let
-      max = i.max,
-      min = i.min,
-      omin = i.omin,
-      omax = i.omax;
+    let { min, max, omin, omax } = i;
 
     if ((max != null) && value > max)
-      errs.push(error(ErrorType.numberTooBig, "", { max: max }));
+      errs.push(error(ErrorType.numberTooBig, "", { max }));
     else if (omax != null && value >= omax)
       errs.push(error(ErrorType.numberTooBig, "", { max: omax }));
 
     if ((min != null) && value < min)
-      errs.push(error(ErrorType.numberTooSmall, "", { min: min }));
+      errs.push(error(ErrorType.numberTooSmall, "", { min }));
     else if (omin != null && value <= omin)
       errs.push(error(ErrorType.numberTooSmall, "", { min: omin }));
   }
@@ -655,25 +613,25 @@ export interface iCheckIn extends iInput<bool> {
 }
 export class CheckIn extends Input<bool, iCheckIn>  {
   view() {
-    let i = this.i;
+    let i = this.p;
     switch (i.fmt) {
       case CBFmt.yesNo:
         return this.bind(div(null, [
-          g('label', [C.checkbox, "i"], [
+          g('label', `${C.checkbox} i`, [
             g("input", {
               type: 'radio',
               value: <any>1,
-              name: i.k,
+              name: i.name,
               oninput: () => {
                 this.set('value', true);
               }
             }),
             'Sim'
           ]),
-          g('label', [C.checkbox, "i"], [
+          g('label', `${C.checkbox} i`, [
             g("input", {
               type: 'radio',
-              name: i.k,
+              name: i.name,
               value: <any>0,
               oninput: () => {
                 this.set('value', false);
@@ -682,13 +640,13 @@ export class CheckIn extends Input<bool, iCheckIn>  {
             'No'
           ])
         ]), (s) => {
-          s.child(i.value ? 0 : 1).first.prop('checked', true);
+          s.child(i.value ? 0 : 1).first.p<any>('checked', true);
         }, 'value');
 
       default:
-        let inp: S<HTMLInputElement> = g("input", {
+        let inp: G<HTMLInputElement> = g("input", {
           type: 'checkbox',
-          name: i.k, id: i.k,
+          name: i.name, id: i.name,
           checked: i.value,
           onclick: i.clear && ((e: MouseEvent) => {
             if (e.altKey)
@@ -715,11 +673,11 @@ export class TimeIn extends Input<str, iTimeIn> {
   view() {
     let
       _this = this,
-      i = this.i;
+      i = this.p;
 
     return this.bind(g("input").p({
       type: 'time',
-      name: i.k, id: i.k,
+      name: i.name, id: i.name,
       placeholder: i.ph,
     }).on('input', function () {
       _this.set('value', this.value + ':00');
@@ -729,10 +687,10 @@ export class TimeIn extends Input<str, iTimeIn> {
 
 export class DateIn extends Input<str, iTimeIn> {
   view() {
-    let i = this.i;
+    let i = this.p;
     let inp = g("input", "_ in").p({
       type: "date",
-      name: i.k, id: i.k,
+      name: i.name, id: i.name,
       placeholder: i.ph,
       value: i.value
     });
@@ -740,17 +698,17 @@ export class DateIn extends Input<str, iTimeIn> {
     return inp.on("input", () => this.set("value", inp.e.value || null));
   }
   get def() {
-    return this.i.def == "now" ? new Date().toISOString().slice(0, 10) : null;
+    return this.p.def == "now" ? new Date().toISOString().slice(0, 10) : null;
   }
 }
 
 export class MonthIn extends Input<str, iTimeIn> {
   view() {
     let
-      i = this.i,
+      i = this.p,
       inp = g("input", "_ in").p({
         type: "month",
-        name: i.k, id: i.k,
+        name: i.name, id: i.name,
         placeholder: i.ph,
         value: i.value?.slice(0, 7)
       });
@@ -758,20 +716,20 @@ export class MonthIn extends Input<str, iTimeIn> {
     return inp.on("input", () => this.set("value", inp.e.value || null));
   }
   get def() {
-    return this.i.def == "now" ? new Date().toISOString().slice(0, 7) : null;
+    return this.p.def == "now" ? new Date().toISOString().slice(0, 7) : null;
   }
 
   submit(data: Dic) {
-    data[this.i.k] = this.value ? this.value + "-01" : null;
+    data[this.p.name] = this.value ? this.value + "-01" : null;
   }
 }
 
 /**date & time input */
 export class DTIn extends Input<str, iTimeIn> {
   view() {
-    let i = this.i, inp = g("input", "_ in").p({
+    let i = this.p, inp = g("input", "_ in").p({
       type: "datetime-local",
-      name: i.k, id: i.k,
+      name: i.name, id: i.name,
       placeholder: i.ph
     }).on("input", () => {
       this.set("value", inp.v() || null);
@@ -787,25 +745,25 @@ export type iSelectIn<T extends Dic, K extends keyof T = any> = iInput<T[K]> & i
 }
 export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Input<T[K], iSelectIn<T, K>, { open: [bool] }> implements SingleSelectBase<K, T> {
   options: L<T, K>;
-  get active() { return byKey(this.options, this.i.value); }
-  constructor(i: iSelectIn<T, K>, options?: Alias<T, T[K]>, key: keyof T = <any>0) {
+  get active() { return byKey<T, K>(this.options, this.p.value, this.options.key); }
+  constructor(i: iSelectIn<T, K>, options?: Alias<T, T[K]>, key: K = <any>0) {
     super(i);
     i.item ||= v => def(v[1], v[key]);
     this.options = extend<T, T[K]>(options, {
       key, parse: e => isO(e) ? e : <T>{ [key]: e }
     });
   }
-  get value() { return this.i.value; }
-  set value(v) { this.i.value === v || this.set("value", v) }
+  get value() { return this.p.value; }
+  set value(v) { this.p.value === v || this.set("value", v) }
 
   view() {
     let
-      { i, options } = this,
+      { p: i, options } = this,
       label = g("span"),
       items = g("table").on("click", ({ currentTarget: ct, target: t }) =>
         ct != t && (this.set("open", false).value = g(t as Element).closest("tr").d())),
       menu = div("_ menu", items),
-      root = selectRoot(this, options, label, menu, v => this.value = v as any).attrs({ name: i.k });
+      root = selectRoot(this, options, label, menu, v => this.value = v as any).attr({ name: i.name });
     setValue(this, label);
     this.on(e => ("value" in e) && setValue(this, label));
 
@@ -835,10 +793,10 @@ export class MobSelectIn<T = Dic, K extends keyof T = any> extends Input<Key, iM
     super(i);
   }
   view() {
-    let { i, options, okey } = this;
+    let { p, options, okey } = this;
     return g("select", "_ in",
-      options.map(v => g("option", { value: v[okey] as any }, i.item(v))))
-      .p({ name: i.k, placeholder: i.ph })
+      options.map(v => g("option", { value: v[okey] as any }, p.item(v))))
+      .p("name", p.name)
   }
 }
 //------------ RADIO ------------------------
@@ -854,14 +812,14 @@ export interface iRadioIn extends iInput<Key> {
 }
 export class RadioIn extends Input<Key, iRadioIn>{
   view() {
-    let i = this.i, o = i.options.map<RadioOption>(v => isS(v) ? [v] : v);
+    let i = this.p, o = i.options.map<RadioOption>(v => isS(v) ? [v] : v);
     i.layout ||= l(o) > 3 ? "column" : "wrap";
 
     return this.bind(g("span", i.layout == 'column' ? "_ col" : '', o.map(([key, text, ico]) => g('label', C.checkbox, [
       g("input", {
         type: 'radio',
         value: <string>key,
-        name: i.k,
+        name: i.name,
         checked: key == i.value,
         oninput: () => { this.set('value', key); }
       }),
@@ -893,15 +851,15 @@ interface iPWIn extends iInput<str> {
 /**password input */
 export class PWIn extends Input<str, iPWIn> {
   view() {
-    let i = this.i, inp = g("input", "_ in").p({
-      type: 'password', name: i.k,
+    let i = this.p, inp = g("input", "_ in").p({
+      type: 'password', name: i.name,
       placeholder: i.ph
     }).attr('autocomplete', i.auto || false);
     return inp.on("input", () => this.set("value", inp.e.value));
   }
   validate(value: string) {
     var
-      i = this.i,
+      i = this.p,
       // key = i.key,
       errs: Error[] = [];
 
@@ -946,20 +904,20 @@ export class CompostIn extends Input<Dic, iCompostIn> {
       input.onset(["value", "off"], () => this.set(["value"]));
   }
   inputs?: Input<any>[];
-  get def() { return arrayToDic(this.inputs, v => [v.key, v.def]) }
-  get value() { return arrayToDic(this.inputs, v => [v.key, v.value]); }
+  get def() { return arrayToDic(this.inputs, v => [v.name, v.def]) }
+  get value() { return arrayToDic(this.inputs, v => [v.name, v.value]); }
   set value(v: Dic) {
-    this.inputs.forEach(i => i.key in v && (i.value = v ? v[i.key] : i.null));
+    this.inputs.forEach(i => i.name in v && (i.value = v ? v[i.name] : i.null));
   }
-  view(): S {
+  view(): G {
     for (let input of this.inputs)
       input.onset('value', () => this.set(['value']));
 
     return g("span", "_ join", this.inputs);
   }
   fill(value: Dic, setAsDefault?: bool) {
-    if (this.i.sub)
-      if (!(value = value[this.i.k]))
+    if (this.p.sub)
+      if (!(value = value[this.p.name]))
         return;
     for (let i of this.inputs)
       i.fill(value, setAsDefault);
@@ -967,7 +925,7 @@ export class CompostIn extends Input<Dic, iCompostIn> {
   validate(v: Dic) {
     let err: Error[] = [];
     for (let i of this.inputs)
-      err.push(...i.validate(v[i.key]));
+      err.push(...i.validate(v[i.name]));
     return err;
   }
   focus() {
@@ -975,27 +933,27 @@ export class CompostIn extends Input<Dic, iCompostIn> {
     return this;
   }
   submit(data: Dic, edited: bool, req: bool) {
-    let { inputs, i } = this;
-    if (i.sub) data = data[i.k] = i.sub == "array" ? [] : {};
-    for (let inp of edited && !i.sub ? inputs.filter(i => (req && i.i.req) || !i.isDef()) : inputs)
+    let { inputs, p: i } = this;
+    if (i.sub) data = data[i.name] = i.sub == "array" ? [] : {};
+    for (let inp of edited && !i.sub ? inputs.filter(i => (req && i.p.req) || !i.isDef()) : inputs)
       inp.submit(data, edited, req);
   }
   input(key: str) {
     for (let input of this.inputs)
-      if (input.key == key || (is(input, CompostIn) && (input = input.input(key))))
+      if (input.name == key || (is(input, CompostIn) && (input = input.input(key))))
         return input;
   }
   isDef(v = this.value, def = this.def) {
     for (let i of this.inputs)
-      if (!i.isDef(v[i.key], def[i.key]))
+      if (!i.isDef(v[i.name], def[i.name]))
         return false;
     return true;
   }
 }
 export class GroupIn extends CompostIn {
-  view(): S { throw 1; }
+  view(): G { throw 1; }
   field(form?: Form) {
-    return this.$ ||= fieldGroup(this.i.text, this.inputs, form);
+    return this.$ ||= fieldGroup(this.p.text, this.inputs, form);
   }
   observeVisited(handler: (input: Input) => any) {
     for (let i of this.inputs)

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "esNext",
+    "removeComments": false,
+    // "inlineSourceMap": true,
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": false,
+    "module": "esnext",
+    "importHelpers": false,
+    "moduleResolution": "Node",
+    "noImplicitThis": true,
+    "esModuleInterop": true,
+    // "outDir": "../pomar_desk"
+  },
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,8 +1,8 @@
-import { rgb, rgba, Style, Styles } from "galho";
+import chroma, { Color as Cholor } from "chroma-js";
+import { Style, Styles } from "galho";
 import { bool, int, str } from "galho/util.js";
 import { C, Color, Size } from "../galhui.js";
-import { bfg, border, box, spc, styleCtx, StyleCtx } from "../style.js";
-import chroma, { Color as Cholor } from "chroma-js";
+import { StyleCtx, bfg, border, box, rgb, rgba, spc, styleCtx } from "../style.js";
 
 export const enum ScreenSize {
   mobileS = 320,
@@ -12,6 +12,7 @@ export const enum ScreenSize {
   laptop = 1024,
   laptopL = 1440
 }
+
 export const enum zIndex {
   xxback = -3,
   xback = -2,
@@ -25,23 +26,22 @@ export const enum zIndex {
   xfront = 7,
   xxfront = 8
 }
-export const
-  col = (inline?: bool): Style => ({
-    display: (inline ? "inline-" : "") + "flex",
-    flexDirection: "column"
-  }),
-  row = (inline?: bool): Style => ({
-    display: (inline ? "inline-" : "") + "flex",
-    flexDirection: "row"
-  }),
-  center = (): Style => ({
-    position: "absolute",
-    left: "50%",
-    top: "50%",
-    translate: "-50% -50%",
-  }),
-  min = (size: int) => `@media (min-width: ${size}px)`,
-  max = (size: int) => `@media (max-width: ${size}px)`;
+export const col = (inline?: bool): Style => ({
+  display: (inline ? "inline-" : "") + "flex",
+  flexDirection: "column"
+});
+export const row = (inline?: bool): Style => ({
+  display: (inline ? "inline-" : "") + "flex",
+  flexDirection: "row"
+});
+export const center = (): Style => ({
+  position: "absolute",
+  left: "50%",
+  top: "50%",
+  translate: "-50% -50%",
+});
+export const min = (size: int) => `@media (min-width: ${size}px)`;
+export const max = (size: int) => `@media (max-width: ${size}px)`;
 
 interface State {
   /**normal */n: str;
@@ -655,7 +655,7 @@ export const slideShow = (): Styles => ({
       color: "#fff",
       textShadow: "#000 0 0 5px",
       top: "30%",
-      padding:".2em .5em",
+      padding: ".2em .5em",
       ":not(:hover)": { opacity: .3 }
     },
     ".p": { left: 0 },
