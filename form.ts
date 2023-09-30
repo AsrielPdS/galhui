@@ -1,6 +1,6 @@
 import { Component, G, One, Render, clearEvent, div, g, m, onfocusout } from "galho";
 import { Alias, L, extend } from "galho/orray.js";
-import { Dic, Key, Primitive, Task, assign, bool, byKey, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str, z } from "galho/util.js";
+import { Dic, Key, Primitive, Task, assign, bool, byKey, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
 import { $, C, Color, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
 import { anyProp, arrayToDic, up } from "./util.js";
 
@@ -12,9 +12,12 @@ import { anyProp, arrayToDic, up } from "./util.js";
 // } | str;
 export type Error = Render | G | str;
 
+interface FieldGroup {
+  input(key: str): Input;
+}
 /**coisas executadas quando alguma ação acontece dentro do form */
-type BotCallback = (src: Dic<any>, form: FormBase) => any;
-export type Bot = [...src: str[], call: BotCallback];
+type BotCallback<T extends FieldGroup> = (src: Dic<any>, form: T) => any;
+export type Bot<T extends FieldGroup = FieldGroup> = [...src: str[], call: BotCallback<T>];
 export const enum ErrorType {
   required = "req",
   numberTooBig = "number_too_big",
@@ -46,18 +49,37 @@ interface FormEvents extends Dic<any[]> {
   submit: [data: Dic];
   cancel: [];
 }
-
+function checkBot<T extends FieldGroup>(container: T, bots: Bot<T>[]) {
+  if (bots) {
+    for (let bot of bots) {
+      let srcs: Dic = {}, cb = bot.at(-1) as BotCallback<T>;
+      function calc(this: Input | void) {
+        if (this)
+          srcs[this.name] = this.value;
+        cb(srcs, container);
+      }
+      for (let i = 0; i < bot.length - 1; i++) {
+        let src = bot[i] as str;
+        let inp = container.input(src);
+        srcs[src] = inp.value;
+        inp.onset(["value", "off"], calc);
+      }
+      setTimeout(calc);
+    }
+  }
+}
 export interface iFormBase {
   /**@default "form" */
   tag?: keyof HTMLElementTagNameMap
   readOnly?: bool;
   hidden?: Dic;
   // meta?: Dic;
-  bots?: Bot[];
+  bots?: Bot<FormBase>[];
+  /**called when input enter/exit off */
+  offFN?: (e: G, isOff: bool) => void;
 }
-
 /** */
-export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends Component<T, Ev> {
+export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends Component<T, Ev> implements FieldGroup {
   inputs: Input[];
   constructor(i: T, inputs: (Input | falsy)[]);
   constructor(inputs: (Input | falsy)[]);
@@ -67,35 +89,8 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
       i = {} as T;
     }
     super(i);
-
-    (this.inputs = inputs = filter(inputs)).forEach(this.addInput, this);
-
-    if (i.bots) {
-      let form = this;
-      for (let bot of i.bots) {
-        let srcs: Dic = {}, cb = z(bot) as BotCallback;
-        function calc(this: Input | void) {
-          if (this)
-            srcs[this.name] = this.value;
-          cb(srcs, form);
-        }
-        for (let i = 0; i < bot.length - 1; i++) {
-          let src = bot[i] as str;
-          let inp = this.input(src);
-          srcs[src] = inp.value;
-          inp.onset(["value", "off"], calc);
-        }
-        setTimeout(calc);
-      }
-    }
-  }
-  addInput(input: Input) {
-    input.form = this;
-    input.onset(["value", "off"], () => {
-      input.visited && this.setErrors(input.name, input.invalid);
-      this.emit("input", input);
-    });
-    input.observeVisited(input => this.setErrors(input.name, input.invalid));
+    this.inputs = filter(inputs)
+    checkBot(this, i.bots);
   }
   view(): One { throw 1; }
   get isDef() {
@@ -117,11 +112,10 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
   }
   valid(omit?: bool, focus = !omit) {
     if (omit)
-      for (let input of this.inputs)
-        if (input.invalid) return false;
+      return !this.inputs.some(i => i.invalid(i.value, true));
 
     for (let input of this.inputs) {
-      let inv = input.invalid;
+      let inv = input.invalid(input.value, omit, focus);
       this.setErrors(input.name, inv);
 
       if (inv && focus) {
@@ -219,7 +213,7 @@ function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
     result.push(errs[key]?.map(err => div([i && [g("b", 0, i.p.text), ": "], err])));
     // {
     // (isS(error)) && (error = { tp: error });
-    // result.push(div(0, [
+    // result.push(div([
     //   i && [g("b", 0, i.i.text), ": "],
     //   errors[error.tp](),
     //   error.info && g("sub", 0, error.info),
@@ -229,37 +223,46 @@ function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
   return result;
 }
 
-export const onOffHide = (e: G, isOff: bool) =>
-  e.parent.c("_ off", isOff);
-export const onOffDisable = (e: G, isOff: bool) =>
-  e.parent.c("_ off", isOff);
+export const onOffHide = (e: G, isOff: bool) => e.c("_ off", isOff);
+export const onOffDisable = (e: G, isOff: bool) => e.c("_ off", isOff);
 /** */
 export interface iForm extends iFormBase {
   errorDiv?: G;
   outline?: bool;
-  /**called when input enter/exit off */
-  offFN?: (e: G, isOff: bool) => void;
+  bots?: Bot<Form>[];
+  labelSz?: int
 }
 export class Form extends FormBase<iForm> {
   errDiv: G;
 
   constructor(i: iForm, inputs: (Input | falsy)[]);
   constructor(inputs: (Input | falsy)[]);
-  constructor(i: iForm | (Input | falsy)[], inputs?: Input[]) {
-    super(i as any, inputs as any);
-    this.on('input', (input: Input) => setTimeout(() => {
-      let e = g(input);
-      e.parent?.attr("edited", !input.isDef());
-      this.p.offFN?.(e, !!input.p.off);
-    }));
+  constructor(p: iForm | (Input | falsy)[], inputs?: Input[]) {
+    super(p as any, inputs as any);
     this.errDiv = this.p.errorDiv || errorMessage();
     if (this.p.outline == null)
       this.p.outline = $.oform;
+    this.inputs.forEach(this.addInput, this);
+    // this.p.labelSz ||= 40;
+    // this.on('input', (input: Input) => {
+    //   let e = input.field(this).attr("edited", !input.isDef());
+    //   (p as iForm).offFN?.(e, !!input.p.off)
+    // });
+  }
+  addInput(input: Input) {
+    input.form = this;
+    input.onset(["value", "off"], () => {
+      input.visited && this.setErrors(input.name, input.invalid(input.value));
+      let e = input.field(this).attr("edited", !input.isDef());
+      this.p.offFN?.(e, !!input.p.off)
+      this.emit("input", input);
+    });
+    input.observeVisited(i => this.setErrors(i.name, i.invalid(i.value)));
   }
   view() {
     let { p: i, inputs: inp } = this;
     return g(i.tag || 'form', "_ form", [
-      fields(inp, this),
+      inp.map(i => i.field(this)),
       this.errDiv
     ]);
   }
@@ -308,31 +311,25 @@ export interface Field {
   tip?: any;
   off?: bool;
 }
-export function field(bd: One, i: Field, form?: Form) {
-  let t = div(def(form?.p.outline, i.outline) ? "oi" : "ii", [
-    g('label', "hd", [
+export function field(bd: One, i: Field, form?: Form, sz = form?.p?.labelSz) {
+  let o = def(form?.p.outline, i.outline), t = div("_ " + (o ? "oi" : "ii"), [
+    (!o || i.text) && g('label', "hd", [
       i.text,
       i.tip && tip(icon(icons.info), i.tip)
-    ]).attr({ for: i.name }), bd = g(bd, "bd"),
+    ]).css("width", `${sz}%`).attr({ for: i.name }),
+    bd = g(bd, "bd").css("width", `${100 - sz}%`),
     !!i.req && g('span', "req", '*'),
   ]);
   if (i.off)
     form?.p.offFN?.(bd, true);
   return t;
 }
-export function fields(inputs: Input[], form?: Form): One[];
-export function fields(inputs: Input[], form?: Form) {
-  return inputs.map(input =>
-    input.field ?
-      input.field(form) :
-      field(input, input.p, form));
-}
 
-export function fieldGroup(title: Label, inputs: Input[], form?: Form) {
+export function fieldGroup(title: Label, inputs: Input[], form?: Form, sz?: int) {
   return g("fieldset", "_ formg", [
     //TODO: remove sub element in label
     g("legend", 0, label(title)),
-    fields(inputs, form)
+    inputs.map(i => i.field(form, sz))
   ]);
 }
 export function expand(form: Form, ...main: str[]) {
@@ -389,14 +386,12 @@ export function value(e: HTMLFormElement) {
 }
 export interface iInput<V = unknown> extends Field {
   //tp: Key;
-  /**place holder */
-  ph?: str;
   value?: V;
   def?: V;
+  submit?(data: Dic);
   // side?: bool;
 }
 export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev extends Dic<any[]> = {}> extends Component<P, Ev> {
-  form: FormBase;
   constructor(p: P) {
     super(p);
     if (isU(p.text)) p.text = def(w[p.name], up(p.name));
@@ -433,28 +428,37 @@ export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev ext
     g(this).c(Color.error, state);
     return this;
   }
-  get invalid() {
-    let e = this.p.off ? [] : this.validate(this.value);
-    return l(e) ? e : null;
+  invalid(value: V, omit?: bool, focus?: bool) {
+    if (this.p.off) return null;
+    let v = this.validate(value, omit, focus);
+    return l(v) ? v : null;
   }
+  validate(value: V, omit?: bool, focus?: bool): Error[]
   validate(value: V): Error[] {
-    let
-      i = this.p,
-      errs: Error[] = [];
-
-    if (i.req && this.isNull(value))
-      errs.push(req());
-
-    return errs;
+    return (this.p.req && this.isNull(value)) ? [req()] : [];
   }
-  field?(form?: Form): One;
+  #f: G;
+  field(form?: Form, sz?: int) {
+    return this.#f ||= field(this, this.p, form, sz);
+    //     export function fields(inputs: Input[], form?: Form): One[];
+    // export function fields(inputs: Input[], form?: Form) {
+    //   return inputs.map(input =>
+    //     input.field ?
+    //       input.field(form) :
+    //       field(input, input.p, form));
+    // }
+  }
   submit(this: this, data: Dic, edited?: bool, req?: bool): any//Task<void>
   submit(data: Dic) {
-    let { name: k, value } = this.p;
-    data[k] = value;
+    let { name, value, submit } = this.p;
+    if (submit) submit(data);
+    else data[name] = value;
   }
   /**null value used for clear method */
   get null(): V { return null; }
+}
+export interface Input<V, P extends iInput<V>, Ev extends Dic<any[]>> {
+  form?: FormBase;
 }
 // function inputBind<I, Inp extends InputElement>(e: E<I>, input: S<Inp>, prop: keyof I, field: keyof Inp = 'value') {
 //   e.bind(input, () => input.e[field as str] = e.i[prop], prop);
@@ -463,6 +467,7 @@ export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev ext
 //     e.set(prop, v === '' || (typeof v === 'number' && isNaN(v)) ? null : v);
 //   });;
 // }
+
 //------------TEXT------------------------
 export interface iTextIn extends iInput<str> {
   //tp: FT.text;
@@ -470,6 +475,8 @@ export interface iTextIn extends iInput<str> {
   input?: TextInputTp | "ta";
   min?: int;
   max?: int;
+  /**place holder */
+  ph?: str;
 }
 export class TextIn extends Input<str, iTextIn, { input: [str] }> {
   view() {
@@ -499,20 +506,19 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
     return this.bind(r, () => r.e.value = i.value || '', "value");
   }
   validate(value: string) {
-    var
-      i = this.p,
-      errs: Error[] = [];
+    let p = this.p;
+    let errs: Error[] = [];
 
     if (value) {
-      if (i.pattern && !(<RegExp>i.pattern).test(value))
+      if (p.pattern && !(<RegExp>p.pattern).test(value))
         errs.push(error(ErrorType.invalidFormat, w.invalidFmt));
 
-      if (i.max && value.length > i.max)
-        errs.push(error(ErrorType.textTooLong, "", { max: i.max }));
-      if (i.min && value.length < i.min)
-        errs.push(error(ErrorType.textTooShort, "", { min: i.min }));
+      if (p.max && value.length > p.max)
+        errs.push(error(ErrorType.textTooLong, "", { max: p.max }));
+      if (p.min && value.length < p.min)
+        errs.push(error(ErrorType.textTooShort, "", { min: p.min }));
 
-    } else if (i.req)
+    } else if (p.req)
       errs.push(req());
 
     return errs;
@@ -522,20 +528,21 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
 export const textIn = (k: str, req?: bool, input?: TextInputTp | "ta") =>
   new TextIn({ name: k, req, input });
 //------------NUMBER------------------------
-export interface NumberFormat {
+export interface NumberFmt {
   min?: int;
   max?: int;
   /**open min */
   omin?: int;
   /**open max */
   omax?: int;
-  format?: str;
   integer?: bool;
 }
-export type iNumbIn = iInput<int> & NumberFormat & {
+export type iNumbIn = iInput<int> & NumberFmt & {
   //tp: FT.number,
   unsigned?: bool;
   unit?: str;
+  /**place holder */
+  ph?: str;
 };
 export class NumbIn extends Input<float, iNumbIn> {
   view() {
@@ -572,17 +579,17 @@ export class NumbIn extends Input<float, iNumbIn> {
 }
 export const numbIn = (k: str, req?: bool, text?: str, unit?: str) =>
   new NumbIn({ name: k, req, text, unit });
-export function validateNumber(i: NumberFormat & iInput<int>, value: int) {
+export function validateNumber(p: NumberFmt & iInput<int>, value: int) {
   let errs: Error[] = [];
   if (value == null) {
-    if (i.req)
+    if (p.req)
       errs.push(req());
   } else {
-    if (i.integer && Math.floor(value) != value)
+    if (p.integer && Math.floor(value) != value)
       errs.push(error(ErrorType.isDecimal));
     //if (i.unsigned && value < 0)
     //    errs.push({ type: form.ErrorType.isNegative, key });
-    let { min, max, omin, omax } = i;
+    let { min, max, omin, omax } = p;
 
     if ((max != null) && value > max)
       errs.push(error(ErrorType.numberTooBig, "", { max }));
@@ -610,6 +617,8 @@ export interface iCheckIn extends iInput<bool> {
   //tp: FT.checkbox,
   fmt?: CBFmt;
   clear?: bool;
+  /**place holder */
+  ph?: str;
 }
 export class CheckIn extends Input<bool, iCheckIn>  {
   view() {
@@ -668,6 +677,8 @@ export class CheckIn extends Input<bool, iCheckIn>  {
 export interface iTimeIn extends iInput<str> {
   min?: str | int;
   max?: str | int;
+  /**place holder */
+  ph?: str;
 }
 export class TimeIn extends Input<str, iTimeIn> {
   view() {
@@ -699,6 +710,15 @@ export class DateIn extends Input<str, iTimeIn> {
   }
   get def() {
     return this.p.def == "now" ? new Date().toISOString().slice(0, 10) : null;
+  }
+  fill(src: Dic<any>, setAsDefault?: boolean): void {
+    let k = this.p.name;
+    if (k in src) {
+      let v = src[k];
+      this.value = v ? new Date(v).toISOString().slice(0, 10) : null;
+      if (setAsDefault)
+        this.set("def", v)
+    }
   }
 }
 
@@ -801,7 +821,7 @@ export class MobSelectIn<T = Dic, K extends keyof T = any> extends Input<Key, iM
 }
 //------------ RADIO ------------------------
 
-export type RadioOption = [key: Key, text?: str, icon?: Icon];
+export type RadioOption = [key: Key, text?: any, icon?: Icon];
 export interface iRadioIn extends iInput<Key> {
   //tp: FT.radio,
   options?: (RadioOption | str)[];
@@ -835,7 +855,6 @@ export class RadioIn extends Input<Key, iRadioIn>{
         input.checked = input.value == i.value;
       });
     }, 'value').css('position', 'relative');
-
   }
 }
 //------------ password ------------------------
@@ -847,6 +866,8 @@ interface iPWIn extends iInput<str> {
   capitalCase?: int;
   lowerCase?: int;
   spacialDigit?: int;
+  /**place holder */
+  ph?: str;
 }
 /**password input */
 export class PWIn extends Input<str, iPWIn> {
@@ -874,12 +895,14 @@ export class PWIn extends Input<str, iPWIn> {
 export interface iCustomIn<V, O> extends iInput<V> {
   submit?: CustomIn<V, O>["submit"];
   isDef?: CustomIn<V, O>["isDef"];
+  validate?: CustomIn<V, O>["validate"];
 }
 export class CustomIn<V = any, O = {}> extends Input<V> {
-  constructor(i: iCustomIn<V, O>, public view: (this: CustomIn<V> & O) => One) {
+  constructor(i: iCustomIn<V, O>, public view?: (this: CustomIn<V> & O) => One) {
     super(i);
     i.submit && (this.submit = i.submit);
     i.isDef && (this.isDef = i.isDef);
+    i.validate && (this.validate = i.validate);
   }
 }
 // export interface iOutputIn extends iInput{
@@ -895,13 +918,30 @@ export class CustomIn<V = any, O = {}> extends Input<V> {
 //------------
 interface iCompostIn extends iInput<Dic> {
   sub?: bool | "array";
+  bots?: Bot<CompostIn>[];
+  labelSz?: int;
 }
-export class CompostIn extends Input<Dic, iCompostIn> {
+export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
+  #f: FormBase;
+  get form() { return this.#f }
+  set form(v) {
+    this.#f = v;
+    for (let i of this.inputs)
+      i.form = v;
+  }
   constructor(i: iCompostIn, inputs?: Input<any>[]) {
     i.value = null;
     super(i);
-    for (let input of this.inputs = inputs)
-      input.onset(["value", "off"], () => this.set(["value"]));
+    for (let input of this.inputs = filter(inputs))
+      input.onset(["value", "off"], () => {
+        // input.visited && this.setErrors(input.name, input.invalid);
+        let e = g(input).attr("edited", !input.isDef());
+        this.form.p.offFN?.(e, !!input.p.off)
+        this.set(["value"]);
+      });
+    // setTimeout(() =>
+    // this.p.offFN?.(input.field(this).attr("edited", !input.isDef()), !!input.p.off))
+    checkBot(this, i.bots);
   }
   inputs?: Input<any>[];
   get def() { return arrayToDic(this.inputs, v => [v.name, v.def]) }
@@ -922,10 +962,17 @@ export class CompostIn extends Input<Dic, iCompostIn> {
     for (let i of this.inputs)
       i.fill(value, setAsDefault);
   }
-  validate(v: Dic) {
+  validate(v: Dic, omit: bool, focus?: bool) {
     let err: Error[] = [];
-    for (let i of this.inputs)
-      err.push(...i.validate(v[i.name]));
+    for (let input of this.inputs) {
+      let inv = input.invalid(input.value, omit, focus);
+      inv && err.push(...inv);
+
+      if (inv && focus) {
+        input.focus();
+        focus = false;
+      }
+    }
     return err;
   }
   focus() {
@@ -936,7 +983,7 @@ export class CompostIn extends Input<Dic, iCompostIn> {
     let { inputs, p: i } = this;
     if (i.sub) data = data[i.name] = i.sub == "array" ? [] : {};
     for (let inp of edited && !i.sub ? inputs.filter(i => (req && i.p.req) || !i.isDef()) : inputs)
-      inp.submit(data, edited, req);
+      inp.p.off || inp.submit(data, edited, req);
   }
   input(key: str) {
     for (let input of this.inputs)
@@ -953,7 +1000,7 @@ export class CompostIn extends Input<Dic, iCompostIn> {
 export class GroupIn extends CompostIn {
   view(): G { throw 1; }
   field(form?: Form) {
-    return this.$ ||= fieldGroup(this.p.text, this.inputs, form);
+    return this.$ ||= fieldGroup(this.p.text, this.inputs, form, this.p.labelSz);
   }
   observeVisited(handler: (input: Input) => any) {
     for (let i of this.inputs)

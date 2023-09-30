@@ -1,6 +1,6 @@
-import { Component, G, HSElement, HTMLTag, One, Render, active, clearEvent, delay, div, g, get, isE, onfocusout, svg, toSVG, wrap } from "galho";
+import { Component, Content, G, HSElement, HTMLTag, One, Render, active, clearEvent, delay, div, g, get, getAll, isE, onfocusout, svg, toSVG, wrap } from "galho";
 import { L, orray, range } from "galho/orray.js";
-import { Dic, Key, Task, bool, call, def, falsy, float, int, is, isA, isF, isN, isP, isS, isU, l, str, sub, t } from "galho/util.js";
+import { Dic, Key, Task, bool, call, def, falsy, float, int, is, isA, isF, isN, isP, isS, isU, l, str, sub, t, unk } from "galho/util.js";
 import { anim } from "./util.js";
 
 /*
@@ -40,8 +40,8 @@ declare global {
   }
   interface Icons {
     /**dropdown */
-    dd: Icon; 
-    info: Icon;  minus: Icon;
+    dd: Icon;
+    info: Icon; minus: Icon;
     close: Icon; cancel: Icon;
     search: Icon; upload: Icon;
     up: Icon; down: Icon;
@@ -55,23 +55,13 @@ export const enum C {
   disabled = "ds",
   //--components
   //----basic
-  icon = "icon",
-  button = "bt",
   //----composite
-  column = "col",
-  row = "row",
-  pagging = "pag",
-  form = "f",
   message = "msg",
   buttons = "bs",
   heading = "heading",
   accordion = "ac",
-  dropdown = "dd",
   close = "cl",
   tab = "ta",
-  menu = "menu",
-  menubar = "bar",
-  input = "in",
   link = "lk",
   loading = "ld",
   lever = "lv",
@@ -87,10 +77,6 @@ export const enum C {
   switch = "sw",
   //-------------------generic
   group = "g",
-  item = "i",
-  head = "hd",
-  body = "bd",
-  foot = "ft",
   side = "sd",
   main = "ma",
   separator = "div",
@@ -113,7 +99,7 @@ export const icons: Partial<Icons> = {}
 export const $: Settings = {
   // c: "_",
   delay: 500,
-  rem: 14
+  rem: 16
 }
 /**words */
 export const w: Partial<Words> = {}
@@ -145,16 +131,7 @@ export const enum OriOld {
   v = 'v'
 }
 export type Ori = "v" | "h";
-export const enum Size {
-  xxl = "xxl",
-  xl = "xl",
-  l = "l",
-  normal = "n",
-  n = "n",
-  s = "s",
-  xs = "xs",
-  xxs = "xxs",
-}
+export type Size = "xxl" | "xl" | "l" | "n" | "n" | "s" | "xs" | "xxs";
 export const enum Color {
   error = "_e",
   main = "_i",
@@ -185,9 +162,8 @@ export function icon(d: Icon, s?: Size) {
 }
 
 export type Label = [icon: Icon, text: any] | One | str | false | "";
-export function label(v: Label, cls?: str) {
-  return v && ((isS(v) ? div(0, v) : isA(v) ? div(0, [icon(v[0]), v[1]]) : g(v)))?.c(cls);
-}
+export const label = (v: Label, cls?: str) =>
+  v && ((isS(v) ? div(0, v) : isA(v) ? div([icon(v[0]), v[1]]) : g(v)))?.c(cls);
 
 export type click = ((this: HTMLButtonElement, e: MouseEvent) => any) | falsy;
 
@@ -201,7 +177,7 @@ export const link = (text: Child, href?: str) => g("a", ["_", C.link], text).p("
 export function ibt(i: Icon, text: Child, click?: click, type: ButtonType = "button") {
   return g("button", "_ bt", [icon(i), text])
     .p("type", type)
-    .c(C.icon, !text).on("click", click);
+    .c("icon", !text).on("click", click);
 }
 
 export function positive(i: Icon, text: Child, click?: click, type?: ButtonType) {
@@ -243,9 +219,9 @@ export function logo(v: str | Icon) {
       switch (v[0]) {
         case ".":
         case "/":
-          return img(v).c(C.icon);
+          return img(v).c("icon");
         case "<":
-          return toSVG(v).c(C.icon);
+          return toSVG(v).c("icon");
       }
     } else return icon(v);
 }
@@ -279,10 +255,11 @@ export function hoverBox({ x, y, right: r, bottom: b }: FluidRect, e: G, [o, sid
 }
 
 export type MenuItems = Task<Array<G<HTMLTableRowElement> | HTMLTableRowElement | MenuItems>>;
-export function menu(items?: any) { return div("_ menu", g("table", 0, items)); }
+export type MenuContent = Content<(bool | falsy | One<HTMLTableRowElement>)[]>;
+export function menu(items?: MenuContent) { return div("_ menu", g("table", 0, items)); }
 
 /**menu item */
-export function menuitem(i: Icon, text: any, action?: (e: MouseEvent) => void, side?: any, disabled?: bool) {
+export function menuitem(i: Icon, text: any, action?: (e: MouseEvent) => any, side?: any, disabled?: bool) {
   return g("tr", `i ${disabled ? C.disabled : ""}`, [
     g("td", 0, icon(i)),
     g("td", 0, text),
@@ -316,7 +293,7 @@ export const submenu = (i: Icon, text: any, items: MenuItems) => call(g("tr", "i
   let mn: G;
   e.on("click", () => {
     e.tcls(C.on).is('.' + C.on) ?
-      hoverBox(e.rect, (mn ||= g("table", C.menu, items)).addTo(e), "h") :
+      hoverBox(e.rect, (mn ||= g("table", "menu", items)).addTo(e), "h") :
       mn.remove();
   })
 });
@@ -385,7 +362,7 @@ export function wait(type?: WaitType | WaitCB, body?: WaitCB): any {
 
 
 //todo: colocar no galhui
-export function loading(sz = Size.n) { return div("_ blank", div("_ load " + sz)); }
+export function loading(sz = "n") { return div("_ blank", div("_ load " + sz)); }
 export function busy<T>(cb: () => Task<T>, sz?: Size, time?: int): G | T;
 export function busy(container: G, cb: (close: () => void) => any, sz?: Size, time?: int): Promise<void>
 export function busy(arg0: any, arg1?: any, arg2?: any, arg3?: any) {
@@ -444,7 +421,7 @@ export const checkbox = (label: any, input?: (checked: bool) => void, checked?: 
 export function search(input?: (value: str) => any) {
   let t = g("input", { type: "search", placeholder: w.search }), i = icon(icons.search);
   input && delay(t, "input", $.delay, () => input(t.e.value));
-  return (i ? div(0, [t, i]) : t).c("_ in");
+  return (i ? div([t, i]) : t).c("_ in");
 }
 
 
@@ -503,8 +480,8 @@ const lever = (name: str) => g("input", { type: "checkbox", name }).c(C.lever);
 //#region output
 
 export const output = (...content) => g("span", "_ out", content);
-export const keyVal = (key: any, val: any, c?: Color, sz?: Size) =>
-  g("span", `_ out ${c || ""} ${sz || ""}`, [key, ": ", val]);
+export const keyVal = (key: any, val: any, c?: Color | falsy, tag: HTMLTag = "span") =>
+  g(tag, `_ out ${c || ""}`, [key, ": ", val]);
 
 export const message = (c?: Color, data?) => div("_ msg", data).c(c);
 export const errorMessage = (data?) => message(Color.error, data);
@@ -516,33 +493,40 @@ export type Modal = G<HTMLDialogElement>;
 
 /**open modal 
  * @returns modal container, to close modal only remove the modal container */
-export function modal(modal: IModal): Modal
-export function modal(hd: Label, bd: any, actions?: (close: () => void, modal: G) => any, sz?: Size, blur?: bool): Modal;
-export function modal(modal: IModal | Label, bd?: any, actions?: (close: () => void, modal: G) => any, sz?: Size, blur = true) {
-  if (isU(bd))
-    modal = g(modal as IModal, "_ modal");
-  else {
-    let hd = modal;
-    modal = g("dialog", "_ modal " + (sz || ""));
-    modal.add(g("form", 0, [
+export function modal(hd: Label, bd?: any, actions?: (close: () => void, modal: G) => any, sz?: Size, blur = true) {
+  let content: Modal = g("dialog", "_ modal " + (sz || ""));
+  content
+    .add(g("form", 0, [
       label(hd, "hd"),
       isE(bd) ? bd.c("bd") : bd,
-      actions && div("ft", actions(() => (modal as Modal).remove(), modal))
-    ]));
-  }
-  (modal as Modal).addTo(body).e.showModal();
-  return modal as Modal;
+      actions && div("ft", actions(() => (content as Modal).remove(), content))
+    ]))
+    .addTo(body)
+    .e.showModal();
+  return content as Modal;
   // let area = div("_ blank", ).addTo(body);
   // modal.p("tabIndex", 0).focus();
   // blur && mdOnBlur(area);
   // return area;
+}
+export function tabModal(initial: int, items: TabItem[], actions: (close: () => void, modal: G) => any = (cl) => confirm(cl), sz = "xl") {
+  let form = g("form", "_ tab");
+  let content = g("dialog", "_ modal " + (sz || ""), form);
+  let hd = div("_ main bar", items.map(([h, b]) => call(label(h, "i"), e => e.on("click", () => {
+    form.set([hd, b, div("ft", actions(() => (content as Modal).remove(), content))]);
+    hd.childs().c("on", false);
+    e.c("on");
+  }))));
+  content.addTo(body).e.showModal();
+  hd.child<HTMLDivElement>(initial).e.click()
+  return content;
 }
 export const showDialog = (e: Modal) => e.addTo(body.c("dialog-on")).call("showModal").on("close", () => {
   e.remove();
   body.c("dialog-on", false);
 });
 /**modal with ok and cancel buttons */
-export function mdOkCancel(body: any, sz = Size.xs, valid = () => true) {
+export function mdOkCancel(body: any, sz: Size = "xs", valid = () => true) {
   return new Promise<bool>(ok => modal(null, wrap(body), cl => [
     confirm(() => { if (valid) { cl(); ok(true) } }).css({ width: "50%" }),
     cancel(() => { cl(); ok(false) }).css({ width: "50%" })
@@ -550,25 +534,25 @@ export function mdOkCancel(body: any, sz = Size.xs, valid = () => true) {
 }
 
 /**modal with yes/no buttons */
-export function mdYN(body: any, sz = Size.xs, valid = () => true) {
+export function mdYN(body: any, sz: Size = "xs", valid = () => true) {
   return new Promise<bool>(ok => modal(null, wrap(body), cl => [
     positive(null, w.yes, () => { if (valid) { cl(); ok(true) } }).css({ width: "50%" }),
     negative(null, w.no, () => { cl(); ok(false) }).css({ width: "50%" })
   ], sz));
 }
 /**modal with ok */
-export function mdOk(body: any, sz = Size.xs) {
+export function mdOk(body: any, sz: Size = "xs") {
   return new Promise<void>(ok => modal(null, wrap(body),
     cl => confirm(() => { cl(); ok() }),
     sz));
 }
 /**md with error style and ok button */
-export function mdError(body: any, sz = Size.xs) {
+export function mdError(body: any, sz: Size = "xs") {
   return new Promise<void>(ok => modal(null, wrap(body),
     cl => confirm(() => { cl(); ok() }),
     sz).c(Color.error));
 }
-const topLayer = () => get("dialog") || body;
+const topLayer = () => g(getAll(":modal").at(-1)) || body;
 export function popup(refArea: () => FluidRect, div: G, align: FluidAlign) {
   return anim(() => topLayer().contains(div) && hoverBox(refArea(), div, align));
 }
@@ -594,7 +578,7 @@ export function ctxmenu(e: MouseEvent, data: MenuItems, align: FluidAlign = "ve"
   tl.on("wheel", wheelHandler, { passive: false });
   popup(() => new DOMRect(e.clientX, e.clientY, 0, 0), ctx, align);
 }
-export function tip<T extends HSElement>(root: One<T>, div: any, align?: FluidAlign): G<T>
+export function tip<T extends HSElement>(root: One<T>, content: any, align?: FluidAlign): G<T>
 export function tip<T extends HSElement>(root: G<T>, tip: G, align: FluidAlign = "v") {
   if (isP(tip)) {
     let t = tip;
@@ -757,21 +741,21 @@ export async function setValue(me: SingleSelectBase, label: G) {
     }
   }
 }
-
-export const dropdown = (label: any, items: any, align: FluidAlign = "ve") =>
+type MnItems = MenuContent | ((close: () => any) => G);
+export const dropdown = (label: any, items: MnItems, align: FluidAlign = "ve") =>
   call(div("_ dd", label).p("tabIndex", 0), e => {
-    function cl() { mn.remove(); e.c("on", false); }
-    let mn = is<G>(items, G) ? items : null;
-    onfocusout(e, cl);
+    function cl() { mn?.remove(); e.c("on", false); }
+    let mn: G// = ;
+    // onfocusout(e, cl);
     e.on("click", () => {
       if (mn?.parent) cl();
       else {
-        (mn ||= menu(items)).addTo(e.c("on"));
+        (mn ||= isF(items) ? items(cl) as G : menu(items)).addTo(e.c("on"));
         popup(() => e.rect, mn, align);
       }
     });
   });
-export const idropdown = (label: any, items: any, align?: FluidAlign) =>
+export const idropdown = (label: any, items: MnItems, align?: FluidAlign) =>
   dropdown([label, icon(icons.dd)], items, align);
 
 //#region layouts
@@ -1140,7 +1124,7 @@ class MobImgSelector extends Component<IMobImgSelector, { input: [str] }>{
   view() {
     let
       i = this.p,
-      bd = div(C.body),
+      bd = div("bd"),
       clear: G,
       emitInput = () => this.set("value", input.files[0]).emit("input", input.value),
       input: HTMLInputElement = g("input", { type: 'file', accept: 'image/*' }).on("input", emitInput).e;
@@ -1154,7 +1138,7 @@ class MobImgSelector extends Component<IMobImgSelector, { input: [str] }>{
       }
       else {
         clear && clear.remove();
-        bd.set(icon(i.ph, Size.xl));
+        bd.set(icon(i.ph, "xl"));
       }
 
     }, "value")
@@ -1171,34 +1155,34 @@ export interface IAccordion {
   icon?: bool, single?: bool, def?: int
 }
 export const hidden = (head: any, body: any, open?: bool) => div(`_ ${C.accordion}`, [
-  head = div(C.head, [
+  head = div("hd", [
     icon("menuR"),
     head
   ]).c(C.on, !!open).on("click", () => (<G>head).tcls(C.on)),
-  wrap(body, C.body)
+  wrap(body, "bd")
 ]);
 export function accordion(items: AccordionItem[], i: IAccordion = {}) {
   return orray(items).bind(div("_ accordion"), ([hd, bd], j, p) => {
     p.place(j * 2, [
-      hd = div(C.head, [
+      hd = div("hd", [
         t(i.icon) && icon("menuR"),
         hd
       ]).c(C.on, i.def == j).on("click", () => {
         if ((hd as G).is('.' + C.on))
           (<G>hd).c(C.on, false);
         else {
-          t(i.single) && p.childs("." + C.head).c(C.on, false);
+          t(i.single) && p.childs("." + "hd").c(C.on, false);
           (<G>hd).c(C.on);
         }
       }),
-      wrap(bd, C.body)
+      wrap(bd, "bd")
     ]);
   });
 }
-export type TabItem = [hd: any, bd: any];
-export function tab(initial: int, ...items: TabItem[]) {
+export type TabItem = [hd: Label, bd: any];
+export function tab(initial: int, items: TabItem[]) {
   let
-    hd = div("_ bar", items.map(([h, b]) => call(div("i", h), e => e.on("click", () => {
+    hd = div("_ bar", items.map(([h, b]) => call(label(h, "i"), e => e.on("click", () => {
       d.set([hd, b]);
       hd.childs().c("on", false);
       e.c("on");
@@ -1216,39 +1200,39 @@ export type SShowItem = [src: str, title?: any, alt?: str];
 export interface iSlideshow {
   // items?: SShowItem[];
   // index?: int;
-  click?:(src:str)=>any;
+  click?: (src: str) => any;
 }
 
-export function slideshow(i: iSlideshow, items: SShowItem[], index=0){
-  let title = div("title"),bd=g("img");
-  let p = g("button", "p").html('&#10094;').on("click", () => set(index-1));
-  let n = g("button", "n").html('&#10095;').on("click", () => set(index+1));
-  let indices=items.map((_,i)=>g("a").on("click",()=>set(i)));
-  let set=(i:int)=>{
-    let t=items[i];
-    if(t){
-      bd.p({ src:t[0], alt:t[2]});
+export function slideshow(i: iSlideshow, items: SShowItem[], index = 0) {
+  let title = div("title"), bd = g("img");
+  let p = g("button", "p").html('&#10094;').on("click", () => set(index - 1));
+  let n = g("button", "n").html('&#10095;').on("click", () => set(index + 1));
+  let indices = items.map((_, i) => g("a").on("click", () => set(i)));
+  let set = (i: int) => {
+    let t = items[i];
+    if (t) {
+      bd.p({ src: t[0], alt: t[2] });
       title.set(t[1]);
-      p.css("visibility",i?"visible":"hidden");
-      n.css("visibility",i+1<l(items)?"visible":"hidden");
-      indices[index].c("on",false);
-      indices[index=i].c("on");
+      p.css("visibility", i ? "visible" : "hidden");
+      n.css("visibility", i + 1 < l(items) ? "visible" : "hidden");
+      indices[index].c("on", false);
+      indices[index = i].c("on");
     }
   };
   set(index);
-  if(i.click)
-    bd.on("click",()=>i.click(items[index][0]));
+  if (i.click)
+    bd.on("click", () => i.click(items[index][0]));
   return div("_ sshow", [
     p, bd, n, title,
-    div("indices",indices) 
+    div("indices", indices)
   ]);
   // div("bd",items.map(i => g("img", { src: i[0], alt: i[2] })))
 }
-export const sshowModal=(src:str)=>
-showDialog(g("dialog","_ sshow-md",g("form",0,[
-  g("button",C.close,icon(icons.close)).p("formMethod","dialog"),
-  g("img",{src})
-])));
+export const sshowModal = (src: str) =>
+  showDialog(g("dialog", "_ sshow-md", g("form", 0, [
+    g("button", C.close, icon(icons.close)).p("formMethod", "dialog"),
+    g("img", { src })
+  ])));
 export const sshowTitle = (main: str, info?: str) =>
   [main, div("info", info)];
 //#endregion
@@ -1305,7 +1289,7 @@ export const sshowTitle = (main: str, info?: str) =>
 //   view(): S {
 //     let
 //       i = this.i,
-//       lb = g(i.labelE || 'div').c(C.body);
+//       lb = g(i.labelE || 'div').c("bd");
 
 //     this.label = i.labelParent || lb // model.labelItem || label;
 
