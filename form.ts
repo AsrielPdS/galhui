@@ -1,6 +1,6 @@
 import { Component, G, One, Render, clearEvent, div, g, m, onfocusout } from "galho";
 import { Alias, L, extend } from "galho/orray.js";
-import { Dic, Key, Primitive, Task, assign, bool, byKey, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
+import { Dic, Key, Primitive, Task, assign, bool, byKey, call, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
 import { $, C, Color, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
 import { anyProp, arrayToDic, up } from "./util.js";
 
@@ -857,8 +857,30 @@ export class RadioIn extends Input<Key, iRadioIn>{
     }, 'value').css('position', 'relative');
   }
 }
-//------------ password ------------------------
 
+export interface iChecklistIn extends iInput<Key[]> {
+  options?: (RadioOption | str)[];
+}
+export class ChecklistIn extends Input<Key[], iChecklistIn>{
+  view() {
+    let p = this.p, v = p.value;
+    return g("span", "_ col", p.options.map<RadioOption>(v => isS(v) ? [v] : v).map(([key, text, ico]) => g('label', C.checkbox, [
+      call(g("input", {
+        type: 'checkbox',
+        name: `${p.name}_${key}`,
+        checked: v.includes(key),
+      }), i => i.on("input", () => {
+        i.e.checked ? v.push(key) : v.splice(v.indexOf(key), 1);
+        this.set(['value'])
+      })),
+      ico && icon(ico),
+      text || key
+    ])));
+  }
+  get def() { return []; }
+}
+
+//------------ password ------------------------
 interface iPWIn extends iInput<str> {
   //tp: FT.password,
   /**auto complete */
