@@ -148,32 +148,6 @@ type Font = float | {
   /**italic */
   i?: bool | Property.FontStyle;
 }
-interface MenuStyle {
-  /**items */
-  i: Stateble;
-  /**height in px */
-  h?: float;
-  /** background */
-  bg?: Property.Background;
-}
-interface TableStyle extends TBlock {
-  /**rows */
-  r: Stateble;
-  h: {
-
-    /**height in px */
-    h?: float;
-    /** background */
-    bg?: Property.Background;
-  }
-}
-/**background foreground */
-interface BF {
-  /**background */
-  bg?: Property.Background;
-  /** (foreground)text color*/
-  fg?: Property.Color;
-}
 interface Stateble extends TBlock {
   /** active*/
   on?: TBlock;

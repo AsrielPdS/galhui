@@ -74,12 +74,12 @@ export interface iFormBase {
   readOnly?: bool;
   hidden?: Dic;
   // meta?: Dic;
-  bots?: Bot<FormBase>[];
+  bots?: Bot<any>[];
   /**called when input enter/exit off */
   offFN?: (e: G, isOff: bool) => void;
 }
 /** */
-export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = FormEvents> extends Component<T, Ev> implements FieldGroup {
+export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> extends Component<T, Ev> implements FieldGroup {
   inputs: Input[];
   constructor(i: T, inputs: (Input | falsy)[]);
   constructor(inputs: (Input | falsy)[]);
@@ -196,7 +196,7 @@ export class FormBase<T extends iFormBase = iFormBase, Ev extends FormEvents = F
     return r;
   }
 }
-async function dataAsync(form: FormBase, edited?: bool, req?: bool) {
+export async function dataAsync(form: FormBase, edited?: bool, req?: bool) {
   let inputs = form.inputs;
 
   let r: Dic = assign({}, form.p.hidden);
@@ -764,7 +764,7 @@ export type iSelectIn<T extends Dic, K extends keyof T = any> = iInput<T[K]> & i
   fluid?: boolean;
 }
 export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Input<T[K], iSelectIn<T, K>, { open: [bool] }> implements SingleSelectBase<K, T> {
-  options: L<T, K>;
+  options: L<T, T[K]>;
   get active() { return byKey<T, K>(this.options, this.p.value, this.options.key); }
   constructor(i: iSelectIn<T, K>, options?: Alias<T, T[K]>, key: K = <any>0) {
     super(i);
@@ -984,7 +984,7 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
     for (let i of this.inputs)
       i.fill(value, setAsDefault);
   }
-  validate(v: Dic, omit: bool, focus?: bool) {
+  validate(_v: Dic, omit: bool, focus?: bool) {
     let err: Error[] = [];
     for (let input of this.inputs) {
       let inv = input.invalid(input.value, omit, focus);

@@ -1,20 +1,27 @@
 {
   "name": "galhui",
-  "version": "1.1.17",
+  "version": "1.1.18",
   "description": "",
   "main": "galhui.js",
   "scripts": {},
-  "keywords": ["galho","css","front-end","web"],
+  "keywords": [
+    "galho",
+    "css",
+    "front-end",
+    "web"
+  ],
   "author": "",
   "license": "ISC",
   "sideEffects": false,
-  "type":"module",
+  "type": "module",
   "dependencies": {
     "csstype": "^3.0.11",
-    "galho": "",
-    "chroma-js":""
+    "galho": ""
+  },
+  "optionalDependencies": {
+    "chroma-js": ""
   },
   "devDependencies": {
-    "@types/chroma-js":"^2.4.0"
+    "@types/chroma-js": "^2.4.0"
   }
 }

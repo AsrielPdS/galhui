@@ -98,10 +98,10 @@ export const icon = (): Styles => ({
     }
   }
 });
-/**black or white */
-function borw(color: str, v1: str, v2: str) {
-  return chroma.contrast(color, v1) >= 4.5 ? v1 : v2;
-}
+// /**black or white */
+// function borw(color: str, v1: str, v2: str) {
+//   return chroma.contrast(color, v1) >= 4.5 ? v1 : v2;
+// }
 function state(v: LinkState): Style {
   return {
     background: v.n,
@@ -960,7 +960,7 @@ export function pcForm(): Styles {
     }
   }
 }
-export function tab({ menu }: Context): Styles {
+export function tab(): Styles {
   return {
     "._.tab": {
       ...col(),
@@ -984,72 +984,6 @@ export function tab({ menu }: Context): Styles {
         height: `calc(100% - ${opts.menuH}px)`
       }
     }
-  }
-}
-export function mobImgSelector(ctx: Context): Styles {
-  ctx(button);
-  return {
-    "._.img-in": {
-      position: "relative",
-      display: "inline-block",
-      ".cl": {
-        position: "absolute",
-        right: ".4rem",
-        top: ".1rem",
-      },
-      img: {
-        maxWidth: "100%",
-        maxHeight: "100%",
-        margin: "auto",
-        display: "block",
-      },
-      button: {
-        width: "calc(100% - 2em)",
-        height: "calc(100% - 2em)",
-        border: "7px dashed #656565",
-        margin: "1em",
-        opacity: .7,
-        ":hover": {
-          background: "#1113"
-        }
-      }
-    },
-
-    [`._.${C.fileSelector}`]: {
-      input: { display: "none" }
-    },
-    "._.imgsel": {
-      position: "relative",
-      textAlign: "center",
-      width: "12em",
-      margin: "auto",
-      input: {
-        display: "none",
-      },
-      ".bt": {
-        margin: 0,
-        width: "40px",
-        height: "40px",
-        borderRadius: "20px",
-        position: "absolute",
-        right: 0,
-        bottom: 0
-      },
-      ["." + "bd"]: {
-        display: "inline-block",
-        lineHeight: "21em",
-        overflow: "hidden",
-        margin: 0,
-        background: "#fff",
-        color: "#000",
-        height: "12em",
-        width: "12em",
-        borderRadius: "6em",
-        img: { width: "100%" }
-      },
-
-
-    },
   }
 }
 export function accordion(): Styles {
@@ -1212,8 +1146,7 @@ export const mobileStyle = (p: Pallete) =>
     (index)(output)
     (list)(table)
     (stack)(loader)
-    (form)(modal)(tip)
-    (mobImgSelector);
+    (form)(modal)(tip);
 export const pcStyle = (p: Pallete) =>
   core(p)(icon)
     (menu)(button)
@@ -1235,8 +1168,7 @@ export const style = (p: Pallete) =>
     (list)(table)
     (stack)(loader)
     (form)(modal)
-    (pcModal)(tip)
-    (mobImgSelector);
+    (pcModal)(tip);
 
 
 // let main = , accept = ("#2185d0"), error = chroma("#db2828");
@@ -1271,7 +1203,7 @@ export function lightTheme(): Pallete {
     bg: "#fff",
     menu: cstate("#cfd8dc"),//{ n: "#cfd8dc", a: "#9eb6c0" },
     disabled: "#999ea0",
-    list: { n: "#fff", o: "#f6f6f6", h: "#e0f7fa", a: "#afddf1", current: "#03a9f4" },
+    list: { n: "#fff", o: "#f6f6f6", h: "#3b777f", a: "#afddf1", current: "#03a9f4" },
     modal: {
       hd: "#e0f7fa",
       ft: "#e0f7fa",
