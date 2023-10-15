@@ -54,8 +54,9 @@ interface LinkState extends State {
 }
 type ListState = State & {/**odd row*/o: str, current: str };
 export interface Pallete {
+  ph: str;
   error: State;
-  menu: str;
+  menu: State;
   disabled: str;
   /**anchor(link) */
   a: LinkState;
@@ -75,7 +76,6 @@ export type Context = StyleCtx<Pallete>;
 export const enum opts {
   menuH = 2.4,
   tabH = 2.8,
-  error = "rgb(159, 58, 56)",
   ff = "Roboto,sans-serif",
   acentHPad = .4,
   acentVPad = .3,
@@ -193,7 +193,9 @@ export const input = ({ in: { bg, fg, border } }: Context): Styles => ({
       width: "100%",
       flex: "1 1",
       outline: "none",
-      border: "none"
+      border: "none",
+      background: "inherit",
+      color: "inherit"
     },
     ["&." + Color.error]: {
       borderColor: "#f44336",
@@ -233,7 +235,7 @@ export const output = ({ in: { border }, bt, accept: a, error: e }: Context): St
     borderRadius: opts.acentBordRad + "em",
     ...box([.1, .2], [.1, .4]),
     background: bt.n,
-    color: bt.txt,
+    // color: bt.txt,
     display: "inline-block",
     ":empty": { display: "none" },
     // [`&.${Color.accept}`]: state(ctx.accept),
@@ -248,7 +250,7 @@ export const output = ({ in: { border }, bt, accept: a, error: e }: Context): St
   },
   [`._.${C.message}`]: {
     [`&.${Color.error}`]: {
-      ...bfg("rgb(255, 246, 246)", opts.error),
+      ...bfg(chroma(e.n).hex(), e.n),
     },
     ...box([1, 0], [1, 1.5]),
     ":empty": { height: 0, padding: 0, margin: 0 },
@@ -290,7 +292,7 @@ export const menubar = ({ menu }: Context): Styles => ({
     lineHeight: opts.menuH + "em",
     padding: "0 2vw",
     flex: "0 0 auto",
-    background: menu,
+    background: menu.n,
     whiteSpace: "nowrap",
     "&.fill": {
       "*": {
@@ -312,10 +314,10 @@ export const menubar = ({ menu }: Context): Styles => ({
     ".i,.in,.dd": {
       background: "inherit",
       ":hover": {
-        background: "#b3c2c9",
+        background: menu.h,
       },
       ":active,&.on": {
-        background: "#9eb6c0",
+        background: menu.a,
       }
     },
     ".hd": { fontWeight: "bold" },
@@ -332,19 +334,19 @@ export const menubar = ({ menu }: Context): Styles => ({
       padding: 0
     },
     "&.main": {
-      background: "#9eb6c0",
+      background: menu.a,
       height: opts.tabH + "em",
       paddingTop: ".3em",
       ".i:active,.i.on": {
-        background: menu,
+        background: menu.n,
         borderRadius: ".3em .3em 0 0"
       }
     }
   },
 });
-export const menu = ({ menu, disabled }: Context): Styles => ({
+export const menu = ({ menu }: Context): Styles => ({
   "._.menu": {
-    background: menu,
+    background: menu.n,
     outline: "none",
     position: "fixed",
     overflow: "auto",
@@ -420,12 +422,12 @@ export const menu = ({ menu, disabled }: Context): Styles => ({
     },
     // display: "table",  
   },
-  ".menu-c": { background: menu },
+  ".menu-c": { background: menu.n },
 });
 export const tip = ({ menu }: Context): Styles => ({
   "._.tip": {
     position: "fixed",
-    background: menu,
+    background: menu.n,
     padding: ".7em 1em",
     zIndex: zIndex.tip,
     borderRadius: ".5em",
@@ -439,7 +441,7 @@ export const tip = ({ menu }: Context): Styles => ({
 });
 export const menurow = ({ menu }: Context) => ({
   "._.menurow": {
-    background: menu,
+    background: menu.n,
     lineHeight: opts.menuH + "em",
     ".i": {
       padding: "0 2vw",
@@ -448,125 +450,128 @@ export const menurow = ({ menu }: Context) => ({
         background: "#b3c2c9",
       },
       ":active,&.on": {
-        background: "#9eb6c0",
+        background: menu.a,
       }
     }
   },
 });
-export const modal = (ctx: Context): Styles => (ctx(button), {
-  "::backdrop,._.blank": {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100%",
-    height: "100%",
-    background: "#000000d9",
-    zIndex: zIndex.modalArea,
-    overflow: "auto",
-  },
-  "._.modal": {
-    zIndex: zIndex.modal,
-    borderRadius: ".4em",
-    border: "none",
-    padding: 0,
-    ...row(),
-    // width: "calc(100% - 1em)",
-    // height: "calc(100% - 1em)",
-    // margin: ".5em",
-    // position: "relative",
-    textAlign: "start",
-    overflow: "hidden",
-    background: ctx.bg,
-    ["&." + Color.error]: {
-      border: "4px solid #e53935"
-    },
-    ["." + C.close]: {
-      position: "absolute",
-      right: ".4rem",
-      top: ".1rem",
-      fontSize: "14pt",
-    },
-    "&.xl,&.l": {},
-    "&.xs,&.s": {
-      form: {
-        ".bd": { minHeight: "4em" },
-        ".ft": {
-          height: "unset",
-          padding: 0,
-          background: "none"
-        }
-      }
-    },
-    form: {
+export function modal(ctx: Context): Styles {
+  let { modal, bg } = ctx;
+  return (ctx(button), {
+    "::backdrop,._.blank": {
+      position: "fixed",
+      top: 0,
+      left: 0,
       width: "100%",
-      ...col(),
-      padding: ".2em 1em",
+      height: "100%",
+      background: "#000000d9",
+      zIndex: zIndex.modalArea,
+      overflow: "auto",
+    },
+    "._.modal": {
+      zIndex: zIndex.modal,
+      borderRadius: ".4em",
+      border: "none",
+      padding: 0,
+      ...row(),
+      // width: "calc(100% - 1em)",
+      // height: "calc(100% - 1em)",
+      // margin: ".5em",
+      // position: "relative",
+      textAlign: "start",
+      overflow: "hidden",
+      background: bg,
+      ["&." + Color.error]: {
+        border: "4px solid #e53935"
+      },
+      ["." + C.close]: {
+        position: "absolute",
+        right: ".4rem",
+        top: ".1rem",
+        fontSize: "14pt",
+      },
+      "&.xl,&.l": {},
+      "&.xs,&.s": {
+        form: {
+          ".bd": { minHeight: "4em" },
+          ".ft": {
+            height: "unset",
+            padding: 0,
+            background: "none"
+          }
+        }
+      },
+      form: {
+        width: "100%",
+        ...col(),
+        padding: ".2em 1em",
 
+        ".hd": {
+          margin: 0,
+          height: "2.2em",
+          fontSize: "inherit",
+          padding: ".4em 2em",
+          background: modal.hd,
+          "&:empty": { display: "none" },
+          "&.bar": {
+            padding: ".1em 2em",
+          }
+        },
+        ".bd": {
+          flex: 1,
+          height: "0",
+          overflow: "hidden auto",
+          padding: 0,
+        },
+        "&.tab": {
+          padding: 0,
+          ".hd": { margin: 0 },
+          ".ft": { margin: 0 },
+        },
+        // ".bd": {
+        //   padding: ".2em 1em",
+        //   overflow: "auto",
+        //   height: "calc(100% - 3.8em)",
+        //   ":first-child": { paddingTop: "1.2em", },
+        // },
+        // ".hd+.bd": {
+        //   height: "calc(100% - 6em)",
+        // },
+        ".ft": {
+          height: "3.8em",
+          display: "flex",
+          flexDirection: "row-reverse",
+          padding: ".6em 1em",
+          background: modal.ft,
+          ".spc": {
+            border: "none", margin: "auto"
+          },
+          hr: {
+            border: "none",
+            margin: "auto"
+          },
+        },
+      },
+    },
+    "._.side": {
+      ...col(),
+      height: "100%",
+      width: "85%",
+      background: ctx.bg,
+      position: "relative",
       ".hd": {
         margin: 0,
-        height: "2.2em",
-        fontSize: "inherit",
-        padding: ".4em 2em",
+        padding: ".8em",
         background: "#cfd8dc",
-        "&:empty": { display: "none" },
-        "&.bar": {
-          padding: ".1em 2em",
-        }
+        borderBottom: "1px solid #0006"
       },
       ".bd": {
         flex: 1,
-        height: "0",
-        overflow: "hidden auto",
-        padding: 0,
-      },
-      "&.tab": {
-        padding: 0,
-        ".hd": { margin: 0 },
-        ".ft": { margin: 0 },
-      },
-      // ".bd": {
-      //   padding: ".2em 1em",
-      //   overflow: "auto",
-      //   height: "calc(100% - 3.8em)",
-      //   ":first-child": { paddingTop: "1.2em", },
-      // },
-      // ".hd+.bd": {
-      //   height: "calc(100% - 6em)",
-      // },
-      ".ft": {
-        height: "3.8em",
-        display: "flex",
-        flexDirection: "row-reverse",
-        padding: ".6em 1em",
-        background: "#f5f5f5",
-        ".spc": {
-          border: "none", margin: "auto"
-        },
-        hr: {
-          border: "none",
-          margin: "auto"
-        },
-      },
+      }
     },
-  },
-  "._.side": {
-    ...col(),
-    height: "100%",
-    width: "85%",
-    background: ctx.bg,
-    position: "relative",
-    ".hd": {
-      margin: 0,
-      padding: ".8em",
-      background: "#cfd8dc",
-      borderBottom: "1px solid #0006"
-    },
-    ".bd": {
-      flex: 1,
-    }
-  },
-  "body.dialog-on": { overflow: "hidden!important" }
-});
+    "body.dialog-on": { overflow: "hidden!important" }
+  })
+}
 export const pcModal = (ctx: Context): Styles => (ctx(button), {
   [min(ScreenSize.tablet)]: {
     "._.modal": {
@@ -703,7 +708,7 @@ export const listItem = ({ h, a, o, current }: ListState): Style => ({
     background: o,
   },
   ":hover": {
-    background: h,
+    color: h,
   },
   "&.on": {
     background: a,
@@ -733,7 +738,7 @@ export const list = ({ brd, list: l }: Context): Styles => ({
         // display: "inline-block",
         padding: ".4em .2em",
         borderRight: border(brd),
-        ":empty::before": { content: 'counter(l)', },
+        ":empty::before": { content: "counter(l)", },
       },
       ".bd": { flex: 1 },
       //   // display: "inline-block",
@@ -778,13 +783,13 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       ...listItem(l),
       counterIncrement: "tb",
       [`.${C.side}:empty::before`]: {
-        content: 'counter(tb)',
+        content: "counter(tb)",
       },
     },
     ".hd": {
       height: "2em",
       zIndex: zIndex.front,
-      background: menu,
+      background: menu.n,
       fontWeight: 500,
       minWidth: "fit-content",
       position: "sticky",
@@ -919,6 +924,20 @@ export function form(ctx: Context): Styles {
         },
         "&[edited]>.hd": { fontWeight: "bold" }
       },
+      "*>.req": {
+        lineHeight: 0.8,
+        verticalAlign: "middle",
+        position: "absolute",
+        right: 0,
+        // fontWeight: "bold",
+        fontSize: "1.3em"
+      }
+    },
+  }
+}
+export function pcForm(): Styles {
+  return {
+    "._.form,._.formg": {
       //input inline
       ".ii": {
         margin: ".2em 0 .4em",
@@ -938,15 +957,7 @@ export function form(ctx: Context): Styles {
           width: "60%",
         },
       },
-      "*>.req": {
-        lineHeight: 0.8,
-        verticalAlign: "middle",
-        position: "absolute",
-        right: 0,
-        // fontWeight: "bold",
-        fontSize: "1.3em"
-      }
-    },
+    }
   }
 }
 export function tab({ menu }: Context): Styles {
@@ -954,7 +965,7 @@ export function tab({ menu }: Context): Styles {
     "._.tab": {
       ...col(),
       "._.bar": {
-        // background: menu,
+        // background: menu.n,
         [`._.${C.close}`]: {
           float: "right",
           opacity: 0,
@@ -1070,7 +1081,7 @@ export function dropdown(ctx: Context): Styles {
     }
   }
 }
-export function select(add: Context): Styles {
+export function pcSelect(add: Context): Styles {
   add(menu);
   return {
     [`._.${C.select}`]: {
@@ -1143,7 +1154,8 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
     fontSize: "16px",
     fontFamily: opts.ff,
   },
-  body: { margin: 0 },
+  body: { margin: 0, background: p.bg, color: p.fg },
+  dialog: { color: p.fg },
   button: {
     background: "none",
     color: "inherit",
@@ -1166,8 +1178,8 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
     // borderTop: "solid #0004 1px",
   },
   input: {
-    background: "inherit",
-    color: "inherit",
+    // background: "inherit",
+    // color: "inherit",
     border: "none"
   },
   "*": {
@@ -1187,57 +1199,77 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
   "._.col": col(),
   "span._.col": col(true),
   "._.center": center(),
-  "._.ph": { color: "#000A" },
+  "._.ph": { color: p.ph },
   ["." + Color.warning]: { background: "#ffc107!important" },
 });
+
+export const mobileStyle = (p: Pallete) =>
+  core(p)(icon)
+    (menu)(button)
+    (dropdown)
+    (input)(menubar)
+    (menurow)(tab)
+    (index)(output)
+    (list)(table)
+    (stack)(loader)
+    (form)(modal)(tip)
+    (mobImgSelector);
+export const pcStyle = (p: Pallete) =>
+  core(p)(icon)
+    (menu)(button)
+    (dropdown)(pcSelect)
+    (input)(menubar)
+    (menurow)(tab)
+    (index)(output)
+    (list)(table)
+    (stack)(loader)
+    (form)(pcForm)(modal)
+    (pcModal)(tip);
 export const style = (p: Pallete) =>
   core(p)(icon)
-    (menu)
-    (button)
-    (dropdown)
-    (select)
-    (input)
-    (menubar)
-    (menurow)
-    (tab)
-    (index)
-    (output)
-    (list)
-    (table)
-    (mobImgSelector)
-    (stack)
-    (loader)
-    (form)
-    (modal)
-    (pcModal)
-    (tip);
-/**full style,dark theme */
-export const darkTheme: Pallete = {
-  bg: "#1c313a",
-  fg: "#fff",
-  error: null,
-  menu: "",
-  disabled: "#999ea0",
-  list: { n: "#e0f7fa", o: "", current: "" },
-  accept: null,
-  main: null,
-  modal: {
-    hd: "",
-    ft: "",
-  },
-  bt: { n: "", h: "", a: "" },
-  in: { bg: "", border: { n: "" } },
-  a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
-};
-export const dark = () => style(darkTheme);
+    (menu)(button)
+    (dropdown)(pcSelect)
+    (input)(menubar)
+    (menurow)(tab)
+    (index)(output)
+    (list)(table)
+    (stack)(loader)
+    (form)(modal)
+    (pcModal)(tip)
+    (mobImgSelector);
 
-export const lightTheme = ((): Pallete => {
-  // let main = , accept = ("#2185d0"), error = chroma("#db2828");
-  const state = (c: Cholor, txt = "#fff"): State => ({ n: c.css(), h: c.darken(.1).css(), a: c.darken(.4).css(), txt })
+
+// let main = , accept = ("#2185d0"), error = chroma("#db2828");
+export function darkTheme(): Pallete {
+  const cstate = (c: str | Cholor, txt?: str): State => ({ n: (c = chroma(c)).hex(), h: c.brighten(.1).hex(), a: c.brighten(.4).hex(), txt });
   return {
+    ph: "#fff8",
+    bg: "#1c313a",
+    fg: "#fff",
+    menu: cstate("#444"),
+    disabled: "#999ea0",
+    list: { n: "#222", o: "#333", h: "#4a9ec4", a: "#33596a", current: "#03a9f4" },
+    modal: {
+      hd: "#333",
+      ft: "#444",
+    },
+    brd: rgba(34, 36, 38, .15),
+    error: cstate("#801e1e"),
+    accept: cstate("#126325"),
+    main: cstate("#2185d0"),
+    bt: cstate("#3c3c3c", "#fffB"),
+    in: { bg: "#000", fg: "#fff", border: { n: rgba(34, 36, 38, .15), a: rgb(133, 183, 217) } },
+    a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
+  }
+}
+
+export function lightTheme(): Pallete {
+  const cstate = (c: str | Cholor, txt = "#fff"): State => ({ n: (c = chroma(c)).hex(), h: c.darken(.1).hex(), a: c.darken(.4).hex(), txt });
+  return {
+    ph: "#000A",
     fg: "#000",
     bg: "#fff",
-    menu: "#cfd8dc",
+    menu: cstate("#cfd8dc"),//{ n: "#cfd8dc", a: "#9eb6c0" },
     disabled: "#999ea0",
     list: { n: "#fff", o: "#f6f6f6", h: "#e0f7fa", a: "#afddf1", current: "#03a9f4" },
     modal: {
@@ -1245,13 +1277,11 @@ export const lightTheme = ((): Pallete => {
       ft: "#e0f7fa",
     },
     brd: rgba(34, 36, 38, .15),
-    error: state(chroma("#db2828")),//{ n: "#ef5350", txt: "#fff" },
-    accept: state(chroma("#21ba45")),//{ n: , h: "#1678c2", a: "#1a69a4", txt: "#fff" },
-    main: state(chroma("#2185d0")),//{ n:, h: "#1678c2", a: "#1a69a4", txt: "#fff" },
-    bt: state(chroma("#e0e1e2"), "rgba(0,0,0,.6)"),//{ n: "#e0e1e2", h: "#cacbcd", a: "#babbbc", txt: "rgba(0,0,0,.6)" },
+    error: cstate("#db2828"),
+    accept: cstate("#21ba45"),
+    main: cstate("#2185d0"),
+    bt: cstate("#e0e1e2", "rgba(0,0,0,.6)"),
     in: { bg: "#fff", border: { n: rgba(34, 36, 38, .15), a: rgb(133, 183, 217) } },
     a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
   }
-})();
-/**full style,light theme */
-export const light = () => style(lightTheme);
+}
