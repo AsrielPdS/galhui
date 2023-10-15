@@ -1,6 +1,6 @@
 import { Component, G, One, Render, clearEvent, div, g, m, onfocusout } from "galho";
 import { Alias, L, extend } from "galho/orray.js";
-import { Dic, Key, Primitive, Task, assign, bool, byKey, call, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
+import { AnyDic, Dic, Key, Primitive, Task, assign, bool, byKey, call, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
 import { $, C, Color, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
 import { anyProp, arrayToDic, up } from "./util.js";
 
@@ -42,7 +42,7 @@ export type Errors = Dic<() => any>;
 // export const errors: Errors = {};
 //export const inputs: Dic<{ new(i: IInput, ctx?: IInputContext): Input; }> = {};
 
-interface FormEvents extends Dic<any[]> {
+interface FormEvents extends AnyDic<any[]> {
   input: [Input];
   fill: [data: Dic];
   requestsubmit: [e: SubmitEvent];
@@ -391,7 +391,7 @@ export interface iInput<V = unknown> extends Field {
   submit?(data: Dic);
   // side?: bool;
 }
-export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev extends Dic<any[]> = {}> extends Component<P, Ev> {
+export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev extends AnyDic<any[]> = {}> extends Component<P, Ev> {
   constructor(p: P) {
     super(p);
     if (isU(p.text)) p.text = def(w[p.name], up(p.name));
@@ -457,7 +457,7 @@ export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev ext
   /**null value used for clear method */
   get null(): V { return null; }
 }
-export interface Input<V, P extends iInput<V>, Ev extends Dic<any[]>> {
+export interface Input<V, P extends iInput<V>, Ev extends AnyDic<any[]>> {
   form?: FormBase;
 }
 // function inputBind<I, Inp extends InputElement>(e: E<I>, input: S<Inp>, prop: keyof I, field: keyof Inp = 'value') {
