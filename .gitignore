@@ -1,5 +1,6 @@
 *.js
 *.d.ts
+!tasks.js
 # Logs
 logs
 *.log
