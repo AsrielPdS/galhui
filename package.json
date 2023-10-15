@@ -1,9 +1,11 @@
 {
   "name": "galhui",
-  "version": "1.1.18",
-  "description": "",
+  "version": "1.1.19",
+  "description": "UI library using galho framework",
   "main": "galhui.js",
-  "scripts": {},
+  "scripts": {
+    "themes": "node -e \"import('./tasks.js').then(_=>_.buildThemes())\""
+  },
   "keywords": [
     "galho",
     "css",
@@ -15,7 +17,6 @@
   "sideEffects": false,
   "type": "module",
   "dependencies": {
-    "csstype": "^3.0.11",
     "galho": ""
   },
   "optionalDependencies": {

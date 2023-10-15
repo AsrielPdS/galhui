@@ -4,7 +4,7 @@ import { } from "./themes/material.js"
 import { } from "./themes/semantic.js"
 import { } from "./themes/bootstrap.js"
 
-export async function buildTheme() {
+export async function buildThemes() {
     throw "not implemented";
     await Promise.all([
         writeFile("themes/basic.css",),

@@ -3,4 +3,3 @@ tsconfig.json
 
 *.ts
 !*.d.ts
-tasks.js
