@@ -140,8 +140,8 @@ export const enum Color {
   warning = "_w",
   accept = "_a"
 }
-export const body = new G(document.body);
-export const doc = new G(document as any);
+export const body = () => new G(document.body);
+export const doc = () => new G(document as any);
 
 /**selector for element that can gain focus*/
 export const focusable = ":not(:disabled):is(a[href],button,input,textarea,select,[tabindex])";
@@ -502,7 +502,7 @@ export function modal(hd: Label, bd?: any, actions?: (close: () => void, modal: 
       isE(bd) ? bd.c("bd") : bd,
       actions && div("ft", actions(() => (content as Modal).remove(), content))
     ]))
-    .addTo(body)
+    .addTo(body())
     .e.showModal();
   return content as Modal;
   // let area = div("_ blank", ).addTo(body);
@@ -518,13 +518,13 @@ export function tabModal(initial: int, items: TabItem[], actions: (close: () => 
     hd.childs().c("on", false);
     e.c("on");
   }))));
-  content.addTo(body).e.showModal();
+  content.addTo(body()).e.showModal();
   hd.child<HTMLDivElement>(initial).e.click()
   return content;
 }
-export const showDialog = (e: Modal) => e.addTo(body.c("dialog-on")).call("showModal").on("close", () => {
+export const showDialog = (e: Modal) => e.addTo(body().c("dialog-on")).call("showModal").on("close", () => {
   e.remove();
-  body.c("dialog-on", false);
+  body().c("dialog-on", false);
 });
 /**modal with ok and cancel buttons */
 export function mdOkCancel(body: any, sz: Size = "xs", valid = () => true) {
@@ -553,7 +553,7 @@ export function mdError(body: any, sz: Size = "xs") {
     cl => confirm(() => { cl(); ok() }),
     sz).c(Color.error));
 }
-const topLayer = () => g(getAll(":modal").at(-1)) || body;
+const topLayer = () => g(getAll(":modal").at(-1)) || body();
 export function popup(refArea: () => FluidRect, div: G, align: FluidAlign) {
   return anim(() => topLayer().contains(div) && hoverBox(refArea(), div, align));
 }
@@ -708,7 +708,7 @@ export function selectRoot(me: SelectBase, options: L, label: G, menu: G, setVal
         root.add(menu);
         anim(() => {
           let r = root.rect;
-          return body.contains(menu) && (menu.css("minWidth", r.width + "px"), hoverBox(r, menu, "ve"))
+          return body().contains(menu) && (menu.css("minWidth", r.width + "px"), hoverBox(r, menu, "ve"))
         });
       } else {
         root.c([VAlign.bottom, VAlign.top], false);
