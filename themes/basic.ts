@@ -250,7 +250,7 @@ export const output = ({ in: { border }, bt, accept: a, error: e }: Context): St
   },
   [`._.${C.message}`]: {
     [`&.${Color.error}`]: {
-      ...bfg(chroma(e.n).hex(), e.n),
+      ...bfg(chroma(e.n).hex(), e.txt),
     },
     ...box([1, 0], [1, 1.5]),
     ":empty": { height: 0, padding: 0, margin: 0 },
@@ -772,7 +772,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
     padding: 0,
     outline: "none",
     position: "relative",
-    overflow: "auto scroll",
+    overflow: "auto",
     // overflow: "auto",
     ...listHelper(l),
     counterReset: "tb",
@@ -1062,6 +1062,19 @@ export function pcSelect(add: Context): Styles {
         background: "none",
         color: "inherit"
       }
+    }
+  }
+}
+export function container(): Styles {
+  return {
+    "._.container": {
+      padding: ".75em",
+      [min(ScreenSize.tablet)]: {
+
+      },
+      [min(ScreenSize.laptop)]: {
+
+      },
     }
   }
 }
