@@ -131,15 +131,10 @@ export const enum OriOld {
 }
 export type Ori = "v" | "h";
 export type Size = "xxl" | "xl" | "l" | "n" | "n" | "s" | "xs" | "xxs";
-export const enum Color {
-  error = "_e",
-  main = "_i",
-  /** secundary */
-  side = "_s",
-  normal = "_m",
-  warning = "_w",
-  accept = "_a"
-}
+
+
+export type Color = "error" | "main" | "side" | "warn" | "accept";
+
 export const body = () => new G(document.body);
 export const doc = () => new G(document as any);
 
@@ -180,10 +175,10 @@ export function ibt(i: Icon, text: Child, click?: click, type: ButtonType = "but
 }
 
 export function positive(i: Icon, text: Child, click?: click, type?: ButtonType) {
-  return ibt(i, text, click, type).c(Color.accept);
+  return ibt(i, text, click, type).c("accept");
 }
 export function negative(i: Icon, text: Child, click?: click, type?: ButtonType) {
-  return ibt(i, text, click, type).c(Color.error);
+  return ibt(i, text, click, type).c("error");
 }
 
 /** link with icon */
@@ -252,7 +247,21 @@ export function hoverBox({ x, y, right: r, bottom: b }: FluidRect, e: G, [o, sid
       [h ? "top" : "left"]: Math.max(0, Math.min(ws - es, side == "s" ? s1 - es : side == "e" ? s0 : s0 + (s1 - s0) / 2 - es / 2)) + "px",
     });
 }
-
+export interface Notify {
+  style?: Color;
+  close?: bool;
+  v?: Tt;
+  h?: Tt
+}
+export function notify(content: any, { style, close: cl, v, h }: Notify) {
+  let temp = div(`_ notify msg ${style || ""} ${v || ""} ${h || ""}`).addTo(body());
+  let r = () => temp.remove();
+  temp.add([
+    content,
+    t(cl) && close(r)
+  ]);
+  setTimeout(r, 2_000);
+}
 export type MenuItems = Task<Array<G<HTMLTableRowElement> | HTMLTableRowElement | MenuItems>>;
 export type MenuContent = Content<(bool | falsy | One<HTMLTableRowElement>)[]>;
 export function menu(items?: MenuContent) { return div("_ menu", g("table", 0, items)); }
@@ -300,6 +309,9 @@ export const menusep = () => g("tr", "_ hr");
 
 /** @deprecated */
 export function menubar(...items: any) { return div("_ bar", items); }
+export function containedBar(...items: any) {
+  return g("nav", "_ bar", div("_ container", items))
+}
 /** @deprecated */
 export function right() { return div(HAlign.right); }
 export function mbitem(i: Icon, text: any, action?: (e: MouseEvent) => any) {
@@ -480,7 +492,7 @@ export const keyVal = (key: any, val: any, c?: Color | falsy, tag: HTMLTag = "sp
   g(tag, `_ out ${c || ""}`, [key, ": ", val]);
 
 export const message = (c?: Color, data?) => div("_ msg", data).c(c);
-export const errorMessage = (data?) => message(Color.error, data);
+export const errorMessage = (data?) => message("error", data);
 
 //#endregion
 
@@ -551,7 +563,7 @@ export function mdOk(body: any, sz: Size = "xs") {
 export function mdError(body: any, sz: Size = "xs") {
   return new Promise<void>(ok => modal(null, wrap(body),
     cl => confirm(() => { cl(); ok() }),
-    sz).c(Color.error));
+    sz).c("error"));
 }
 const topLayer = () => g(getAll(":modal").at(-1)) || body();
 export function popup(refArea: () => FluidRect, div: G, align: FluidAlign) {

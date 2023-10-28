@@ -1,7 +1,7 @@
 import chroma, { Color as Cholor } from "chroma-js";
 import { Style, Styles } from "galho";
 import { bool, int, str } from "galho/util.js";
-import { C, Color } from "../galhui.js";
+import { C } from "../galhui.js";
 import { StyleCtx, bfg, border, box, rgb, rgba, spc, styleCtx } from "../style.js";
 
 export const enum ScreenSize {
@@ -52,8 +52,9 @@ interface State {
 interface LinkState extends State {
   /**visited*/v?: str;
 }
-type ListState = State & {/**odd row*/o: str, current: str };
+type ListState = State & {/**odd row*/o: str; current: str };
 export interface Pallete {
+  hr: str;
   ph: str;
   error: State;
   menu: State;
@@ -113,7 +114,7 @@ function state(v: LinkState): Style {
 }
 export const button = (ctx: Context): Styles => (ctx(icon), {
   //style
-  "._.a": {
+  "._.link": {
     color: ctx.a.n,
     ":hover": { color: ctx.a.h },
     ":visited": { color: ctx.a.v },
@@ -128,12 +129,12 @@ export const button = (ctx: Context): Styles => (ctx(icon), {
     height: "initial",
     textAlign: "center",
     ["&." + C.full]: { display: "block", width: "auto" },
-    [`.${"icon"}`]: { marginRight: ".5em", },
+    ".icon": { marginRight: ".5em", },
     ...state(ctx.bt),
-    [`&.${Color.accept}`]: state(ctx.accept),
-    [`&.${Color.main}`]: state(ctx.main),
-    [`&.${Color.error}`]: state(ctx.error),
-    [`&.${"icon"}>.${"icon"}:only-child`]: {
+    "&.accept": state(ctx.accept),
+    "&.main": state(ctx.main),
+    "&.error": state(ctx.error),
+    "&.icon>.icon:only-child": {
       margin: "0 -.6em",
     },
     "&.l": {
@@ -147,7 +148,7 @@ export const button = (ctx: Context): Styles => (ctx(icon), {
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "center",
-      [`.${"icon"}`]: {
+      ".icon": {
         height: "7em",
       }
     }
@@ -197,7 +198,7 @@ export const input = ({ in: { bg, fg, border } }: Context): Styles => ({
       background: "inherit",
       color: "inherit"
     },
-    ["&." + Color.error]: {
+    ["&." + "error"]: {
       borderColor: "#f44336",
     }
   }
@@ -238,9 +239,9 @@ export const output = ({ in: { border }, bt, accept: a, error: e }: Context): St
     // color: bt.txt,
     display: "inline-block",
     ":empty": { display: "none" },
-    // [`&.${Color.accept}`]: state(ctx.accept),
-    [`&.${Color.main}`]: { background: a.n, color: a.txt },
-    [`&.${Color.error}`]: { background: e.n, color: e.txt },
+    // [`&.accept`]: state(ctx.accept),
+    [`&.main`]: { background: a.n, color: a.txt },
+    [`&.error`]: { background: e.n, color: e.txt },
     "tr&": {
       display: "table-row",
       td: {
@@ -248,12 +249,12 @@ export const output = ({ in: { border }, bt, accept: a, error: e }: Context): St
       }
     }
   },
-  [`._.${C.message}`]: {
-    [`&.${Color.error}`]: {
-      ...bfg(chroma(e.n).hex(), e.txt),
-    },
+  "._.error": bfg(e.n, e.txt),
+  "._.accept": bfg(a.n, a.txt),
+  "._.msg": {
     ...box([1, 0], [1, 1.5]),
     ":empty": { height: 0, padding: 0, margin: 0 },
+    borderRadius: ".4em",
     transition: "all .2s"
   },
   "div._.join": { display: "flex" },
@@ -284,13 +285,22 @@ export const output = ({ in: { border }, bt, accept: a, error: e }: Context): St
       borderRadius: `0 ${opts.acentBordRad}em ${opts.acentBordRad}em 0`,
     },
   },
-})
+});
+export function notify(): Styles {
+  return {
+    "._.notify": {
+      position: "fixed",
+      bottom: "2em",
+      left: "2em",
+    }
+  };
+}
 export const menubar = ({ menu }: Context): Styles => ({
   "._.bar": {
     display: "flex",
     height: opts.menuH + "em",
     lineHeight: opts.menuH + "em",
-    padding: "0 2vw",
+    // padding: "0 2vw",
     flex: "0 0 auto",
     background: menu.n,
     whiteSpace: "nowrap",
@@ -299,19 +309,33 @@ export const menubar = ({ menu }: Context): Styles => ({
         flex: 1
       }
     },
-    "*": {
+    ">:first-child": { marginLeft: "1.2em" },
+    ">:last-child": { marginRight: "1.2em" },
+  },
+  "._.bar>.container": row(),
+  "._.bar,._.bar>.container": {
+    "&.main": {
+      background: menu.a,
+      height: opts.tabH + "em",
+      paddingTop: ".3em",
+      ".i:active,.i.on": {
+        background: menu.n,
+        borderRadius: ".3em .3em 0 0"
+      }
+    },
+    ".hd,.i":{
       marginTop: 0,
       marginBottom: 0,
-      border: "none",
+      // border: "none",
       margin: "0 .1em",
       padding: "0 .6em",
       minWidth: "2.4em",
       height: "100%",
       overflow: "hidden",
       // textOverflow: "ellipsis",
-      img: { width: "16px", height: "16px" }
+      img: { width: "16px", height: "16px" },
     },
-    ".i,.in,.dd": {
+    ".i": {
       background: "inherit",
       ":hover": {
         background: menu.h,
@@ -328,21 +352,12 @@ export const menubar = ({ menu }: Context): Styles => ({
       flex: "1"
     },
     hr: {
-      height: "100%",
-      margin: 0,
-      minWidth: 0,
-      padding: 0
+      height: "70%",
+      margin: "auto",
+      // minWidth: 0,
+      // padding: 0
     },
-    "&.main": {
-      background: menu.a,
-      height: opts.tabH + "em",
-      paddingTop: ".3em",
-      ".i:active,.i.on": {
-        background: menu.n,
-        borderRadius: ".3em .3em 0 0"
-      }
-    }
-  },
+  }
 });
 export const menu = ({ menu }: Context): Styles => ({
   "._.menu": {
@@ -415,7 +430,7 @@ export const menu = ({ menu }: Context): Styles => ({
           background: "inherit"
         },
       },
-      [`.${Color.error}`]: {
+      [`.error`]: {
         background: "#e53935", color: "#fff",
         ":hover": { background: "#ef5350" },
       }
@@ -481,7 +496,7 @@ export function modal(ctx: Context): Styles {
       textAlign: "start",
       overflow: "hidden",
       background: bg,
-      ["&." + Color.error]: {
+      ["&." + "error"]: {
         border: "4px solid #e53935"
       },
       ["." + C.close]: {
@@ -625,6 +640,8 @@ export const slideShow = (): Styles => ({
     img: {
       maxWidth: "100%",
       height: "fit-content",
+      margin: "auto",
+      display: "block",
     },
     ".title": {
       position: "absolute",
@@ -887,7 +904,7 @@ export function form(ctx: Context): Styles {
       ":not(.expand)>.sd": { display: "none" },
       "&.expand>._sd": { display: "none" },
       padding: "1rem",
-      [`.${C.message}.${Color.error}`]: {
+      [`.${C.message}.error`]: {
         position: "sticky",
         bottom: 0,
       },
@@ -993,7 +1010,7 @@ export function accordion(): Styles {
         display: "none"
       },
       ["." + "hd"]: {
-        [`&.${C.on}+.${"bd"}`]: {
+        [`&.${C.on}+.bd`]: {
           display: "block"
         },
       },
@@ -1068,14 +1085,30 @@ export function pcSelect(add: Context): Styles {
 export function container(): Styles {
   return {
     "._.container": {
-      padding: ".75em",
-      [min(ScreenSize.tablet)]: {
-
+      padding: "0 .75em"
+    },
+    [min(ScreenSize.tablet)]: {
+      "._.container": {
+        padding: "0 2rem",
+        maxWidth: "768px",
+        width: "768px",
+        marginLeft: "auto!important",
+        marginRight: "auto!important"
       },
-      [min(ScreenSize.laptop)]: {
-
+    },
+    [min(ScreenSize.laptop)]: {
+      "._.container": {
+        padding: "0 6rem",
+        maxWidth: "1024px",
+        width: "1024px",
       },
-    }
+    },
+    [min(ScreenSize.laptopL)]: {
+      "._.container": {
+        maxWidth: "1280px",
+        width: "1280px",
+      },
+    },
   }
 }
 export const stack = ({ brd }: Context): Styles => ({
@@ -1119,6 +1152,7 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
     borderStyle: "solid",
     borderTop: "none",
     borderLeft: "none",
+    borderColor: p.hr,
     // margin: 0,
     // border: "none",
     // borderLeft: "solid #0004 1px",
@@ -1147,7 +1181,7 @@ export const core = (p: Pallete) => styleCtx(p, ">")({
   "span._.col": col(true),
   "._.center": center(),
   "._.ph": { color: p.ph },
-  ["." + Color.warning]: { background: "#ffc107!important" },
+  ["." + "warn"]: { background: "#ffc107!important" },
 });
 
 export const mobileStyle = (p: Pallete) =>
@@ -1181,15 +1215,18 @@ export const style = (p: Pallete) =>
     (list)(table)
     (stack)(loader)
     (form)(modal)
-    (pcModal)(tip);
+    (pcModal)(tip)
+    (slideShow)(notify)
+    (container)(pcForm);
 
 
 // let main = , accept = ("#2185d0"), error = chroma("#db2828");
 export function darkTheme(): Pallete {
   const cstate = (c: str | Cholor, txt?: str): State => ({ n: (c = chroma(c)).hex(), h: c.brighten(.1).hex(), a: c.brighten(.4).hex(), txt });
   return {
+    hr:"#fff8",
     ph: "#fff8",
-    bg: "#1c313a",
+    bg: "#202020",
     fg: "#fff",
     menu: cstate("#444"),
     disabled: "#999ea0",
@@ -1203,7 +1240,7 @@ export function darkTheme(): Pallete {
     accept: cstate("#126325"),
     main: cstate("#2185d0"),
     bt: cstate("#3c3c3c", "#fffB"),
-    in: { bg: "#000", fg: "#fff", border: { n: rgba(34, 36, 38, .15), a: rgb(133, 183, 217) } },
+    in: { bg: "#1a1919", fg: "#fff", border: { n: rgba(34, 36, 38, .15), a: rgb(133, 183, 217) } },
     a: { n: "#1976d2", v: "#6a1b9a", a: "#0d47a1", h: "" },
   }
 }
@@ -1211,6 +1248,7 @@ export function darkTheme(): Pallete {
 export function lightTheme(): Pallete {
   const cstate = (c: str | Cholor, txt = "#fff"): State => ({ n: (c = chroma(c)).hex(), h: c.darken(.1).hex(), a: c.darken(.4).hex(), txt });
   return {
+    hr:"#0008",
     ph: "#000A",
     fg: "#000",
     bg: "#fff",
