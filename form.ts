@@ -1,7 +1,7 @@
 import { Component, G, One, Render, clearEvent, div, g, m, onfocusout } from "galho";
 import { Alias, L, extend } from "galho/orray.js";
 import { AnyDic, Dic, Key, Primitive, Task, assign, bool, byKey, call, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
-import { $, C, Color, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
+import { $, C, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
 import { anyProp, arrayToDic, up } from "./util.js";
 
 
@@ -13,7 +13,7 @@ import { anyProp, arrayToDic, up } from "./util.js";
 export type Error = Render | G | str;
 
 interface FieldGroup {
-  input(key: str): Input;
+  input(key: PropertyKey): Input;
 }
 /**coisas executadas quando alguma ação acontece dentro do form */
 type BotCallback<T extends FieldGroup> = (src: Dic<any>, form: T) => any;
@@ -52,7 +52,7 @@ interface FormEvents extends AnyDic<any[]> {
 function checkBot<T extends FieldGroup>(container: T, bots: Bot<T>[]) {
   if (bots) {
     for (let bot of bots) {
-      let srcs: Dic = {}, cb = bot.at(-1) as BotCallback<T>;
+      let srcs: AnyDic = {}, cb = bot.at(-1) as BotCallback<T>;
       function calc(this: Input | void) {
         if (this)
           srcs[this.name] = this.value;
@@ -100,13 +100,13 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
 
     return true;
   }
-  input<T extends Input>(key: str) {
+  input<T extends Input>(key: PropertyKey) {
     for (let input of this.inputs)
       if (input.name == key || (is(input, CompostIn) && (input = input.input(key))))
         return input as T;
   }
-  errors: Dic<Error[]> = {};
-  setErrors(key: str, errors?: Error[]) {
+  errors: AnyDic<Error[]> = {};
+  setErrors(key: PropertyKey, errors?: Error[]) {
     this.errors[key] = errors;
     this.input(key)?.error(!!errors);
   }
@@ -161,7 +161,7 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
       .forEach(i => i.fill(value, setAsDefault));
     return this;
   }
-  reset(...fields: str[]) {
+  reset(...fields: PropertyKey[]) {
     for (let i of l(fields) ? this.inputs.filter(i => fields.includes(i.name)) : this.inputs) {
       i.visited = false;
       i.value = i.def;
@@ -267,7 +267,7 @@ export class Form extends FormBase<iForm> {
     ]);
   }
 
-  setErrors(key: str, errors?: Error[]) {
+  setErrors(key: PropertyKey, errors?: Error[]) {
     super.setErrors(key, errors);
     this.errDiv.set(renderErrors(this.inputs, this.errors));
   }
@@ -303,7 +303,7 @@ export function mdform<T = Dic>(hd: Label, form: Input[] | FormBase, cb: (dt: Di
   })
 }
 export interface Field {
-  name?: str;
+  name?: PropertyKey;
   info?: str;
   req?: bool;
   outline?: bool;
@@ -312,13 +312,14 @@ export interface Field {
   off?: bool;
 }
 export function field(bd: One, i: Field, form?: Form, sz = form?.p?.labelSz) {
-  let o = def(form?.p.outline, i.outline), t = div("_ " + (o ? "oi" : "ii"), [
+  let o = def(form?.p.outline, i.outline);
+  let t = div("_ " + (o ? "oi" : "ii"), [
     (!o || i.text) && g('label', "hd", [
       i.text,
       i.tip && tip(icon(icons.info), i.tip)
-    ]).css("width", `${sz}%`).attr({ for: i.name }),
+    ]).css("width", `${sz}%`).attr({ for: i.name as str }),
     bd = g(bd, "bd").css("width", `${100 - sz}%`),
-    !!i.req && g('span', "req", '*'),
+    !!i.req && g("span", "req", "*"),
   ]);
   if (i.off)
     form?.p.offFN?.(bd, true);
@@ -332,7 +333,7 @@ export function fieldGroup(title: Label, inputs: Input[], form?: Form, sz?: int)
     inputs.map(i => i.field(form, sz))
   ]);
 }
-export function expand(form: Form, ...main: str[]) {
+export function expand(form: Form, ...main: PropertyKey[]) {
   for (let input of form.inputs)
     g(input).c(C.side, !main.includes(input.name));
   g(form).add(m(
@@ -394,14 +395,14 @@ export interface iInput<V = unknown> extends Field {
 export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev extends AnyDic<any[]> = {}> extends Component<P, Ev> {
   constructor(p: P) {
     super(p);
-    if (isU(p.text)) p.text = def(w[p.name], up(p.name));
+    if (isU(p.text)) p.text = def(w[p.name], up(p.name as str));
     if (isU(p.value)) p.value = this.def;
   }
   get name() { return this.p.name; }
   get value() { return def<V>(this.p.value, null); }
   set value(v) { this.set("value", v); }
 
-  fill?(src: Dic, setAsDefault?: bool) {
+  fill?(src: AnyDic, setAsDefault?: bool) {
     let k = this.p.name;
     if (k in src) {
       this.value = src[k];
@@ -425,7 +426,7 @@ export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev ext
 
   /**show or hide errors */
   error(state: bool) {
-    g(this).c(Color.error, state);
+    g(this).c("error", state);
     return this;
   }
   invalid(value: V, omit?: bool, focus?: bool) {
@@ -448,8 +449,8 @@ export abstract class Input<V = unknown, P extends iInput<V> = iInput<V>, Ev ext
     //       field(input, input.p, form));
     // }
   }
-  submit(this: this, data: Dic, edited?: bool, req?: bool): any//Task<void>
-  submit(data: Dic) {
+  submit(this: this, data: AnyDic, edited?: bool, req?: bool): any//Task<void>
+  submit(data: AnyDic) {
     let { name, value, submit } = this.p;
     if (submit) submit(data);
     else data[name] = value;
@@ -483,7 +484,7 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
     var i = this.p, r: G<HTMLInputElement | HTMLTextAreaElement>;
     if (i.input == 'ta') {
       r = g('textarea', "_ in v").p({
-        name: i.name, id: i.name,
+        name: i.name as str, id: i.name as str,
         placeholder: i.ph || ''
       }).on('keydown', (e) => {
         if (e.key == "Enter") {
@@ -494,7 +495,7 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
       });
     } else r = g("input", "_ in").p({
       type: i.input || 'text',
-      name: i.name, id: i.name, placeholder: i.ph || ''
+      name: i.name as str, id: i.name as str, placeholder: i.ph || ''
     });
     r.on({
       input: () => {
@@ -550,7 +551,7 @@ export class NumbIn extends Input<float, iNumbIn> {
       type: 'number',
       placeholder: i.ph || '',
       step: i.integer ? <any>1 : 'any',
-      name: i.name, id: i.name, value: i.value as any,
+      name: i.name as str, id: i.name as str, value: i.value as any,
       min: (i.min ?? i.omin) as any, max: (i.max ?? i.omax) as any,
       oninput: () => this.value = inp.v() ? inp.e.valueAsNumber : null,
       onfocus() { inp.e.select() }
@@ -630,7 +631,7 @@ export class CheckIn extends Input<bool, iCheckIn>  {
             g("input", {
               type: 'radio',
               value: <any>1,
-              name: i.name,
+              name: i.name as str,
               oninput: () => {
                 this.set('value', true);
               }
@@ -640,7 +641,7 @@ export class CheckIn extends Input<bool, iCheckIn>  {
           g('label', `${C.checkbox} i`, [
             g("input", {
               type: 'radio',
-              name: i.name,
+              name: i.name as str,
               value: <any>0,
               oninput: () => {
                 this.set('value', false);
@@ -655,7 +656,7 @@ export class CheckIn extends Input<bool, iCheckIn>  {
       default:
         let inp: G<HTMLInputElement> = g("input", {
           type: 'checkbox',
-          name: i.name, id: i.name,
+          name: i.name as str, id: i.name as str,
           checked: i.value,
           onclick: i.clear && ((e: MouseEvent) => {
             if (e.altKey)
@@ -688,7 +689,7 @@ export class TimeIn extends Input<str, iTimeIn> {
 
     return this.bind(g("input").p({
       type: 'time',
-      name: i.name, id: i.name,
+      name: i.name as str, id: i.name as str,
       placeholder: i.ph,
     }).on('input', function () {
       _this.set('value', this.value + ':00');
@@ -701,7 +702,7 @@ export class DateIn extends Input<str, iTimeIn> {
     let i = this.p;
     let inp = g("input", "_ in").p({
       type: "date",
-      name: i.name, id: i.name,
+      name: i.name as str, id: i.name as str,
       placeholder: i.ph,
       value: i.value
     });
@@ -711,7 +712,7 @@ export class DateIn extends Input<str, iTimeIn> {
   get def() {
     return this.p.def == "now" ? new Date().toISOString().slice(0, 10) : null;
   }
-  fill(src: Dic<any>, setAsDefault?: boolean): void {
+  fill(src: AnyDic<any>, setAsDefault?: boolean): void {
     let k = this.p.name;
     if (k in src) {
       let v = src[k];
@@ -724,11 +725,10 @@ export class DateIn extends Input<str, iTimeIn> {
 
 export class MonthIn extends Input<str, iTimeIn> {
   view() {
-    let
-      i = this.p,
-      inp = g("input", "_ in").p({
+    let i = this.p;
+    let inp = g("input", "_ in").p({
         type: "month",
-        name: i.name, id: i.name,
+        name: i.name as str, id: i.name as str,
         placeholder: i.ph,
         value: i.value?.slice(0, 7)
       });
@@ -739,7 +739,7 @@ export class MonthIn extends Input<str, iTimeIn> {
     return this.p.def == "now" ? new Date().toISOString().slice(0, 7) : null;
   }
 
-  submit(data: Dic) {
+  submit(data: AnyDic) {
     data[this.p.name] = this.value ? this.value + "-01" : null;
   }
 }
@@ -749,7 +749,7 @@ export class DTIn extends Input<str, iTimeIn> {
   view() {
     let i = this.p, inp = g("input", "_ in").p({
       type: "datetime-local",
-      name: i.name, id: i.name,
+      name: i.name as str, id: i.name as str,
       placeholder: i.ph
     }).on("input", () => {
       this.set("value", inp.v() || null);
@@ -783,7 +783,7 @@ export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Inpu
       items = g("table").on("click", ({ currentTarget: ct, target: t }) =>
         ct != t && (this.set("open", false).value = g(t as Element).closest("tr").d())),
       menu = div("_ menu", items),
-      root = selectRoot(this, options, label, menu, v => this.value = v as any).attr({ name: i.name });
+      root = selectRoot(this, options, label, menu, v => this.value = v as any).attr({ name: i.name as str });
     setValue(this, label);
     this.on(e => ("value" in e) && setValue(this, label));
 
@@ -816,7 +816,7 @@ export class MobSelectIn<T = Dic, K extends keyof T = any> extends Input<Key, iM
     let { p, options, okey } = this;
     return g("select", "_ in",
       options.map(v => g("option", { value: v[okey] as any }, p.item(v))))
-      .p("name", p.name)
+      .p("name", p.name as str)
   }
 }
 //------------ RADIO ------------------------
@@ -839,7 +839,7 @@ export class RadioIn extends Input<Key, iRadioIn>{
       g("input", {
         type: 'radio',
         value: <string>key,
-        name: i.name,
+        name: i.name as str,
         checked: key == i.value,
         oninput: () => { this.set('value', key); }
       }),
@@ -867,7 +867,7 @@ export class ChecklistIn extends Input<Key[], iChecklistIn>{
     return g("span", "_ col", p.options.map<RadioOption>(v => isS(v) ? [v] : v).map(([key, text, ico]) => g('label', C.checkbox, [
       call(g("input", {
         type: 'checkbox',
-        name: `${p.name}_${key}`,
+        name: `${p.name as Key}_${key}`,
         checked: v.includes(key),
       }), i => i.on("input", () => {
         i.e.checked ? v.push(key) : v.splice(v.indexOf(key), 1);
@@ -895,7 +895,7 @@ interface iPWIn extends iInput<str> {
 export class PWIn extends Input<str, iPWIn> {
   view() {
     let i = this.p, inp = g("input", "_ in").p({
-      type: 'password', name: i.name,
+      type: 'password', name: i.name as str,
       placeholder: i.ph
     }).attr('autocomplete', i.auto || false);
     return inp.on("input", () => this.set("value", inp.e.value));
@@ -966,10 +966,10 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
     checkBot(this, i.bots);
   }
   inputs?: Input<any>[];
-  get def() { return arrayToDic(this.inputs, v => [v.name, v.def]) }
-  get value() { return arrayToDic(this.inputs, v => [v.name, v.value]); }
+  get def() { return arrayToDic(this.inputs, v => [v.name as str, v.def]) }
+  get value() { return arrayToDic(this.inputs, v => [v.name as str, v.value]); }
   set value(v: Dic) {
-    this.inputs.forEach(i => i.name in v && (i.value = v ? v[i.name] : i.null));
+    this.inputs.forEach(i => i.name in v && (i.value = v ? v[i.name as str] : i.null));
   }
   view(): G {
     for (let input of this.inputs)
@@ -979,7 +979,7 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
   }
   fill(value: Dic, setAsDefault?: bool) {
     if (this.p.sub)
-      if (!(value = value[this.p.name]))
+      if (!(value = value[this.p.name as str]))
         return;
     for (let i of this.inputs)
       i.fill(value, setAsDefault);
@@ -1003,18 +1003,18 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
   }
   submit(data: Dic, edited: bool, req: bool) {
     let { inputs, p: i } = this;
-    if (i.sub) data = data[i.name] = i.sub == "array" ? [] : {};
+    if (i.sub) data = data[i.name as str] = i.sub == "array" ? [] : {};
     for (let inp of edited && !i.sub ? inputs.filter(i => (req && i.p.req) || !i.isDef()) : inputs)
       inp.p.off || inp.submit(data, edited, req);
   }
-  input(key: str) {
+  input(key: PropertyKey) {
     for (let input of this.inputs)
       if (input.name == key || (is(input, CompostIn) && (input = input.input(key))))
         return input;
   }
   isDef(v = this.value, def = this.def) {
     for (let i of this.inputs)
-      if (!i.isDef(v[i.name], def[i.name]))
+      if (!i.isDef(v[i.name as str], def[i.name as str]))
         return false;
     return true;
   }
