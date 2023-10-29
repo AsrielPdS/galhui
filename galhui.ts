@@ -34,7 +34,6 @@ declare global {
     yes?: str;
     no?: str;
     camera?: str;
-    save?: str;
     required?: str;
     invalidFmt?: str;
   }

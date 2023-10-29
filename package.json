@@ -1,6 +1,6 @@
 {
   "name": "galhui",
-  "version": "1.1.20",
+  "version": "1.1.21",
   "description": "UI library using galho framework",
   "main": "galhui.js",
   "scripts": {
@@ -12,7 +12,11 @@
     "front-end",
     "web"
   ],
-  "author": "",
+  "author": {
+    "email": "asrielpds@gmail.com",
+    "name": "Asriel PdS",
+    "url": "https://asrielpires.github.io"
+  },
   "license": "ISC",
   "sideEffects": false,
   "type": "module",
