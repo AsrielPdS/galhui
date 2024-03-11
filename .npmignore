@@ -1,5 +1,10 @@
 tsconfig.json
 .vscode
+package-lock.json
 
 *.ts
 !*.d.ts
+themes/*.js
+themes/*.d.ts
+style.js
+style.d.ts

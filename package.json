@@ -1,6 +1,6 @@
 {
   "name": "galhui",
-  "version": "1.1.21",
+  "version": "1.1.22",
   "description": "UI library using galho framework",
   "main": "galhui.js",
   "scripts": {
@@ -21,12 +21,10 @@
   "sideEffects": false,
   "type": "module",
   "dependencies": {
-    "galho": ""
-  },
-  "optionalDependencies": {
-    "chroma-js": ""
+    "galho": "file:../galho"
   },
   "devDependencies": {
+    "chroma-js": "",
     "@types/chroma-js": "^2.4.0"
   }
 }

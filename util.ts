@@ -4,7 +4,7 @@ import { Dic, Key, bool, int, isU, str } from "galho/util.js";
 /**request animation frame each frame, if fn returns false cancel animation
  * @returns function that cancel the renderer of current animation
  */
-export function anim(fn: () => void | boolean) {
+export function anim(fn: () => any) {
   let r: str;
   console.log("timer started: " + (r = UUID(8)))
   console.time(r);
@@ -20,7 +20,6 @@ export function anim(fn: () => void | boolean) {
     cancelAnimationFrame(i);
   }
 }
-export const up = (v: str) => v && (v[0].toUpperCase() + v.slice(1).replace(/_/g, ' '));
 export function arrayToDic<T, U>(arr: Array<T>, callback: (value: T, index: number) => [Key, U]): Dic<U> {
   let result = {};
   for (let i = 0; i < arr.length; i++) {
@@ -59,10 +58,6 @@ export function extend<T extends object, U = Partial<T>>(obj: T, extension: U, o
   return obj as T & U;
 }
 export const UUID = (l?:int) => Math.floor(Math.random() * Math.pow(10, l)).toString(16);
-export type Input = G<HTMLInputElement>;
-export type Div = HTMLDivElement;
-export type Button = HTMLButtonElement;
-export type InputElement = HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
 
 // export function day(d: Date): number;
 // export function day(d: Date, value: number): Date;

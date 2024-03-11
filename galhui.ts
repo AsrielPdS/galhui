@@ -1,7 +1,8 @@
-import { Component, Content, G, HSElement, HTMLTag, One, Render, active, clearEvent, delay, div, g, getAll, isE, onfocusout, svg, toSVG, wrap } from "galho";
+import { Component, Content, G, HSElement, HTMLTag, NotRender, One, Property, Render, active, clearEvent, delay, div, g, getAll, isE, onfocusout, svg, toSVG, wrap } from "galho";
 import { L, orray, range } from "galho/orray.js";
 import { Dic, Key, Task, bool, call, def, falsy, float, int, isA, isF, isN, isP, isS, l, str, sub, t } from "galho/util.js";
 import { anim } from "./util.js";
+import { GTr, HTDialog, HTInput, HTTr, } from "galho/elements.js"
 
 /*
 ----GLOCARY----
@@ -41,7 +42,7 @@ declare global {
     /**dropdown */
     dd: Icon;
     info: Icon; minus: Icon;
-    close: Icon; cancel: Icon;
+    close: str; cancel: Icon;
     search: Icon; upload: Icon;
     up: Icon; down: Icon;
   }
@@ -146,15 +147,15 @@ export function icon(d: Icon, s?: Size) {
   if (d) {
     if (isS(d)) d = { d };
     else if (isE(d))
-      return d.c(`icon ${s}`);
+      return d.c(`icon ${s || ''}`);
     return svg('svg', {
       fill: d.c || "currentColor",
       viewBox: $.is || "0 0 24 24",
-    }, svg('path', { d: d.d })).c(`icon ${s}`);
+    }, svg('path', { d: d.d })).c(`icon ${s || ''}`);
   }
 }
 
-export type Label = [icon: Icon, text: any] | One | str | false | "";
+export type Label = [icon: Icon, text: any] | One | str | falsy;//false | "";
 export const label = (v: Label, cls?: str) =>
   v && ((isS(v) ? div(0, v) : isA(v) ? div([icon(v[0]), v[1]]) : g(v)))?.c(cls);
 
@@ -164,7 +165,7 @@ export type ButtonType = "submit" | "reset" | "button";
 export function bt(text: any, click?: click, type: ButtonType = "button") {
   return g("button", "_ bt", text).p("type", type).on("click", click);
 }
-export const link = (text: Child, href?: str) => g("a", ["_", C.link], text).p("href", href);
+export const link = (text: Child, href?: str) => g("a", "_ link", text).p("href", href);
 
 /** button with icon */
 export function ibt(i: Icon, text: Child, click?: click, type: ButtonType = "button") {
@@ -261,12 +262,13 @@ export function notify(content: any, { style, close: cl, v, h }: Notify) {
   ]);
   setTimeout(r, 2_000);
 }
-export type MenuItems = Task<Array<G<HTMLTableRowElement> | HTMLTableRowElement | MenuItems>>;
-export type MenuContent = Content<(bool | falsy | One<HTMLTableRowElement>)[]>;
+export type MenuItems = Task<Array<GTr | HTTr | MenuItems>>;
+export type Tr = One<HTMLTableRowElement>;
+export type MenuContent = Content<(NotRender | Tr | (NotRender | Tr)[])[] | Tr>;
 export function menu(items?: MenuContent) { return div("_ menu", g("table", 0, items)); }
 
 /**menu item */
-export function menuitem(i: Icon, text: any, action?: (e: MouseEvent) => any, side?: any, disabled?: bool) {
+export function menuitem(i: Icon, text: any, action?: falsy | ((e: MouseEvent) => any), side?: any, disabled?: bool) {
   return g("tr", `i ${disabled ? C.disabled : ""}`, [
     g("td", 0, icon(i)),
     g("td", 0, text),
@@ -279,7 +281,7 @@ export function menuitem(i: Icon, text: any, action?: (e: MouseEvent) => any, si
 // }
 
 /**checkbox */
-export function menucb(checked: bool, text: any, toggle?: (this: G<HTMLInputElement>, checked: bool) => any, id?: str, disabled?: bool) {
+export function menucb(checked: bool, text: any, toggle?: (this: G<HTInput>, checked: bool) => any, id?: str, disabled?: bool) {
   let input = g("input", { id, checked, disabled, indeterminate: checked == null, type: "checkbox" });
   toggle && input.on("input", () => toggle.call(input, input.e.checked));
   return g("tr", `i ${disabled ? C.disabled : ""}`, [
@@ -320,7 +322,7 @@ export function mbitem(i: Icon, text: any, action?: (e: MouseEvent) => any) {
 /**menubar separator */
 export function mbsep() { return g("hr"); }
 /**menubar checkbox */
-export function barcb(checked: bool, text: any, toggle?: (this: G<HTMLInputElement>, checked: bool) => any, disabled?: bool) {
+export function barcb(checked: bool, text: any, toggle?: (this: G<HTInput>, checked: bool) => any, disabled?: bool) {
   let input = g("input", { checked, disabled, indeterminate: checked == null, type: "checkbox" });
   toggle && input.on("input", () => toggle.call(input, input.e.checked));
   return g("label", `i ${disabled ? C.disabled : ""}`, [input, text]);
@@ -412,11 +414,19 @@ export const blobToBase64 = (v: Blob) => new Promise<str>((rs, rj) => {
   reader.onloadend = () => rs(reader.result as str);
   reader.onerror = rj;
 });
-
+export function moveondoc(cursor: Property.Cursor, move: (e: MouseEvent) => void, endcallback?: (e: MouseEvent) => void) {
+  topLayer().css({ cursor, userSelect: "none" });
+  doc()
+    .on('mousemove', move)
+    .one('mouseup', e => {
+      topLayer().uncss("cursor", "userSelect");
+      doc().off('mousemove', move);
+      endcallback?.(e);
+    });
+}
 //#region input
 export type TextInputTp = "text" | "email" | "url" | "tel";
 export type InputTp = TextInputTp | "number" | "search" | "checkbox" | "radio" | "password";
-export type Input = G<HTMLInputElement | HTMLTextAreaElement>;
 
 export const input = (type: InputTp, name: str, ph?: str, input?: (e: Event) => any) =>
   g("input", { type, name, placeholder: ph }).c("_ in").on("input", input);
@@ -433,57 +443,9 @@ export function search(input?: (value: str) => any) {
   return (i ? div([t, i]) : t).c("_ in");
 }
 
-
-
-export interface iImgSelector {
-  k?: str;
-  accept?: str;
-  /**placeholder */
-  ph?: str;
-  value?: Blob;
-  w?: float; h?: float;
-  loading?: bool;
-}
-export class ImgSelector extends Component<iImgSelector>{
-  view() {
-    let i = this.p, l: G;
-    let input = g('input', { name: i.k, type: "file", accept: i.accept || "image/*" })
-      .on("input", () => {
-        let v = input.e.files[0];
-        this.set("value", v);
-      });
-    let e = this.bind(g("span", "_ img-in", input), e =>
-      i.loading ? e.add(l = loading()) : l?.remove(), "loading");
-    return this.bind(e, async _ => {
-      if (i.value) {
-        let fr = new FileReader();
-        let img = g("img").on("load", () => this.set({ w: img.e.naturalWidth, h: img.e.naturalHeight }));
-        if (isS(i.value)) img.p("src", i.value);
-        else {
-          // i.value = await (await fetch(i.value)).blob();
-          fr.onload = () => img.e.src = fr.result as str;
-          fr.readAsDataURL(i.value);
-        }
-        _.set([img, close(() => this.set({ w: null, h: null, value: input.e.value = null }))]);
-      } else {
-        _.set(g("button", { type: "button" }, [div(0, "+").css("fontSize", "6em"), i.ph])
-          .on("click", () => input.e.click()));
-      }
-    }, "value");
-  }
-}
-export const submitImg = (url: str, value: Blob, img?: ImgSelector) =>
-  new Promise<str>((resolve, err) => {
-    let r = new XMLHttpRequest;
-    r.withCredentials = true;
-    r.onload = () => { img?.set("loading", false); resolve(r.responseText) };
-    r.onerror = err;
-    img?.set("loading", true);
-    r.open("POST", url);
-
-    r.send(value);
-  });
-
+// export const loadImg = () => new Promise<Blob>((cb) => {
+//   let p=g("img",{ onload:()=>cb()});
+// });
 //#region output
 
 export const output = (...content) => g("span", "_ out", content);
@@ -496,7 +458,7 @@ export const errorMessage = (data?) => message("error", data);
 //#endregion
 
 export type IModal = One<HTMLDialogElement>;
-export type Modal = G<HTMLDialogElement>;
+export type Modal = G<HTDialog>;
 
 /**open modal 
  * @returns modal container, to close modal only remove the modal container */
@@ -564,7 +526,7 @@ export function mdError(body: any, sz: Size = "xs") {
     cl => confirm(() => { cl(); ok() }),
     sz).c("error"));
 }
-const topLayer = () => g(getAll(":modal").at(-1)) || body();
+export const topLayer = () => g(getAll(":modal>form").at(-1)) || body();
 export function popup(refArea: () => FluidRect, div: G, align: FluidAlign) {
   return anim(() => topLayer().contains(div) && hoverBox(refArea(), div, align));
 }
@@ -592,32 +554,34 @@ export function ctxmenu(e: MouseEvent, data: MenuItems, align: FluidAlign = "ve"
 }
 export function tip<T extends HSElement>(root: One<T>, content: any, align?: FluidAlign): G<T>
 export function tip<T extends HSElement>(root: G<T>, tip: G, align: FluidAlign = "v") {
-  if (isP(tip)) {
-    let t = tip;
-    tip = div("_ tip", wait);
-    t.then(v => { tip = wrap(v, "_ tip") });
-  }
-  else tip = wrap(tip, "_ tip");
-  return (root = g(<any>root))?.on({
-    mouseenter() {
-      let tl = topLayer();
-      tl.add(tip);
-      anim(() => tl.contains(root) && tip.parent ?
-        hoverBox(root.rect, tip as G, align) :
-        (tip.remove(), false));
-    },
-    mouseleave() { tip.remove() },
-    //TODO:focusin,focusout
-    // focusout(e) {
-    //   tip.remove()
-    // },
-    // focusin(){
+  if (tip) {
+    if (isP(tip)) {
+      let t = tip;
+      tip = div("_ tip", wait);
+      t.then(v => { tip = wrap(v, "_ tip") });
+    }
+    else tip = wrap(tip, "_ tip");
+    return (root = g(<any>root))?.on({
+      mouseenter() {
+        let tl = topLayer();
+        tl.add(tip);
+        anim(() => tl.contains(root) && tip.parent ?
+          hoverBox(root.rect, tip as G, align) :
+          (tip.remove(), false));
+      },
+      mouseleave() { tip.remove() },
+      //TODO:focusin,focusout
+      // focusout(e) {
+      //   tip.remove()
+      // },
+      // focusin(){
 
-    // }
-  });
+      // }
+    });
+  } else return root;
 }
 
-export interface iRoot extends iSelectBase {
+export interface iRoot extends pSelectBase {
 
   /**gain focus via tab key 
    * @default true
@@ -629,7 +593,7 @@ export interface iRoot extends iSelectBase {
 export type Root = Component<iRoot, { open?: [bool] }> & {
   value: Key;
 };
-export interface iSelectBase {
+export interface pSelectBase {
   open?: bool;
   /**if should have menu-down icon 
    * @default true */
@@ -639,83 +603,80 @@ export interface iSelectBase {
   click?: bool;
   off?: bool;
 }
-export interface SelectBase<T extends iSelectBase = iSelectBase> extends Component<T, { open?: [bool] }> { }
+export interface SelectBase<T extends pSelectBase = pSelectBase> extends Component<T, { open?: [bool] }> { }
 
 /**create root, add handlers */
 export function selectRoot(me: SelectBase, options: L, label: G, menu: G, setValue: (v: Key) => any, tag?: HTMLTag) {
-  let
-    i = me.p,
-    root = onfocusout(g(tag || "button", `_ in ${C.select}`, [label.c("bd"), t(i.icon) && icon(icons.dd)?.c(C.side)/*, me.menu*/]), () => me.set("open", false))
-      .p("tabIndex", 0)
-      .on({
-        focus(e) {
-          if (i.off) {
-            if (e.relatedTarget)
-              g(e.relatedTarget as Element).focus();
-            else root.blur();
-          } else root.c("on");
-        },
-        keydown(e) {
-          switch (e.key) {
-            case "ArrowUp":
-              me.set("open", true);
-              range.move(options, "on", -1, range.tp(e.shiftKey, e.ctrlKey));
+  let p = me.p;
+  let root = onfocusout(g(tag || "button", `_ in ${C.select}`, [label.c("bd"), t(p.icon) && icon(icons.dd)?.c(C.side)/*, me.menu*/]), () => null)//me.set("open", false)
+    .p("tabIndex", 0).on({
+      focus(e) {
+        if (p.off) {
+          if (e.relatedTarget)
+            g(e.relatedTarget as Element).focus();
+          else root.blur();
+        } else root.c("on");
+      },
+      keydown(e) {
+        switch (e.key) {
+          case "ArrowUp":
+            me.set("open", true);
+            range.move(options, "on", -1, range.tp(e.shiftKey, e.ctrlKey));
+            break;
+          case "ArrowDown":
+            me.set("open", true);
+            range.move(options, "on", 1, range.tp(e.shiftKey, e.ctrlKey));
+            break;
+          case "Enter":
+            if (me.p.open) {
+              let _ = (l(options) == 1 ? options[0] : options.tag('on'));
+              _ && setValue(_[options.key]);
+              //sub(range.list(, "on"), options.key as any)[0]
+              me.set("open", false)
+            } else return;
+            // else {
+            //   let frm = g(me).closest("form");
+            //   if (frm) frm?.e.requestSubmit();
+            //   else return;
+            // }
+            break;
+          case "Escape":
+            if (me.p.open) {
+              me.set("open", false);
               break;
-            case "ArrowDown":
-              me.set("open", true);
-              range.move(options, "on", 1, range.tp(e.shiftKey, e.ctrlKey));
-              break;
-            case "Enter":
-              if (me.p.open) {
-                setValue(l(options) == 1 ?
-                  options[0][options.key] as any :
-                  sub(range.list(options, "on"), options.key as any)[0]);
-                me.set("open", false)
-              } else return;
-              // else {
-              //   let frm = g(me).closest("form");
-              //   if (frm) frm?.e.requestSubmit();
-              //   else return;
-              // }
-              break;
-            case "Escape":
-              if (me.p.open) {
-                me.set("open", false);
-                break;
-              } else return;
+            } else return;
 
-            default:
-              return;
-          }
-          clearEvent(e);
+          default:
+            return;
         }
-      });
+        clearEvent(e);
+      },
+    });
   tag || root.attr("type", "button")
-  if (t(i.click))
+  if (t(p.click))
     root.on('click', (e) => {
-      // if (i.off) {
+      // if (p.off) {
       //   e.stopImmediatePropagation();
       // } else { }
       if (!menu.contains(e.target as HTMLElement))
         me.toggle("open");
-
     });
   me.on(state => {
     if ("off" in state) {
-      if (i.off) me.set("open", false);
+      if (p.off) me.set("open", false);
       //{root.blur().attr("disabled", true).p('tabIndex', -1); } 
-      root.attr("disabled", i.off)//.p('tabIndex', t(i.tab) ? 0 : -1);
+      root.attr("disabled", p.off)//.p('tabIndex', t(p.tab) ? 0 : -1);
 
     }
     if ("open" in state) {
-      if (i.open && i.off) {
+      if (p.open && p.off) {
         me.set("open", false);
         return;
       }
-      me.emit('open', i.open);
-      root.c("on", i.open);
+      me.emit('open', p.open);
+      root.c("on", p.open);
 
-      if (i.open) {
+      if (p.open) {
         root.add(menu);
         anim(() => {
           let r = root.rect;
@@ -730,7 +691,7 @@ export function selectRoot(me: SelectBase, options: L, label: G, menu: G, setVal
 
   return root;
 }
-export interface iSingleSelectBase<T = Dic> extends iSelectBase {
+export interface iSingleSelectBase<T = Dic> extends pSelectBase {
   clear?: bool
   /**placeholder */
   ph?: any;
@@ -754,11 +715,11 @@ export async function setValue(me: SingleSelectBase, label: G) {
   }
 }
 type MnItems = MenuContent | ((close: () => any) => G);
-export const dropdown = (label: any, items: MnItems, align: FluidAlign = "ve") =>
-  call(div("_ dd", label).p("tabIndex", 0), e => {
+export const dropdown = (label: any, items: MnItems, align: FluidAlign = "ve", closeOnBlur?: bool) =>
+  call(div("_ dd i", label).p("tabIndex", 0), e => {
     function cl() { mn?.remove(); e.c("on", false); }
     let mn: G// = ;
-    // onfocusout(e, cl);
+    t(closeOnBlur) && onfocusout(e, cl);
     e.on("click", () => {
       if (mn?.parent) cl();
       else {
@@ -767,8 +728,8 @@ export const dropdown = (label: any, items: MnItems, align: FluidAlign = "ve") =
       }
     });
   });
-export const idropdown = (label: any, items: MnItems, align?: FluidAlign) =>
-  dropdown([label, icon(icons.dd)], items, align);
+export const idropdown = (label: any, items: MnItems, align?: FluidAlign, closeOnBlur?: bool) =>
+  dropdown([label, icon(icons.dd)], items, align, closeOnBlur);
 
 export type AccordionItem = [head: any, body: any];
 export interface IAccordion {
@@ -813,48 +774,6 @@ export function tab(initial: int, items: TabItem[]) {
 }
 //#endregion
 
-// #region slideshow
-
-export type SShowItem = [src: str, title?: any, alt?: str];
-export interface iSlideshow {
-  // items?: SShowItem[];
-  // index?: int;
-  click?: (src: str) => any;
-}
-
-export function slideshow(i: iSlideshow, items: SShowItem[], index = 0) {
-  let title = div("title"), bd = g("img");
-  let p = g("button", "p").html('&#10094;').on("click", () => set(index - 1));
-  let n = g("button", "n").html('&#10095;').on("click", () => set(index + 1));
-  let indices = items.map((_, i) => g("a").on("click", () => set(i)));
-  let set = (i: int) => {
-    let t = items[i];
-    if (t) {
-      bd.p({ src: t[0], alt: t[2] });
-      title.set(t[1]);
-      p.css("visibility", i ? "visible" : "hidden");
-      n.css("visibility", i + 1 < l(items) ? "visible" : "hidden");
-      indices[index].c("on", false);
-      indices[index = i].c("on");
-    }
-  };
-  set(index);
-  if (i.click)
-    bd.on("click", () => i.click(items[index][0]));
-  return div("_ sshow", [
-    p, bd, n, title,
-    div("indices", indices)
-  ]);
-  // div("bd",items.map(i => g("img", { src: i[0], alt: i[2] })))
-}
-export const sshowModal = (src: str) =>
-  showDialog(g("dialog", "_ sshow-md", g("form", 0, [
-    g("button", C.close, icon(icons.close)).p("formMethod", "dialog"),
-    g("img", { src })
-  ])));
-export const sshowTitle = (main: str, info?: str) =>
-  [main, div("info", info)];
-//#endregion
 
 // export interface IOpenSelect<T extends Object = Dic, K extends Key = Key> extends bg.ISelect<T, K> {
 //   input?: 'text' | 'number';

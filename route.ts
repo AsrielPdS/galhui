@@ -1,5 +1,5 @@
-﻿import { G, g, getAll, isE } from "galho";
-import { Dic, Task, bool, falsy, filter, isF, isS, str, z } from "galho/util.js";
+﻿import { Content, G, One, g, getAll, isE } from "galho";
+import { Arr, Dic, Task, bool, falsy, filter, isF, isS, str, z } from "galho/util.js";
 
 export const hash = (s: G, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: G[]) {
@@ -7,7 +7,7 @@ export function init(...routeRoot: G[]) {
   window.onhashchange = () => goTo(location.hash);
   current = currentPath = null;
 }
-export type Update = (...path: string[]) => void;
+export type Update = (...path: string[]) => Task<void | (G | Element)[]>;
 export type RouteResult = G[] | [view: G[] | falsy, onupdate: Update];
 export type Route = RouteResult | ((...path: string[]) => Task<RouteResult | void>);
 export type Routes = Dic<Route>;
@@ -68,6 +68,7 @@ export async function goTo(path: string): Promise<void> {
     if (t)
       key = (o.sub = sub = (o.path = t).split("/")).shift();
   }
+  sub = sub.map(s => decodeURIComponent(s));
   history.replaceState(null, null, "#" + o.path);
 
   if (key != currentPath) {
@@ -84,12 +85,15 @@ export async function goTo(path: string): Promise<void> {
       set(dt as G[]);
     currentPath = key;
   }
-  updateAnchors();
-  current?.(...sub);
+  setTimeout(updateAnchors);
+  if (current) {
+    let _ = await current(...sub);
+    _ && set(_);
+  }
 }
 export function updateAnchors() {
   getAll('a.on[href^="#"]').do(e => e.c("on", false));
-  getAll(`a[href="${location.hash}"]`).do(e => e.c("on"));
+  getAll(`a[href="${location.hash}"]`).c("on");
 }
 
 export function hmr() {

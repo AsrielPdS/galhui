@@ -1,4 +1,4 @@
-import { Property } from "csstype";
+import { Property } from "galho";
 import { css, Style, Styles } from "galho";
 import { assign, bool, def, float, isA, isB, isN, isO, str, toStr } from "galho/util.js";
 import { HAlign } from "./galhui.js";
@@ -14,21 +14,12 @@ export function italic(v: bool | Property.FontStyle) {
   return v ? isB(v) ? "italic" : v : null;
 }
 export const
-  isDark = () => matchMedia && matchMedia('(prefers-color-scheme: dark)').matches,
   font = (v: Font) => v && (isN(v) ?
     { fontSize: v + "rem" } :
     v.f ?
       { font: `${toStr(italic(v.i))} ${toStr(bold(v.b))} ${v.s}rem ${v.f}` } :
       { fontSize: v.s && (v.s + "rem"), fontWeight: bold(v.b), fontStyle: italic(v.i) }
   ),
-  vpad = (v: str | 0): Style => ({
-    paddingTop: v,
-    paddingBottom: v
-  }),
-  vmarg = (v: str | 0): Style => ({
-    marginTop: v,
-    marginBottom: v
-  }),
   bord = (b: Border) => b && `${b.w || 1}px ${b.s || "solid"} ${b.c}`,
   bords = (b: Borders): Style => b &&
     (isA(b) ? {
@@ -45,43 +36,12 @@ export const
     ...bords(v.brd),
     background: v.bg,
     ...font(v.f)
-  }),
-  state = (v: Stateble): Style => v && filterDic({
-    ...block(v),
-    ":hover": v.h && block(v.h),
-    ":visited": v.v && block(v.v),
-    ":active,:focus": v.on && block(v.on),
   });
 // export const c = (...cls: str[]) => cc(...cls);
-export const rem = (v: float) => v + "rem";
 export const border = (color: str, size = 1) => `${size}px solid ${color}`;
 
-export function tAlign(v: HAlign): Property.TextAlign {
-  switch (v) {
-    case HAlign.left:
-      return "left";
-    case HAlign.center:
-      return "center";
-    case HAlign.right:
-      return "right";
-    case HAlign.justify:
-      return "justify";
-  }
-}
 export const spc = (v: SpaceFull, unit = "em") => v == null ? null : (isN(v) ? v + unit : v.map(v => v + unit).join(" "));
-/**horizontal space */
-export const hs = (v: SpaceFull) => isN(v) ? v : v[1];
-/**vertical space */
-export const vs = (v: SpaceFull) => isN(v) ? v : v[0];
 
-export const topRadius = (v: float, unit = "rem"): Style => ({
-  borderTopLeftRadius: v + unit,
-  borderTopRightRadius: v + unit
-});
-export const bottomRadius = (v: float, unit = "rem"): Style => ({
-  borderBottomLeftRadius: v + unit,
-  borderBottomRightRadius: v + unit
-});
 /**back & fore ground */
 export const bfg = (bg: Property.Background, fg: Property.Color): Style => ({
   background: bg, color: fg
@@ -155,4 +115,44 @@ interface Stateble extends TBlock {
   h?: TBlock;
   /** visited*/
   v?: TBlock;
+}
+const isDark = () => matchMedia && matchMedia('(prefers-color-scheme: dark)').matches;
+const vpad = (v: str | 0): Style => ({
+  paddingTop: v,
+  paddingBottom: v
+});
+const vmarg = (v: str | 0): Style => ({
+  marginTop: v,
+  marginBottom: v
+});
+const state = (v: Stateble): Style => v && filterDic({
+  ...block(v),
+  ":hover": v.h && block(v.h),
+  ":visited": v.v && block(v.v),
+  ":active,:focus": v.on && block(v.on),
+});/**horizontal space */
+const hs = (v: SpaceFull) => isN(v) ? v : v[1];
+/**vertical space */
+const vs = (v: SpaceFull) => isN(v) ? v : v[0];
+
+const topRadius = (v: float, unit = "rem"): Style => ({
+  borderTopLeftRadius: v + unit,
+  borderTopRightRadius: v + unit
+});
+const bottomRadius = (v: float, unit = "rem"): Style => ({
+  borderBottomLeftRadius: v + unit,
+  borderBottomRightRadius: v + unit
+});
+const rem = (v: float) => v + "rem";
+function tAlign(v: HAlign): Property.TextAlign {
+  switch (v) {
+    case HAlign.left:
+      return "left";
+    case HAlign.center:
+      return "center";
+    case HAlign.right:
+      return "right";
+    case HAlign.justify:
+      return "justify";
+  }
 }

@@ -3,7 +3,7 @@ import { Style, Styles } from "galho";
 import { bool, int, str } from "galho/util.js";
 import { C } from "../galhui.js";
 import { StyleCtx, bfg, border, box, rgb, rgba, spc, styleCtx } from "../style.js";
-
+const { mix } = chroma
 export const enum ScreenSize {
   mobileS = 320,
   mobileM = 375,
@@ -116,6 +116,7 @@ export const button = (ctx: Context): Styles => (ctx(icon), {
   //style
   "._.link": {
     color: ctx.a.n,
+    textDecoration: "underline",
     ":hover": { color: ctx.a.h },
     ":visited": { color: ctx.a.v },
     ":active": { color: ctx.a.a },
@@ -157,7 +158,7 @@ export const button = (ctx: Context): Styles => (ctx(icon), {
 
   },
 });
-export const input = ({ in: { bg, fg, border } }: Context): Styles => ({
+export const input = ({ in: { bg, fg, border }, error, fg: _fg }: Context): Styles => ({
   "textarea._.in": {
     height: "6em",
     resize: "vertical",
@@ -172,7 +173,8 @@ export const input = ({ in: { bg, fg, border } }: Context): Styles => ({
     border: `1px solid ${border.n}`,
     borderRadius: opts.acentBordRad + "em",
     height: "2.4em",
-    outline: "0",
+    outline: 0,
+    fontSize: "inherit",
     // "&.min>input:not(:focus)": {
     //   width: 0,
     // },
@@ -198,8 +200,10 @@ export const input = ({ in: { bg, fg, border } }: Context): Styles => ({
       background: "inherit",
       color: "inherit"
     },
-    ["&." + "error"]: {
+    "&.error": {
       borderColor: "#f44336",
+      color: fg || _fg,
+      background: mix(bg, error.n, .2).hex(),
     }
   }
 })
@@ -295,7 +299,7 @@ export function notify(): Styles {
     }
   };
 }
-export const menubar = ({ menu }: Context): Styles => ({
+export const menubar = ({ menu, disabled }: Context): Styles => ({
   "._.bar": {
     display: "flex",
     height: opts.menuH + "em",
@@ -323,7 +327,7 @@ export const menubar = ({ menu }: Context): Styles => ({
         borderRadius: ".3em .3em 0 0"
       }
     },
-    ".hd,.i":{
+    ".hd,.i": {
       marginTop: 0,
       marginBottom: 0,
       // border: "none",
@@ -337,6 +341,9 @@ export const menubar = ({ menu }: Context): Styles => ({
     },
     ".i": {
       background: "inherit",
+      ":disabled": {
+        color: disabled,
+      },
       ":hover": {
         background: menu.h,
       },
@@ -496,8 +503,9 @@ export function modal(ctx: Context): Styles {
       textAlign: "start",
       overflow: "hidden",
       background: bg,
-      ["&." + "error"]: {
-        border: "4px solid #e53935"
+      "&.error": {
+        border: border(ctx.error.n, 3),
+        color: ctx.fg
       },
       ["." + C.close]: {
         position: "absolute",
@@ -590,7 +598,7 @@ export function modal(ctx: Context): Styles {
 export const pcModal = (ctx: Context): Styles => (ctx(button), {
   [min(ScreenSize.tablet)]: {
     "._.modal": {
-      width: "55%",
+      width: "64%",
       maxWidth: (ScreenSize.tablet - 20) + "px",
       // margin: "3em auto 2em",
       height: "fit-content",
@@ -630,60 +638,61 @@ export const pcModal = (ctx: Context): Styles => (ctx(button), {
   },
   [min(ScreenSize.laptop)]: {
     "._.modal": {
-
+      width: "55%",
     }
   }
 });
 export const slideShow = (): Styles => ({
   "._.sshow": {
     position: "relative",
-    img: {
-      maxWidth: "100%",
-      height: "fit-content",
-      margin: "auto",
-      display: "block",
-    },
-    ".title": {
-      position: "absolute",
-      bottom: "2.5em",
-      fontSize: "1.3em",
-      marginLeft: "1em",
-      background: "#fff7",
-      padding: "2px 12px",
-      borderRadius: "10px"
-    },
-    ".indices": {
-      textAlign: "center",
-      position: "absolute",
-      bottom: "1em",
-      width: "100%",
-      "*": {
-        borderRadius: "50%",
-        height: "12px",
-        width: "12px",
-        display: "inline-block",
-        border: "1px solid #000",
-        background: "#fff",
-        margin: "0 6px",
-        ":hover": {
-          background: "#0004"
-        },
-        ":active,&.on": {
-          background: "#0008"
+    ".bd": {
+      display: "flex",
+      overflow: "hidden",
+      // position: "relative",
+      img: {
+        maxWidth: "100%",
+        height: "fit-content",
+        margin: "auto",
+        display: "block",
+      },
+      ".indices": {
+        textAlign: "center",
+        position: "absolute",
+        bottom: "1em",
+        width: "100%",
+        "*": {
+          borderRadius: "50%",
+          height: "12px",
+          width: "12px",
+          display: "inline-block",
+          border: "1px solid #000",
+          background: "#fff",
+          margin: "0 6px",
+
+          ":hover": {
+            background: "#0004"
+          },
+          ":active,&.on": {
+            background: "#0008"
+          }
         }
-      }
+      },
     },
+
     ".p,.n": {
+      zIndex: zIndex.front,
       position: "absolute",
       fontSize: "5em",
       color: "#fff",
       textShadow: "#000 0 0 5px",
-      top: "30%",
+      top: "50%",
+      translate: "0 -50%",
       padding: ".2em .5em",
       ":not(:hover)": { opacity: .3 }
     },
     ".p": { left: 0 },
-    ".n": { right: 0 }
+    ".n": { right: 0 },
+    ".title:empty": { display: "none" }
   },
   "._.sshow-md": {
     background: "none",
@@ -695,11 +704,38 @@ export const slideShow = (): Styles => ({
       right: 0,
       top: 0
     },
-    " img": {
-      margin: "auto",
-      display: "block",
-      width: "90%"
-    }
+  },
+  "@media(orientation:landscape)": {
+    "._.sshow": {
+      ".title": {
+        position: "absolute",
+        bottom: "2.5em",
+        fontSize: "1.3em",
+        marginLeft: "1em",
+        background: "#fff7",
+        padding: "2px 12px",
+        borderRadius: "10px"
+      }
+    },
+    "._.sshow-md": {
+      " img": {
+        margin: "auto",
+        display: "block",
+        width: "90%"
+      }
+    },
+  },
+  "@media(orientation:portrait)": {
+    "._.sshow": {
+      ".title": {
+        background: "#fff",
+      }
+    },
+    "._.sshow-md": {
+      [" ." + C.close]: {
+        position: "fixed",
+      }
+    },
   }
 })
 
@@ -910,6 +946,7 @@ export function form(ctx: Context): Styles {
       },
     },
     "._.formg": {
+      minWidth: 0,
       background: "#aaaaaa36",
       borderRadius: "4px",
       // margin: "6px -6px 6px 0",
@@ -922,15 +959,29 @@ export function form(ctx: Context): Styles {
         // background: "#cfd8dc",
         // margin: "0 -6px 10px 0",
         // borderRadius: "4px"
+      },
+      "&.row": {
+        display: "flex",
+        justifyContent: "space-evenly",
+
       }
     },
     "._.form,._.formg": {
+      "&.grid": {
+        display: "grid",
+        gridGap: "0 1em",
+        gridTemplateColumns: "repeat(auto-fill, minmax(20em, 1fr))",
+        ".oi": {
+          margin: 0,
+        }
+      },
       //outline input 
       ".oi": {
-        margin: `.8rem 0`,
+        position: "relative",
+        margin: `.8em 0`,
         ".hd": {
           display: "block",
-          marginBottom: ".6em",
+          margin: ".4em 0 .2em",
           overflow: "hidden",
           whiteSpace: "nowrap"
         },
@@ -1224,7 +1275,7 @@ export const style = (p: Pallete) =>
 export function darkTheme(): Pallete {
   const cstate = (c: str | Cholor, txt?: str): State => ({ n: (c = chroma(c)).hex(), h: c.brighten(.1).hex(), a: c.brighten(.4).hex(), txt });
   return {
-    hr:"#fff8",
+    hr: "#fff8",
     ph: "#fff8",
     bg: "#202020",
     fg: "#fff",
@@ -1248,7 +1299,7 @@ export function darkTheme(): Pallete {
 export function lightTheme(): Pallete {
   const cstate = (c: str | Cholor, txt = "#fff"): State => ({ n: (c = chroma(c)).hex(), h: c.darken(.1).hex(), a: c.darken(.4).hex(), txt });
   return {
-    hr:"#0008",
+    hr: "#0008",
     ph: "#000A",
     fg: "#000",
     bg: "#fff",
@@ -1260,7 +1311,7 @@ export function lightTheme(): Pallete {
       ft: "#e0f7fa",
     },
     brd: rgba(34, 36, 38, .15),
-    error: cstate("#db2828"),
+    error: cstate("#f55656"),
     accept: cstate("#21ba45"),
     main: cstate("#2185d0"),
     bt: cstate("#e0e1e2", "rgba(0,0,0,.6)"),
