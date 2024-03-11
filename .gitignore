@@ -2,3 +2,4 @@ themes/*.css
 *.js
 *.d.ts
 !tasks.js
+package-lock.json
