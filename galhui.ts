@@ -45,6 +45,8 @@ declare global {
     close: str; cancel: Icon;
     search: Icon; upload: Icon;
     up: Icon; down: Icon;
+
+    cut: Icon; copy: Icon; paste: Icon;
   }
 }
 export type FormatType = "s" | "d" | "b" | "n";
@@ -53,30 +55,17 @@ export type FormatType = "s" | "d" | "b" | "n";
 export const enum C {
   full = "full",
   disabled = "ds",
-  //--components
-  //----basic
   //----composite
   message = "msg",
   buttons = "bs",
-  heading = "heading",
   accordion = "ac",
   close = "cl",
   tab = "ta",
   link = "lk",
   loading = "ld",
-  lever = "lv",
-  container = "container",
-  modalArea = "blank",
-  modal = "modal",
-  tree = "tree",
-  table = "tb",
-  grid = "grid",
-  placeholder = "ph",
   select = "sel",
   checkbox = "cb",
   switch = "sw",
-  //-------------------generic
-  group = "g",
   side = "sd",
   main = "ma",
   separator = "div",
@@ -86,10 +75,6 @@ export const enum C {
   // selected = "sd",
   current = "crt",
   inline = "inline",
-  off = "off",
-  extra = "extra",
-  options = "opts",
-  context = "context",
   mobile = "m"
 }
 
@@ -188,7 +173,7 @@ export function ilink(i: Icon, text: Child, href?: str) {
 
 /**close button */
 export function close(click?: click) {
-  return g("button", `_ ${C.close}`, icon(icons.close)).p("type", "button").on("click", click);
+  return g("button", `_ ${C.close}`, icon(icons.close)).p({ type: "button", tabIndex: -1 }).on("click", click);
 }
 /**cancel button */
 export function cancel(click?: click) {
@@ -203,9 +188,9 @@ export function buttons(...buttons: G[]) {
   return div(C.buttons, buttons);
 }
 
-export function img(src: str, cls?: str) { return g("img", cls).p("src", src) }
-export function a(href: str, content: any, cls?: str) { return g("a", cls, content).p("href", href) }
-export function hr(cls?: str) { return g("hr", cls); }
+export const img = (src: str, cls?: str) => g("img", cls).p("src", src);
+export const a = (href: str, content: any, cls?: str) => g("a", cls, content).p("href", href);
+export const hr = (cls?: str) => g("hr", cls); 
 
 export function logo(v: str | Icon) {
   if (v)
@@ -436,10 +421,12 @@ export const textarea = (name: str, ph: str, input?: (text: str) => void) =>
 
 export const checkbox = (label: any, input?: (checked: bool) => void, checked?: bool) =>
   g("label", "_ cb", [g("input", { type: "checkbox", checked }).on("input", input && (function () { input(this.checked) })), label]);
+export const radio = (label: any, name: str, input?: (checked: bool) => void, checked?: bool) =>
+  g("label", "_ cb", [g("input", { type: "radio", checked, name }).on("input", input && (function () { input(this.checked) })), label]);
 
-export function search(input?: (value: str) => any) {
-  let t = g("input", { type: "search", placeholder: w.search }), i = icon(icons.search);
-  input && delay(t, "input", $.delay, () => input(t.e.value));
+export function search(input?: (value: str) => any, value?: str) {
+  let t = g("input", { type: "search", placeholder: w.search, value }), i = icon(icons.search);
+  input && delay(t, "input", $.delay, () => input(t.v()));
   return (i ? div([t, i]) : t).c("_ in");
 }
 
@@ -460,28 +447,41 @@ export const errorMessage = (data?) => message("error", data);
 export type IModal = One<HTMLDialogElement>;
 export type Modal = G<HTDialog>;
 
-/**open modal 
- * @returns modal container, to close modal only remove the modal container */
-export function modal(hd: Label, bd?: any, actions?: (close: () => void, modal: G) => any, sz?: Size, blur = true) {
-  //
-  let content: Modal = g("dialog", "_ modal " + (sz || ""));
+export function dialog(cls: str, hd: any, bd: (close: () => void, modal: Modal) => any, blur = true) {
+  let content: Modal = g("dialog", "_ " + cls);
   content.on("cancel", (e) => {
-    if (!blur) clearEvent(e);
-    else content.remove();
-  })
+    if (blur) {
+      content.remove();
+      clearEvent(e);
+    }
+  });
+  if (blur)
+    content.on("click", e => {
+      if (e.target == e.currentTarget)
+        content.remove();
+    });
   content
     .add(g("form", 0, [
-      label(hd, "hd"),
-      isE(bd) ? bd.c("bd") : bd,
-      actions && div("ft", actions(() => (content as Modal).remove(), content))
+      hd,
+      bd(() => content.remove(), content),
     ]))
     .addTo(body())
     .e.showModal();
   return content as Modal;
-  // let area = div("_ blank", ).addTo(body);
-  // modal.p("tabIndex", 0).focus();
-  // blur && mdOnBlur(area);
-  // return area;
+}
+export function sidebar(hd: any, bd?: any | ((close: () => void, modal: G) => any), blur = true) {
+  return dialog("side", hd, isF(bd) ? bd : (() => bd), blur);
+}
+/**open modal 
+ * @returns modal container, to close modal only remove the modal container */
+export function modal(hd: Label, bd?: any, actions?: (close: () => void, modal: G) => any, sz?: Size, blur = true) {
+  return dialog(
+    "modal " + (sz || ""),
+    label(hd, "hd"),
+    (cl, c) => [
+      isE(bd) ? bd.c("bd") : bd,
+      actions && div("ft", actions(cl, c))
+    ], blur);
 }
 export function tabModal(initial: int, items: TabItem[], actions: (close: () => void, modal: G) => any = (cl) => confirm(cl), sz = "xl") {
   let form = g("form", "_ tab");
@@ -608,7 +608,7 @@ export interface SelectBase<T extends pSelectBase = pSelectBase> extends Compone
 /**create root, add handlers */
 export function selectRoot(me: SelectBase, options: L, label: G, menu: G, setValue: (v: Key) => any, tag?: HTMLTag) {
   let p = me.p;
-  let root = onfocusout(g(tag || "button", `_ in ${C.select}`, [label.c("bd"), t(p.icon) && icon(icons.dd)?.c(C.side)/*, me.menu*/]), () => null)//me.set("open", false)
+  let root = onfocusout(g(tag || "button", `_ in ${C.select}`, [label.c("bd"), t(p.icon) && icon(icons.dd)?.c(C.side)/*, me.menu*/]), () => me.set("open", false))
     .p("tabIndex", 0).on({
       focus(e) {
         if (p.off) {

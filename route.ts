@@ -1,5 +1,5 @@
-﻿import { Content, G, One, g, getAll, isE } from "galho";
-import { Arr, Dic, Task, bool, falsy, filter, isF, isS, str, z } from "galho/util.js";
+﻿import { G, g, getAll, isE } from "galho";
+import { Dic, Task, bool, falsy, filter, isF, isS, str, z } from "galho/util.js";
 
 export const hash = (s: G, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: G[]) {
@@ -13,7 +13,7 @@ export type Route = RouteResult | ((...path: string[]) => Task<RouteResult | voi
 export type Routes = Dic<Route>;
 
 var root: Element[], current: Update;
-export var currentPath: str;
+export var currentPath: str, prevPath: str, fullPath: str;
 const routes: Routes = {};
 export function add(handlers: Routes): void;
 export function add(key: str, handler: Route): void;
@@ -76,6 +76,9 @@ export async function goTo(path: string): Promise<void> {
     let route = routes[key];
     if (!route)
       throw 404;
+    prevPath = currentPath;
+    fullPath = path;
+    currentPath = key;
     let dt = isF(route) ? await route(...sub) : route;
     if (dt && isF(dt[1])) {
       current = dt[1];
@@ -83,7 +86,6 @@ export async function goTo(path: string): Promise<void> {
     }
     if (dt)
       set(dt as G[]);
-    currentPath = key;
   }
   setTimeout(updateAnchors);
   if (current) {

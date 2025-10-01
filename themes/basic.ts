@@ -160,7 +160,8 @@ export const button = (ctx: Context): Styles => (ctx(icon), {
 });
 export const input = ({ in: { bg, fg, border }, error, fg: _fg }: Context): Styles => ({
   "textarea._.in": {
-    height: "6em",
+    height: "unset",
+    // height: "6em",
     resize: "vertical",
   },
   "div._.in": { display: "flex", },
@@ -337,7 +338,10 @@ export const menubar = ({ menu, disabled }: Context): Styles => ({
       height: "100%",
       overflow: "hidden",
       // textOverflow: "ellipsis",
-      img: { width: "16px", height: "16px" },
+      img: {
+        height: "22px",
+        verticalAlign: "middle"
+      },//width: "16px", 
     },
     ".i": {
       background: "inherit",
@@ -496,13 +500,12 @@ export function modal(ctx: Context): Styles {
       border: "none",
       padding: 0,
       ...row(),
-      // width: "calc(100% - 1em)",
-      // height: "calc(100% - 1em)",
-      // margin: ".5em",
-      // position: "relative",
       textAlign: "start",
       overflow: "hidden",
       background: bg,
+      maxHeight: "calc(100% - 3rem)",
+      maxWidth: "calc(100% - 2rem)",
+      width: "unset",
       "&.error": {
         border: border(ctx.error.n, 3),
         color: ctx.fg
@@ -527,13 +530,14 @@ export function modal(ctx: Context): Styles {
       form: {
         width: "100%",
         ...col(),
-        padding: ".2em 1em",
+        padding: ".5em 1.7em",
 
         ".hd": {
-          margin: 0,
+          // margin: 0,
           height: "2.2em",
           fontSize: "inherit",
           padding: ".4em 2em",
+          margin: "-.5em -1.7em 1.2em",
           background: modal.hd,
           "&:empty": { display: "none" },
           "&.bar": {
@@ -551,20 +555,12 @@ export function modal(ctx: Context): Styles {
           ".hd": { margin: 0 },
           ".ft": { margin: 0 },
         },
-        // ".bd": {
-        //   padding: ".2em 1em",
-        //   overflow: "auto",
-        //   height: "calc(100% - 3.8em)",
-        //   ":first-child": { paddingTop: "1.2em", },
-        // },
-        // ".hd+.bd": {
-        //   height: "calc(100% - 6em)",
-        // },
         ".ft": {
           height: "3.8em",
           display: "flex",
           flexDirection: "row-reverse",
-          padding: ".6em 1em",
+          padding: ".4em .2em",
+          margin: "1.2em -1.7em -.5em",
           background: modal.ft,
           ".spc": {
             border: "none", margin: "auto"
@@ -580,16 +576,26 @@ export function modal(ctx: Context): Styles {
       ...col(),
       height: "100%",
       width: "85%",
+      maxHeight: "unset",
       background: ctx.bg,
       position: "relative",
-      ".hd": {
-        margin: 0,
-        padding: ".8em",
-        background: "#cfd8dc",
-        borderBottom: "1px solid #0006"
-      },
-      ".bd": {
-        flex: 1,
+      border: "none",
+      margin: 0,
+      padding: 0,
+      form: {
+        ...col(),
+        height: "100%",
+        ".hd": {
+          margin: 0,
+          padding: ".8em",
+          background: "#cfd8dc",
+          borderBottom: "1px solid #0006"
+        },
+        ".bd": {
+          paddingTop: "1em",
+          // ...col(),
+          flex: 1,
+        }
       }
     },
     "body.dialog-on": { overflow: "hidden!important" }
@@ -624,15 +630,6 @@ export const pcModal = (ctx: Context): Styles => (ctx(button), {
       "&.xs": {
         width: "31%",
         maxWidth: "360px"
-      },
-      form: {
-        padding: ".5em 1.7em",
-        ".hd": {
-          margin: "-.5em -1.7em 1.2em"
-        },
-        ".ft": {
-          margin: "1.2em -1.7em -.5em"
-        },
       }
     },
   },
@@ -756,84 +753,74 @@ export const index = (): Styles => ({
 export const listHelper = (_: ListState): Style => ({
   background: _.n,
 });
-export const listItem = ({ h, a, o, current }: ListState): Style => ({
-  "&:nth-child(odd)": {
-    background: o,
-  },
-  ":hover": {
-    color: h,
-  },
-  "&.on": {
-    background: a,
-  },
-  ["&." + C.current]: {
-    boxShadow: `inset 0 0 1px 2px ${current}`
-  },
+export const listItem = ({ list: l }: Context): Styles => ({
+  "._.list,._.tb,._.grid": {
+    ">.i": {
+      ":hover": {
+        color: l.h,
+      },
+      "&.on": {
+        background: l.a + "!important",
+      },
+      ["&." + C.current]: {
+        boxShadow: `inset 0 0 1px 2px ${l.current}`
+      },
+    }
+  }
 });
-export const list = ({ brd, list: l }: Context): Styles => ({
+export const list = (ctx: Context): Styles => (ctx(listItem), {//{ brd, list: l }
   "._.list": {
     width: "100%",
     // height: "300px",
     padding: 0,
     margin: 0,
     overflow: "hidden scroll",
-    ...listHelper(l),
+    ...listHelper(ctx.list),
     counterReset: "l",
     ".i": {
       minHeight: "1.2em",
       ...row(),
       padding: ".1em .3em .1em 0",
-      ...listItem(l),
+      "&:nth-child(odd)": {
+        background: ctx.list.o,
+      },
+      // ...listItem(ctx.l),
       borderBottom: "solid 1px #0004",
       counterIncrement: "l",
       ["." + C.side]: {
         flex: "0 0 2em",
         // display: "inline-block",
         padding: ".4em .2em",
-        borderRight: border(brd),
+        borderRight: border(ctx.brd),
         ":empty::before": { content: "counter(l)", },
       },
       ".bd": { flex: 1 },
-      //   // display: "inline-block",
-      //   padding: ".6em .4em"
-      // },
-      // ["." + C.options]: {
-      //   borderLeft: border(brd),
-      // },
     },
-    // tfoot: { position: "sticky", bottom: 0, background: "#fff" }
   },
-  //   "._.card": {
-  //     display: "grid!important",
-  //     gridTemplateColumns: "40px",
-  //     gridTemplateAreas: `
-  // "s m o" 
-  // "s e o"`,
-  //     ".bd": { gridArea: "m", },
-  //     ".sd": { gridArea: "s", marginRight: ".8em" },
-  //     ".ed": {
-  //       borderSpacing: "0 3px",
-  //       gridArea: "e",
-  //       tr: { background: "#d3e3f3", td: { padding: ".5em" } },
-  //       fontSize: "smaller",
-  //     },
-  //     paddingBottom: ".6rem"
-  //   }
+  // "._.grid": {
+  //   display: "grid",
+  //   gridAutoRows: "210px",
+  //   gap: "5px",
+  //   padding: "10px"
+  // }
 });
-export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
+export const table = (ctx: Context): Styles => (ctx(listItem), {//{ menu, fg, list: l, brd }
   "._.tb": {
     padding: 0,
     outline: "none",
     position: "relative",
     overflow: "auto",
     // overflow: "auto",
-    ...listHelper(l),
+    ...listHelper(ctx.list),
     counterReset: "tb",
 
     //line
 
     ".i": {
-      ...listItem(l),
+      "&:nth-child(odd)": {
+        background: ctx.list.o,
+      },
+      // ...listItem(l),
       counterIncrement: "tb",
       [`.${C.side}:empty::before`]: {
         content: "counter(tb)",
@@ -842,7 +829,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
     ".hd": {
       height: "2em",
       zIndex: zIndex.front,
-      background: menu.n,
+      background: ctx.menu.n,
       fontWeight: 500,
       minWidth: "fit-content",
       position: "sticky",
@@ -873,7 +860,7 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       ["." + "hd"]: {
         //cell
         ["." + "i"]: {
-          border: `1px solid ${fg}`
+          border: `1px solid ${ctx.fg}`
         },
         [">:not(:first-child)"]: {
           borderLeft: "none"
@@ -920,8 +907,8 @@ export const table = ({ menu, fg, list: l, brd }: Context): Styles => ({
       margin: 0,
       height: "100%",
       border: "none",
-      borderRight: border(brd),
-      borderBottom: border(brd),
+      borderRight: border(ctx.brd),
+      borderBottom: border(ctx.brd),
       flexShrink: 0,
       minWidth: 0
     },
@@ -976,7 +963,7 @@ export function form(ctx: Context): Styles {
         }
       },
       //outline input 
-      ".oi": {
+      " ._.oi": {
         position: "relative",
         margin: `.8em 0`,
         ".hd": {

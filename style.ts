@@ -1,4 +1,4 @@
-import { Property } from "galho";
+import { CSSSep, Property } from "galho";
 import { css, Style, Styles } from "galho";
 import { assign, bool, def, float, isA, isB, isN, isO, str, toStr } from "galho/util.js";
 import { HAlign } from "./galhui.js";
@@ -54,15 +54,15 @@ export const box = (mrg: SpaceFull, pad: SpaceFull): Style => ({
 export type StyleFnAdd<T> = ((style?: StyleFn<T> | Styles) => StyleFnAdd<T>) & { css?: str };
 export type StyleFn<T> = (ctx: StyleCtx<T>) => Styles;
 export type StyleCtx<T> = T & StyleFnAdd<T>;
-export function styleCtx<T = any>(options: T, sep?: str) {
+export function styleCtx<T = any>(options: T, sep?: CSSSep) {
   let
     list: StyleFn<T>[] = [],
     add: StyleFnAdd<T> = (style) => {
       if (isO(style))
-        add.css += css(<any>style, null, sep);
+        add.css += css(<any>style, sep);
       else if (!list.includes(style)) {
         list.push(style);
-        add.css += css((<any>style)(add), null, sep);
+        add.css += css((<any>style)(add), sep);
       }
       return add;
     };

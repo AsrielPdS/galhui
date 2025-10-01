@@ -1,9 +1,9 @@
 import { Component, G, One, Render, clearEvent, div, g, m, onfocusout } from "galho";
 import { HTInput, HTTextArea } from "galho/elements.js";
 import orray, { Alias, L, extend } from "galho/orray.js";
-import { AnyDic, Dic, Key, Primitive, Task, assign, bool, byKey, call, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str, unk } from "galho/util.js";
-import { $, C, Icon, Label, SelectBase, SingleSelectBase, Size, TextInputTp, busy, cancel, confirm, errorMessage, pSelectBase, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w, close } from "./galhui.js";
-import { anyProp, arrayToDic } from "./util.js";
+import { AnyDic, Dic, Key, Primitive, Task, assign, bool, byKey, call, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
+import { $, C, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, close, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, pSelectBase, selectRoot, setValue, tip, w } from "./galhui.js";
+import { anyProp, arrayToDic, date, dateTime, month } from "./util.js";
 
 // export type Error = {
 //   tp?: str;
@@ -284,9 +284,9 @@ export class Form extends FormBase<iForm> implements FieldGroup {
       .observeVisited(i => this.setErrors(i.name, i.invalid(i.value)));
   }
   view() {
-    let { p: i, inputs: inp } = this;
-    return g(i.tag || 'form', "_ form", [
-      inp.map(i => i.field(this.p)),
+    let { p, inputs } = this;
+    return g(p.tag || 'form', "_ form", [
+      inputs.map(i => i.field(this.p)),
       this.errDiv
     ]);
   }
@@ -328,7 +328,6 @@ export function mdform<T = Dic>(hd: Label, form: Input[] | FormBase, cb?: (dt: D
 }
 export interface Field {
   name?: PropertyKey;
-  info?: str;
   req?: bool;
   outline?: bool;
   text?: Label;
@@ -336,7 +335,7 @@ export interface Field {
   off?: bool;
 }
 export function field(bd: One, i: Field, container: InputContainer, sz = container.labelSz) {
-  let o = def(container.outline, i.outline);
+  let o = def(i.outline, container.outline);
   let t = div("_ " + (o ? "oi" : "ii"), [
     (!o || i.text) && g('label', "hd", [
       i.text,
@@ -489,7 +488,9 @@ export interface TextInValidation {
   length?: int;
 }
 //------------TEXT------------------------
+export const emailRegex = /^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/;
 export interface iTextIn extends pInput<str>, TextInValidation {
+  rows?: int;
   input?: TextInputTp | "ta";
   /**place holder */
   ph?: str;
@@ -499,6 +500,7 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
     let p = this.p, r: G<HTInput | HTTextArea>;
     if (p.input == 'ta') {
       r = g('textarea', "_ in v")
+        .p("rows", p.rows || 4)
         .on('keydown', (e) => {
           if (e.key == "Enter") {
             if (e.ctrlKey)
@@ -528,7 +530,7 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
     let errs: Error[] = [];
 
     if (value) {
-      if (p.pattern && !(<RegExp>p.pattern).test(value))
+      if (p.pattern && !p.pattern.test(value))
         errs.push(error(ErrorType.invalidFormat, w.invalidFmt));
 
       if (p.max && value.length > p.max)
@@ -638,7 +640,7 @@ export interface iCheckIn extends pInput<bool> {
   /**place holder */
   ph?: str;
 }
-export class CheckIn extends Input<bool, iCheckIn>  {
+export class CheckIn extends Input<bool, iCheckIn> {
   view() {
     let i = this.p;
     switch (i.fmt) {
@@ -727,7 +729,7 @@ export class DateIn extends Input<str, iTimeIn> {
     return inp.on("input", () => this.set("value", inp.e.value || null));
   }
   get def() {
-    return this.p.def == "now" ? new Date().toISOString().slice(0, 10) : null;
+    return this.p.def == "now" ? date() : null;
   }
   fill(src: AnyDic<any>, setAsDefault?: boolean): void {
     let k = this.p.name;
@@ -740,8 +742,7 @@ export class DateIn extends Input<str, iTimeIn> {
   }
 }
 
-const monthV = (v: str) => v?.slice(0, 7) || null;
-const dateDefV = (v: "now" | str) => monthV(v == "now" ? new Date().toISOString() : v);
+const dateDefV = (v: "now" | str) => month(v == "now" ?  void 0: v);
 export class MonthIn extends Input<str, iTimeIn> {
   view() {
     let i = this.p;
@@ -749,27 +750,31 @@ export class MonthIn extends Input<str, iTimeIn> {
       type: "month",
       name: i.name as str, id: i.name as str,
       placeholder: i.ph,
-      value: monthV(i.value),
+      value: month(i.value),
     });
     ;
     // this.onset("value", () =>);
     return this.bind(inp, (_, p) => {
       if ("max" in p) inp.e.max = p.max as str;
       if ("min" in p) inp.e.min = p.min as str;
-      if ("value" in p) inp.e.value = monthV(i.value);
+      if ("value" in p) inp.e.value = month(i.value);
     }).on("input", () => this.set("value", inp.e.value || null));
   }
   get def() { return dateDefV(this.p.def); }
   isDef(value = this.value, def = this.def) {
-    return dateDefV(def) === monthV(value);
+    return dateDefV(def) === month(value);
   }
   submit(data: AnyDic) {
     data[this.p.name] = this.value ? this.value + "-01" : null;
   }
 }
 
+
 /**date & time input */
 export class DTIn extends Input<str, iTimeIn> {
+  get def() {
+    return this.p.def == "now" ? dateTime(void 0,' ',true) : null;
+  }
   view() {
     let i = this.p, inp = g("input", "_ in").p({
       type: "datetime-local",
@@ -819,7 +824,7 @@ export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Inpu
     }).on("click", ({ currentTarget: ct, target: t }) =>
       ct != t && (this.set("open", false).value = g(t as Element).closest("tr").d()));
     let menu = div("_ menu", items);
-    let root = selectRoot(this, options, label, menu, v => this.value = v as any).attr({ name: p.name as str });
+    let root: G = selectRoot(this, options, label, menu, v => this.value = v as any).attr({ name: p.name as str });
     setValue(this, label);
     this.on(e => ("value" in e) && setValue(this, label));
 
@@ -911,7 +916,7 @@ export interface iRadioIn extends pInput<Key> {
   clear?: bool;
   layout?: 'wrap' | 'column';
 }
-export class RadioIn extends Input<Key, iRadioIn>{
+export class RadioIn extends Input<Key, iRadioIn> {
   view() {
     let i = this.p, o = i.options.map<RadioOption>(v => isS(v) ? [v] : v);
     i.layout ||= l(o) > 3 ? "column" : "wrap";
@@ -942,7 +947,7 @@ export class RadioIn extends Input<Key, iRadioIn>{
 export interface iChecklistIn extends pInput<Key[]> {
   options?: (RadioOption | str)[];
 }
-export class ChecklistIn extends Input<Key[], iChecklistIn>{
+export class ChecklistIn extends Input<Key[], iChecklistIn> {
   view() {
     let p = this.p, v = p.value;
     return g("span", "_ col", p.options.map<RadioOption>(v => isS(v) ? [v] : v).map(([key, text, ico]) => g('label', C.checkbox, [
