@@ -7,9 +7,9 @@
     ],
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
-    "module": "esnext",
+    "module": "node16",
     // "importHelpers": false,
-    "moduleResolution": "Node",
+    "moduleResolution": "node16",
     "noImplicitThis": true,
     "esModuleInterop": true,
     
@@ -22,7 +22,9 @@
     "useUnknownInCatchVariables": true,
     // "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "verbatimModuleSyntax": true,
+    "noFallthroughCasesInSwitch": true,
+    "strict": false
   },
   "exclude": [
     "node_modules"

@@ -1,6 +1,6 @@
-import { CSSSep, Property } from "galho";
-import { css, Style, Styles } from "galho";
-import { assign, bool, def, float, isA, isB, isN, isO, str, toStr } from "galho/util.js";
+import type { CSSSep, Property } from "galho";
+import { css, type Style, type Styles } from "galho";
+import { assign, type bool, def, type float, isA, isB, isN, isO, type str, toStr } from "galho/util.js";
 import { HAlign } from "./galhui.js";
 import { filterDic } from "./util.js";
 

@@ -1,8 +1,10 @@
-import { Component, G, One, Render, clearEvent, div, g, m, onfocusout } from "galho";
-import { HTInput, HTTextArea } from "galho/elements.js";
-import orray, { Alias, L, extend } from "galho/orray.js";
-import { AnyDic, Dic, Key, Primitive, Task, assign, bool, byKey, call, def, falsy, filter, float, int, is, isA, isO, isS, isU, l, str } from "galho/util.js";
-import { $, C, Icon, Label, SingleSelectBase, Size, TextInputTp, busy, cancel, close, confirm, errorMessage, iSingleSelectBase, ibt, icon, icons, label, menuitem, modal, pSelectBase, selectRoot, setValue, tip, w } from "./galhui.js";
+import { Component, G, type One, type Render, clearEvent, div, g, m, onfocusout } from "galho";
+import type { HTInput, HTTextArea } from "galho/elements.js";
+import orray, { type Alias, L, extend } from "galho/orray.js";
+import type { AnyDic, Dic, Key, Primitive, Task, bool, falsy, float, int, str } from "galho/util.js";
+import { assign, byKey, call, def, filter, is, isA, isO, isS, isU, l } from "galho/util.js";
+import type { Icon, Label, SingleSelectBase, Size, TextInputTp, iSingleSelectBase, pSelectBase } from "./galhui.js";
+import { $, C, busy, cancel, close, confirm, errorMessage, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
 import { anyProp, arrayToDic, date, dateTime, month } from "./util.js";
 
 // export type Error = {
@@ -566,21 +568,21 @@ export type iNumbIn = pInput<int> & NumberFmt & {
 };
 export class NumbIn extends Input<float, iNumbIn> {
   view() {
-    let i = this.p, inp = <G<HTInput>>g("input", {
+    let p = this.p, inp = <G<HTInput>>g("input", {
       type: 'number',
-      placeholder: i.ph || '',
-      step: i.integer ? <any>1 : 'any',
-      name: i.name as str, id: i.name as str, value: i.value as any,
-      min: (i.min ?? i.omin) as any, max: (i.max ?? i.omax) as any,
+      placeholder: p.ph || '',
+      step: p.integer ? <any>1 : 'any',
+      name: p.name as str, id: p.name as str, value: p.value as any,
+      min: (p.min ?? p.omin) as any, max: (p.max ?? p.omax) as any,
       oninput: () => this.value = inp.v() ? inp.e.valueAsNumber : null,
       onfocus() { inp.e.select() }
     });
     this.onset(["value", "off"], () => {
-      inp.v(i.value);
-      inp.e.disabled = !!i.off;
+      inp.v(p.value);
+      inp.e.disabled = !!p.off;
     });
 
-    return (i.unit ? g("span", 0, [inp, i.unit]) : inp).c("_ in");
+    return (p.unit ? g("span", 0, [inp, p.unit]) : inp).c("_ in");
   }
   validate(value: number) {
     return validateNumber(this.p, value);
@@ -742,7 +744,7 @@ export class DateIn extends Input<str, iTimeIn> {
   }
 }
 
-const dateDefV = (v: "now" | str) => month(v == "now" ?  void 0: v);
+const dateDefV = (v: "now" | str) => month(v == "now" ? void 0 : v);
 export class MonthIn extends Input<str, iTimeIn> {
   view() {
     let i = this.p;
@@ -773,7 +775,7 @@ export class MonthIn extends Input<str, iTimeIn> {
 /**date & time input */
 export class DTIn extends Input<str, iTimeIn> {
   get def() {
-    return this.p.def == "now" ? dateTime(void 0,' ',true) : null;
+    return this.p.def == "now" ? dateTime(void 0, ' ', true) : null;
   }
   view() {
     let i = this.p, inp = g("input", "_ in").p({

@@ -1,8 +1,8 @@
-import chroma, { Color as Cholor } from "chroma-js";
-import { Style, Styles } from "galho";
-import { bool, int, str } from "galho/util.js";
+import chroma, { type Color as Cholor } from "chroma-js";
+import type { Style, Styles } from "galho";
+import type { bool, int, str } from "galho/util.js";
 import { C } from "../galhui.js";
-import { StyleCtx, bfg, border, box, rgb, rgba, spc, styleCtx } from "../style.js";
+import { type StyleCtx, bfg, border, box, rgb, rgba, spc, styleCtx } from "../style.js";
 const { mix } = chroma
 export const enum ScreenSize {
   mobileS = 320,

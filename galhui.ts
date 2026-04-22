@@ -1,8 +1,10 @@
-import { Component, Content, G, HSElement, HTMLTag, NotRender, One, Property, Render, active, clearEvent, delay, div, g, getAll, isE, onfocusout, svg, toSVG, wrap } from "galho";
+import type { Content, HSElement, HTMLTag, NotRender, One, Property, Render } from "galho";
+import { Component, G, active, clearEvent, delay, div, g, getAll, isE, onfocusout, svg, toSVG, wrap } from "galho";
+import type { GTr, HTDialog, HTInput, HTTr } from "galho/elements.js";
 import { L, orray, range } from "galho/orray.js";
-import { Dic, Key, Task, bool, call, def, falsy, float, int, isA, isF, isN, isP, isS, l, str, sub, t } from "galho/util.js";
+import type { Dic, Key, Task, bool, falsy, float, int, str } from "galho/util.js";
+import { call, def, isA, isF, isN, isP, isS, l, t } from "galho/util.js";
 import { anim } from "./util.js";
-import { GTr, HTDialog, HTInput, HTTr, } from "galho/elements.js"
 
 /*
 ----GLOCARY----

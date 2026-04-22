@@ -1,5 +1,6 @@
 ﻿import { G, g, getAll, isE } from "galho";
-import { Dic, Task, bool, falsy, filter, isF, isS, str, z } from "galho/util.js";
+import { filter, isF, isS, z } from "galho/util.js";
+import type { Dic, Task, bool, falsy, str } from "galho/util.js";
 
 export const hash = (s: G, value: str) => s.on("click", () => location.hash = value);
 export function init(...routeRoot: G[]) {
@@ -15,13 +16,22 @@ export type Routes = Dic<Route>;
 var root: Element[], current: Update;
 export var currentPath: str, prevPath: str, fullPath: str;
 const routes: Routes = {};
-export function add(handlers: Routes): void;
-export function add(key: str, handler: Route): void;
-export function add(key: str | Routes, handler?: Route) {
+
+export function addRoute(handlers: Routes): void;
+export function addRoute(key: str, handler: Route): void;
+export function addRoute(key: str | Routes, handler?: Route) {
   if (isS(key))
     routes[key] = handler;
   else for (let k in key)
     routes[k] = key[k];
+}
+
+/**@deprecated */
+export function add(handlers: Routes): void;
+/**@deprecated */
+export function add(key: str, handler: Route): void;
+export function add(key, handler?) {
+addRoute(key,handler);
 }
 export function set(t: (G | Element | falsy)[]) {
   let p = g(root[0]).parent, i = -1;

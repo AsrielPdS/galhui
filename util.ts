@@ -1,4 +1,5 @@
-import { Dic, Key, bool, int, is, isU, str } from "galho/util.js";
+import type { Dic, Key, bool, int, str } from "galho/util.js";
+import { is, isU } from "galho/util.js";
 
 /**request animation frame each frame, if fn returns false cancel animation
  * @returns function that cancel the renderer of current animation
