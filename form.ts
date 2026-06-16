@@ -14,16 +14,25 @@ interface FieldGroup {
   on(e: "input", callback: (input: Input) => any): this;
   input(key: PropertyKey): Input;
 }
-/**coisas executadas quando alguma ação acontece dentro do form */
+
+/** Callback function signature for form bot operations. */
 type BotCallback<T extends FieldGroup> = (src: Dic<any>, form: T) => any;
-/** Bot: list of source keys plus callback invoked when sources change. */
+
+/** Bot configuration: a list of source keys mapping to a callback triggered on source field updates. */
 export type Bot<T extends FieldGroup = FieldGroup> = PropertyKey[] & {
-  srcs: Dic; call: BotCallback<T>
+  srcs: Dic;
+  call: BotCallback<T>;
 };
-/** Create a `Bot` from a list of source keys and a callback. */
+
+/**
+ * Creates a `Bot` instance from source fields keys and target action callback.
+ * @param src Source fields keys.
+ * @param call Action callback.
+ */
 export const bot = <T extends FieldGroup = FieldGroup>(src: PropertyKey[], call: BotCallback<T>): Bot<T> =>
   assign(src, { srcs: {}, call });
-/** Known validation error types. */
+
+/** Types representing standard validation errors. */
 export const enum ErrorType {
   required = "req",
   numberTooBig = "number_too_big",
@@ -39,13 +48,27 @@ export const enum ErrorType {
   lessItems = "less_items",
   unsubmited = "unsubmited"
 }
-interface EError extends Render { tp: ErrorType, params?: Dic }
-/** Create an error object with a type and an optional message. */
+
+interface EError extends Render {
+  tp: ErrorType;
+  params?: Dic;
+}
+
+/**
+ * Instantiates a validation error wrapper.
+ * @param tp Error category enum.
+ * @param msg Custom detailed details output message.
+ * @param params Details layout parameters.
+ */
 export const error = (tp: ErrorType, msg?: str, params?: Dic): EError =>
-  ({ tp, params, render: () => msg })
-/** Shortcut for a required-field error. */
+  ({ tp, params, render: () => msg });
+
+/**
+ * Standard required validator error helper.
+ */
 export const req = () => error(ErrorType.required, w.required);
-/** Map of error renderers. */
+
+/** Translation key errors dictionary map. */
 export type Errors = Dic<() => any>;
 
 interface FormEvents extends AnyDic<any[]> {
@@ -55,29 +78,41 @@ interface FormEvents extends AnyDic<any[]> {
   submit: [data: Dic];
   cancel: [];
 }
-/** Initialize bots for a form/container: capture source values and schedule callback. */
+
+/**
+ * Starts up field data synchronization trackers on containers.
+ * @param container Input fields parent elements.
+ */
 export function setupbots(container: Form | CompostIn) {
   if (container.p.bots)
     for (let bot of container.p.bots) {
-      let srcs = bot.srcs = {};//, cb = bot.at(-1) as BotCallback<T>;
+      let srcs = bot.srcs = {};
       for (let field of bot)
         srcs[field] = container.input(field).value;
       setTimeout(bot.call, 0, srcs, container);
     }
-  // legacy bot handling removed
 }
+
+/** Configuration interface mapping common form parameters. */
 export interface iFormBase {
-  /**@default "form" */
-  tag?: keyof HTMLElementTagNameMap
+  /**
+   * HTML tag mapping key representation.
+   * @default "form"
+   */
+  tag?: keyof HTMLElementTagNameMap;
+  /** Disables updating form control fields. */
   readOnly?: bool;
+  /** Hidden form control values dataset. */
   hidden?: Dic;
-  // bots?: Bot<any>[];
-  /**called when input enter/exit off */
+  /** Visibility toggle callback. */
   offFN?: (e: G, isOff: bool) => void;
 }
-/** */
-/** Base form component providing common form behaviors and utilities. */
+
+/**
+ * Base form layout class mapping validation, elements query, reset, and submittal states.
+ */
 export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> extends Component<T, Ev> {
+  /** List of tracked inputs. */
   inputs: Input[];
   constructor(i: T, inputs: (Input | falsy)[]);
   constructor(inputs: (Input | falsy)[]);
@@ -87,27 +122,38 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
       p = {} as T;
     }
     super(p);
-    this.inputs = filter(inputs)
-    // checkBot(this, i.bots);
+    this.inputs = filter(inputs);
   }
   view(): One { throw 1; }
+  /** Returns whether all input controls match default constraints value configurations. */
   get isDef() {
     for (let input of this.inputs)
       if (!input.isDef())
         return false;
-
     return true;
   }
+  /** Locates input instances in form controls tree key match. */
   input<T extends Input>(key: PropertyKey) {
     for (let input of this.inputs)
       if (input.name == key || (is(input, CompostIn) && (input = input.input(key))))
         return input as T;
   }
+  /** Dictionary mapping inputs names to lists of outstanding validation errors. */
   errors: AnyDic<Error[]> = {};
+  /**
+   * Updates error logs mapping input control states.
+   * @param key Tracked input name.
+   * @param errors Validation logs details configuration.
+   */
   setErrors(key: PropertyKey, errors?: Error[]) {
     this.errors[key] = errors;
     this.input(key)?.error(!!errors);
   }
+  /**
+   * Triggers validations checklist tracking.
+   * @param omit Skips logging error banners update states.
+   * @param focus Moves document page focus targeting invalid element.
+   */
   valid(omit?: bool, focus = !omit) {
     if (omit)
       return !this.inputs.some(i => i.invalid(i.value, true));
@@ -121,9 +167,9 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
         focus = false;
       }
     }
-    //use isto para incluir erros não gerados por inputs direitamente
     return !anyProp(this.errors, e => e && l(e));
   }
+  /** Highlights the first active form control interface tracking focus. */
   focus() {
     for (let input of this.inputs)
       if (!input.p.off) {
@@ -132,33 +178,21 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
       }
     return this;
   }
-  // get def() {
-  //   let r: Dic = {};
-  //   for (let { key, def } of this.inputs)
-  //     r[key] = def;
-  //   return r;
-  // }
-  // /**default data */
-  // def(): Dic;
-  // def(value: Dic): this;
-  // def(value: null): this;
-  // def(v?: Dic) {
-  //   if (isU(v)) {
-  //     let r: Dic = {};
-  //     for (let { key, def } of this.inputs)
-  //       r[key] = def;
-  //     return r;
-  //   } else this.inputs.forEach(i => v ?
-  //     i.key in v && i.set("def", v?.[i.key]) :
-  //     i.set("def", null)
-  //   );
-  // }
+  /**
+   * Pre-loads input states dataset contents.
+   * @param value Control values configuration dict.
+   * @param setAsDefault Lock inputs values as standard form values settings configurations.
+   */
   fill(value: Dic, setAsDefault?: bool) {
     this
       .emit("fill", value).inputs
       .forEach(i => i.fill(value, setAsDefault));
     return this;
   }
+  /**
+   * Restores input value defaults.
+   * @param fields Targeted control fields. If empty, resets all.
+   */
   reset(...fields: PropertyKey[]) {
     for (let i of l(fields) ? this.inputs.filter(i => fields.includes(i.name)) : this.inputs) {
       i.visited = false;
@@ -166,25 +200,24 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
     }
     return this;
   }
-  // clear(...fields: str[]) {
-  //   for (let i of l(fields) ? this.inputs.filter(i => fields.includes(i.key)) : this.inputs)
-  //     i.value(i.null);
-  //   return this;
-  // }
   /**
-   * get value of form
-   * @param edited se true only return fields that heve a value
-   * @param req se true fields required with default value will be returned too
+   * Compiles layout fields input values.
+   * @param edited Aggregates only modified values logs.
+   * @param req Forces presence of required values settings.
    */
   data(edited?: bool, req?: bool) {
     let inputs = this.inputs;
-
     let r: Dic = assign({}, this.p.hidden);
     for (let input of edited ? inputs.filter(i => (req && i.p.req) || !i.isDef()) : inputs)
       input.p.off || input.submit(r, edited, req);
     this.emit("submit", r);
     return r;
   }
+  /**
+   * Compiles values logs format mapping standard multipart FormData formats.
+   * @param edited Aggregates modified properties.
+   * @param required Includes required properties values.
+   */
   formData(edited?: bool, required?: bool) {
     let
       r = new FormData(),
@@ -194,53 +227,65 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
     return r;
   }
 }
-/** Async version of `data()` that awaits input submit handlers. */
+
+/**
+ * Asynchronous compilation mapping inputs submission callback actions.
+ * @param form Target FormBase instance.
+ * @param edited Aggregates modified properties.
+ * @param req Includes required properties.
+ */
 export async function dataAsync(form: FormBase, edited?: bool, req?: bool) {
   let inputs = form.inputs;
-
   let r: Dic = assign({}, form.p.hidden);
   for (let input of edited ? inputs.filter(i => (req && i.p.req) || !i.isDef()) : inputs)
     input.p.off || await input.submit(r, edited, req);
   form.emit("submit", r);
   return r;
 }
+
 function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
   let result: G[][] = [];
-
   for (let key in errs) {
     let i = byKey(inputs, key, "name");
     result.push(errs[key]?.map(err => div([i && [g("b", 0, i.p.text), ": "], err])));
-    // {
-    // (isS(error)) && (error = { tp: error });
-    // result.push(div([
-    //   i && [g("b", 0, i.i.text), ": "],
-    //   errors[error.tp](),
-    //   error.info && g("sub", 0, error.info),
-    // ]));
-    // }
   }
   return result;
 }
 
-/** Toggle the `off` class on element to hide. */
+/**
+ * Class switcher callback setting hidden states.
+ * @param e Target element wrapper.
+ * @param isOff Off status flag.
+ */
 export const onOffHide = (e: G, isOff: bool) => e.c("off", isOff);
-/** Toggle the `off` class on element to disable. */
+
+/**
+ * Class switcher callback setting disabled states.
+ * @param e Target element wrapper.
+ * @param isOff Off status flag.
+ */
 export const onOffDisable = (e: G, isOff: bool) => e.c("off", isOff);
+
+/** Standard wrapper style constraints interface. */
 export interface InputContainer {
   outline?: bool;
-  labelSz?: int
-  /**called when input enter/exit off */
+  labelSz?: int;
+  /** Visibility toggle callback. */
   offFN?: (e: G, isOff: bool) => void;
 }
-/** */
+
+/** Form layout settings. */
 export interface iForm extends iFormBase, InputContainer {
   errorDiv?: G;
   bots?: Bot<Form>[];
 }
-/** Concrete form implementation with input management and validation. */
-export class Form extends FormBase<iForm> implements FieldGroup {
-  errDiv: G;
 
+/**
+ * Concrete Form component wrapper layout, linking child element events.
+ */
+export class Form extends FormBase<iForm> implements FieldGroup {
+  /** Validation details display output container. */
+  errDiv: G;
   constructor(i: iForm, inputs: (Input | falsy)[]);
   constructor(inputs: (Input | falsy)[]);
   constructor(p: iForm | (Input | falsy)[], inputs?: Input[]) {
@@ -257,19 +302,15 @@ export class Form extends FormBase<iForm> implements FieldGroup {
           }
     });
     setupbots(this);
-    // this.p.labelSz ||= 40;
-    // this.on('input', (input: Input) => {
-    //   let e = input.field(this).attr("edited", !input.isDef());
-    //   (p as iForm).offFN?.(e, !!input.p.off)
-    // });
   }
+  /** Registers inputs elements callbacks. */
   addInput(input: Input) {
     input.form = this;
     input
       .onset(["value", "off"], () => {
         input.visited && this.setErrors(input.name, input.invalid(input.value));
         let e = input.field(this.p).attr("edited", !input.isDef());
-        this.p.offFN?.(e, !!input.p.off)
+        this.p.offFN?.(e, !!input.p.off);
         this.emit("input", input);
       })
       .observeVisited(i => this.setErrors(i.name, i.invalid(i.value)));
@@ -281,16 +322,21 @@ export class Form extends FormBase<iForm> implements FieldGroup {
       this.errDiv
     ]);
   }
-
   setErrors(key: PropertyKey, errors?: Error[]) {
     super.setErrors(key, errors);
     this.errDiv.set(renderErrors(this.inputs, this.errors));
   }
 }
 
-// export function mdform(hd: Label, inputs: Input[], cb?: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Promise<Dic>
-// export function mdform(hd: Label, form: FormBase, cb?: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Promise<Dic>
-/** Open a modal form and resolve with submitted data, or `null` on cancel. */
+/**
+ * Standard modal wrapper manager prompting users filling form control options layout.
+ * @param hd Prompt heading context labels.
+ * @param form Display controls input elements tree.
+ * @param cb Modal validation confirmation submittal callback.
+ * @param ok Confirmation action buttons layout.
+ * @param noCancel Forces presence confirmation keys skipping cancel.
+ * @param sz Sizing container configuration.
+ */
 export function mdform<T = Dic>(hd: Label, form: Input[] | FormBase, cb?: (dt: Dic, form: FormBase) => Task<T | void>, ok = confirm(), noCancel?: bool, sz?: Size) {
   if (isA(form))
     form = new Form(form);
@@ -310,13 +356,15 @@ export function mdform<T = Dic>(hd: Label, form: Input[] | FormBase, cb?: (dt: D
             });
           }
         }),
-        noCancel || cancel(() => { cl(); res(null) })
+        noCancel || cancel(() => { cl(); res(null); })
       ], sz,
       !noCancel
     );
     (form as Form).focus();
-  })
+  });
 }
+
+/** Input layouts labels formatting parameters setup. */
 export interface Field {
   name?: PropertyKey;
   req?: bool;
@@ -325,6 +373,14 @@ export interface Field {
   tip?: any;
   off?: bool;
 }
+
+/**
+ * Standard outer wrapper container formatting control element headers.
+ * @param bd Value inputs elements content container.
+ * @param i Fields labels and tooltip config details parameters.
+ * @param container Outer constraints styling config.
+ * @param sz Width percentage sizes distribution.
+ */
 export function field(bd: One, i: Field, container: InputContainer, sz = container.labelSz) {
   let o = def(i.outline, container.outline);
   let t = div("_ " + (o ? "oi" : "ii"), [
@@ -340,7 +396,11 @@ export function field(bd: One, i: Field, container: InputContainer, sz = contain
   return t;
 }
 
-
+/**
+ * Form values drawer visibility layout configurations.
+ * @param form Form container instance.
+ * @param main Display control keys logs.
+ */
 export function expand(form: Form, ...main: PropertyKey[]) {
   for (let input of form.inputs)
     g(input).c(C.side, !main.includes(input.name));
@@ -354,6 +414,11 @@ export function expand(form: Form, ...main: PropertyKey[]) {
       ibt(icons.up, null),
     ])).on("click", () => g(form).tcls("expand")));
 }
+
+/**
+ * Checks document page controls constraints validation logs.
+ * @param e Target HTML form reference element.
+ */
 export function valid(e: HTMLFormElement) {
   for (let c = 0; c < e.length; c++) {
     let i = e[c] as HTMLInputElement;
@@ -362,6 +427,11 @@ export function valid(e: HTMLFormElement) {
   }
   return true;
 }
+
+/**
+ * Gathers target page HTML elements inputs values.
+ * @param e HTML Form element.
+ */
 export function value(e: HTMLFormElement) {
   let r: Dic<Primitive | Date> = {};
   for (let c = 0; c < e.length; c++) {
@@ -393,41 +463,56 @@ export function value(e: HTMLFormElement) {
   }
   return r;
 }
-// legacy: simple text humanizer removed
-/** Humanize a key: map via `w` or convert underscores to spaces and capitalize. */
+
+/**
+ * Capitalizes string and formats words replacing underscore symbols with spacing.
+ * @param v Source label key.
+ */
 export const up = (v: str): str => v && def(w[v], (v[0].toUpperCase() + v.slice(1).replace(/_/g, ' ')));
+
+/** Inputs options parameters interface. */
 export interface pInput<V = unknown, D = V> extends Field {
-  //tp: Key;
   value?: V;
   def?: D;
-  submit?(data: Dic);
-  // side?: bool;
+  submit?(data: Dic): any;
 }
+
+/**
+ * Base abstract Class defining input controllers state variables lifecycle.
+ */
 export abstract class Input<V = unknown, P extends pInput<V, any> = pInput<V>, Ev extends AnyDic<any[]> = {}> extends Component<P, Ev> {
   constructor(p: P) {
     super(p);
     if (isU(p.text)) p.text = up(p.name as str);
     if (isU(p.value)) p.value = this.def;
   }
+  /** Key control identifier. */
   get name() { return this.p.name; }
+  /** Current value object. */
   get value() { return def<V>(this.p.value, this.null); }
   set value(v) { this.set("value", v); }
 
+  /** Loads inputs dataset properties. */
   fill?(src: AnyDic, setAsDefault?: bool) {
     let k = this.p.name;
     if (k in src) {
       if (setAsDefault)
-        this.set("def", src[k])
+        this.set("def", src[k]);
       this.value = src[k];
     }
   }
+  /** Default fallback value configuration. */
   get def() { return def(<V>this.p.def, this.null); }
+  /** Verifies if parameter value equals standard preset default options. */
   isDef(value = this.value, def = this.def) {
     return def === value;
   }
+  /** Verifies if key values match empty control state definitions. */
   isNull(value = this.value) { return this.isDef(value, this.null); }
 
+  /** Identifies whether users interacted focus controls. */
   visited?: bool;
+  /** Subscribes callbacks tracking focus-out elements occurrences. */
   observeVisited(handler: (input: Input) => any) {
     onfocusout(g(this), () => {
       this.visited = true;
@@ -435,58 +520,60 @@ export abstract class Input<V = unknown, P extends pInput<V, any> = pInput<V>, E
     });
   }
 
-  /**show or hide errors */
+  /** Triggers component error state classes display switches. */
   error(state: bool) {
     g(this).c("error", state);
     return this;
   }
+  /** Run validations constraints returns arrays of logged errors. */
   invalid(value: V, omit?: bool, focus?: bool) {
     if (this.p.off) return null;
     let v = this.validate(value, omit, focus);
     return l(v) ? v : null;
   }
-  validate(value: V, omit?: bool, focus?: bool): Error[]
+  validate(value: V, omit?: bool, focus?: bool): Error[];
   validate(value: V): Error[] {
     return (this.p.req && this.isNull(value)) ? [req()] : [];
   }
   #f: G;
+  /** Returns standard fields wraps formatting control elements labels. */
   field(container: InputContainer, sz?: int) {
     return this.#f ||= field(this, this.p, container, sz);
   }
-  submit(this: this, data: AnyDic, edited?: bool, req?: bool): any//Task<void>
+  /** Handles values submittal compilations logs updates. */
+  submit(this: this, data: AnyDic, edited?: bool, req?: bool): any;
   submit(data: AnyDic) {
     let { name, value, submit } = this.p;
     if (submit) submit(data);
     else data[name] = value;
   }
-  /**null value used for clear method */
+  /** Standard empty fallback configuration values. */
   get null(): V { return null; }
 }
+
 export interface Input<V, P extends pInput<V, any>, Ev extends AnyDic<any[]>> {
   form?: FormBase;
 }
-// function inputBind<I, Inp extends InputElement>(e: E<I>, input: S<Inp>, prop: keyof I, field: keyof Inp = 'value') {
-//   e.bind(input, () => input.e[field as str] = e.i[prop], prop);
-//   return input.p(field, def<any>(e.i[prop], null)).on('input', () => {
-//     let v = <any>input.e[field];
-//     e.set(prop, v === '' || (typeof v === 'number' && isNaN(v)) ? null : v);
-//   });;
-// }
 
+/** Configuration interface mapping text validation metrics. */
 export interface TextInValidation {
   pattern?: RegExp;
   min?: int;
   max?: int;
   length?: int;
 }
-//------------TEXT------------------------
+
+/** Standard email validations checking regular expression string. */
 export const emailRegex = /^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])$/;
+
+/** Text control inputs configurations details. */
 export interface iTextIn extends pInput<str>, TextInValidation {
   rows?: int;
   input?: TextInputTp | "ta";
-  /**place holder */
   ph?: str;
 }
+
+/** Text control input component wrapper class. */
 export class TextIn extends Input<str, iTextIn, { input: [str] }> {
   view() {
     let p = this.p, r: G<HTInput | HTTextArea>;
@@ -509,12 +596,10 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
       .on({
         input: () => {
           this.emit("input", r.v());
-          this.set("value", r.v() || null)
+          this.set("value", r.v() || null);
         },
-        focus() { r.e.select() }
+        focus() { r.e.select(); }
       });
-    // if (p.min) r.e.minLength = p.min;
-    // if (p.max) r.e.maxLength = p.max;
     return this.bind(r, () => r.e.value = p.value || '', "value");
   }
   validate(value: string) {
@@ -536,26 +621,33 @@ export class TextIn extends Input<str, iTextIn, { input: [str] }> {
     return errs;
   }
 }
-/**text input */
+
+/**
+ * Text inputs component instantiation helper.
+ * @param k Element values control index keys.
+ * @param req Validation required parameters constraints.
+ * @param input Elements design layout setting.
+ */
 export const textIn = (k: str, req?: bool, input?: TextInputTp | "ta") =>
   new TextIn({ name: k, req, input });
-//------------NUMBER------------------------
+
+/** Standard number validations configurations setting. */
 export interface NumberFmt {
   min?: int;
   max?: int;
-  /**open min */
   omin?: int;
-  /**open max */
   omax?: int;
   integer?: bool;
 }
+
+/** Number input configuration details parameters. */
 export type iNumbIn = pInput<int> & NumberFmt & {
-  //tp: FT.number,
   unsigned?: bool;
   unit?: str;
-  /**place holder */
   ph?: str;
 };
+
+/** Number control inputs element component class. */
 export class NumbIn extends Input<float, iNumbIn> {
   view() {
     let p = this.p, inp = <G<HTInput>>g("input", {
@@ -565,7 +657,7 @@ export class NumbIn extends Input<float, iNumbIn> {
       name: p.name as str, id: p.name as str, value: p.value as any,
       min: (p.min ?? p.omin) as any, max: (p.max ?? p.omax) as any,
       oninput: () => this.value = inp.v() ? inp.e.valueAsNumber : null,
-      onfocus() { inp.e.select() }
+      onfocus() { inp.e.select(); }
     });
     this.onset(["value", "off"], () => {
       inp.v(p.value);
@@ -577,20 +669,28 @@ export class NumbIn extends Input<float, iNumbIn> {
   validate(value: number) {
     return validateNumber(this.p, value);
   }
-  // calc(...values: number[]) {
-  //   var r = 0;
-  //   for (let value of values)
-  //     r += value || 0;
-  //   return r;
-  // }
   focus() {
     let { $, p: i } = this;
     (i.unit ? $.first : $).focus();
     return this;
   }
 }
+
+/**
+ * Number inputs builder component helper.
+ * @param k Values namespace identifier.
+ * @param req Required status validation flag.
+ * @param text Labels override text parameter.
+ * @param unit Measurement values text display labels.
+ */
 export const numbIn = (k: str, req?: bool, text?: str, unit?: str) =>
   new NumbIn({ name: k, req, text, unit });
+
+/**
+ * Helper executing general numeric logic rules validation checks.
+ * @param p Number control parameters.
+ * @param value Control input value.
+ */
 export function validateNumber(p: NumberFmt & pInput<int>, value: int) {
   let errs: Error[] = [];
   if (value == null) {
@@ -599,8 +699,6 @@ export function validateNumber(p: NumberFmt & pInput<int>, value: int) {
   } else {
     if (p.integer && Math.floor(value) != value)
       errs.push(error(ErrorType.isDecimal));
-    //if (i.unsigned && value < 0)
-    //    errs.push({ type: form.ErrorType.isNegative, key });
     let { min, max, omin, omax } = p;
 
     if ((max != null) && value > max)
@@ -616,22 +714,21 @@ export function validateNumber(p: NumberFmt & pInput<int>, value: int) {
   return errs;
 }
 
-// /** number input */
-// export const number = (key: str, req?: bool) =>
-//   new NumberInput({ key, req });
-//------------CHECKBOX------------------------
+/** Checkboxes display formatting options. */
 export const enum CBFmt {
   yesNo = "y",
   checkbox = "c",
   switch = "s"
 }
+
+/** Checkbox configuration parameters. */
 export interface iCheckIn extends pInput<bool> {
-  //tp: FT.checkbox,
   fmt?: CBFmt;
   clear?: bool;
-  /**place holder */
   ph?: str;
 }
+
+/** Checkbox input component wrapper. */
 export class CheckIn extends Input<bool, iCheckIn> {
   view() {
     let i = this.p;
@@ -680,18 +777,18 @@ export class CheckIn extends Input<bool, iCheckIn> {
           checked: i.value,
           placeholder: i.ph || (i.value == null ? '' : i.value ? w.yes : w.no)
         }), 'value');
-
     }
   }
 }
 
-//------------ DATE & TIME ------------------------
+/** Date and time input options. */
 export interface iTimeIn extends pInput<str> {
   min?: str | int;
   max?: str | int;
-  /**place holder */
   ph?: str;
 }
+
+/** Time selector input control component wrapper. */
 export class TimeIn extends Input<str, iTimeIn> {
   view() {
     let
@@ -708,6 +805,7 @@ export class TimeIn extends Input<str, iTimeIn> {
   }
 }
 
+/** Date selector input control component wrapper. */
 export class DateIn extends Input<str, iTimeIn> {
   view() {
     let i = this.p;
@@ -729,12 +827,14 @@ export class DateIn extends Input<str, iTimeIn> {
       let v = src[k];
       this.value = v ? new Date(v).toISOString().slice(0, 10) : null;
       if (setAsDefault)
-        this.set("def", v)
+        this.set("def", v);
     }
   }
 }
 
 const dateDefV = (v: "now" | str) => month(v == "now" ? void 0 : v);
+
+/** Month selector input control component wrapper. */
 export class MonthIn extends Input<str, iTimeIn> {
   view() {
     let i = this.p;
@@ -744,8 +844,6 @@ export class MonthIn extends Input<str, iTimeIn> {
       placeholder: i.ph,
       value: month(i.value),
     });
-    ;
-    // this.onset("value", () =>);
     return this.bind(inp, (_, p) => {
       if ("max" in p) inp.e.max = p.max as str;
       if ("min" in p) inp.e.min = p.min as str;
@@ -761,8 +859,7 @@ export class MonthIn extends Input<str, iTimeIn> {
   }
 }
 
-
-/**date & time input */
+/** Datetime selector input control component wrapper. */
 export class DTIn extends Input<str, iTimeIn> {
   get def() {
     return this.p.def == "now" ? dateTime(void 0, ' ', true) : null;
@@ -779,11 +876,12 @@ export class DTIn extends Input<str, iTimeIn> {
   }
 }
 
-//------------ SELECT -----------------------
+/** Selection choices inputs configuration setup parameters. */
 export type iSelectIn<T extends Dic, K extends keyof T = any> = pInput<T[K]> & iSingleSelectBase<T> & {
-  /**menu width will change acord to content */
   fluid?: boolean;
-}
+};
+
+/** Select single option control component class. */
 export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Input<T[K], iSelectIn<T, K>, { open: [bool] }> implements SingleSelectBase<K, T> {
   options: L<T, T[K]>;
   get active() { return byKey<T, K>(this.options, this.p.value, this.options.key); }
@@ -795,7 +893,7 @@ export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Inpu
     });
   }
   get value() { return this.p.value; }
-  set value(v) { this.p.value === v || this.set("value", v) }
+  set value(v) { this.p.value === v || this.set("value", v); }
 
   view() {
     let { p, options } = this;
@@ -803,7 +901,7 @@ export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Inpu
     let items = options.bind(g("table"), {
       insert: v => {
         let t = p.item(v);
-        return (is(t, G) && t.is("tr") ? t : menuitem(v.i, t)).d(v[options.key])
+        return (is(t, G) && t.is("tr") ? t : menuitem(v.i, t)).d(v[options.key]);
       },
       tag(active, i, p, tag) {
         let s = p.child(i);
@@ -825,15 +923,15 @@ export class SelectIn<T extends Dic = Dic, K extends keyof T = any> extends Inpu
   option(k: T[K]) { return this.options.find(k); }
 }
 
+/** Multi-selection inputs config interface setup parameters. */
 export type pMSelectIn<T extends Dic, K extends keyof T = any> = pInput<L<T[K]>, T[K][]> & pSelectBase & {
-  /**menu width will change acord to content */
   fluid?: boolean;
   item?(v: T): any;
-  /**placeholder */
   ph?: any;
-}
-export class MSelectIn<T extends Dic = Dic, K extends keyof T = any> extends Input<L<T[K]>, pMSelectIn<T, K>> {
+};
 
+/** Select multi-options control component class. */
+export class MSelectIn<T extends Dic = Dic, K extends keyof T = any> extends Input<L<T[K]>, pMSelectIn<T, K>> {
   options: L<T, T[K]>;
   constructor(p: pMSelectIn<T, K>, options?: Alias<T, T[K]>, key: K = <any>0) {
     super(p);
@@ -861,7 +959,7 @@ export class MSelectIn<T extends Dic = Dic, K extends keyof T = any> extends Inp
     options.bind(items, {
       insert: v => {
         let t = p.item(v);
-        return (is(t, G) && t.is("tr") ? t : menuitem(v.i, t)).d(v[options.key])
+        return (is(t, G) && t.is("tr") ? t : menuitem(v.i, t)).d(v[options.key]);
       },
       tag(active, i, p, tag) {
         let s = p.child(i);
@@ -883,9 +981,12 @@ export class MSelectIn<T extends Dic = Dic, K extends keyof T = any> extends Inp
   }
 }
 
+/** Mobile select options parameters configuration. */
 export interface iMobSelect<T = Dic> extends pInput<Key> {
-  item?(v: T): any
+  item?(v: T): any;
 }
+
+/** Mobile select input dropdown component. */
 export class MobSelectIn<T = Dic, K extends keyof T = any> extends Input<Key, iMobSelect<T>, { open: [bool] }> {
   constructor(i: iMobSelect<T>, private options: Alias<T>, private okey?: K) {
     super(i);
@@ -894,20 +995,22 @@ export class MobSelectIn<T = Dic, K extends keyof T = any> extends Input<Key, iM
     let { p, options, okey } = this;
     return g("select", "_ in",
       options.map(v => g("option", { value: v[okey] as any }, p.item(v))))
-      .p("name", p.name as str)
+      .p("name", p.name as str);
   }
 }
-//------------ RADIO ------------------------
 
+/** Radio selections option parameters array. */
 export type RadioOption = [key: Key, text?: any, icon?: Icon];
+
+/** Radio checklist inputs configuration options. */
 export interface iRadioIn extends pInput<Key> {
-  //tp: FT.radio,
   options?: (RadioOption | str)[];
   src?: str;
-  //groupBy?: Val;
   clear?: bool;
   layout?: 'wrap' | 'column';
 }
+
+/** Radio options single selection list component. */
 export class RadioIn extends Input<Key, iRadioIn> {
   view() {
     let i = this.p, o = i.options.map<RadioOption>(v => isS(v) ? [v] : v);
@@ -936,9 +1039,12 @@ export class RadioIn extends Input<Key, iRadioIn> {
   }
 }
 
+/** Multiple select checkboxes setup configuration details. */
 export interface iChecklistIn extends pInput<Key[]> {
   options?: (RadioOption | str)[];
 }
+
+/** Multiple choice select checklist control elements list. */
 export class ChecklistIn extends Input<Key[], iChecklistIn> {
   view() {
     let p = this.p, v = p.value;
@@ -949,7 +1055,7 @@ export class ChecklistIn extends Input<Key[], iChecklistIn> {
         checked: v.includes(key),
       }), i => i.on("input", () => {
         i.e.checked ? v.push(key) : v.splice(v.indexOf(key), 1);
-        this.set(['value'])
+        this.set(['value']);
       })),
       ico && icon(ico),
       text || key
@@ -958,18 +1064,15 @@ export class ChecklistIn extends Input<Key[], iChecklistIn> {
   get def() { return []; }
 }
 
-//------------ password ------------------------
 interface iPWIn extends pInput<str> {
-  //tp: FT.password,
-  /**auto complete */
   auto?: str;
   capitalCase?: int;
   lowerCase?: int;
   spacialDigit?: int;
-  /**place holder */
   ph?: str;
 }
-/**password input */
+
+/** Password text input control control components. */
 export class PWIn extends Input<str, iPWIn> {
   view() {
     let i = this.p, inp = g("input", "_ in").p({
@@ -981,9 +1084,7 @@ export class PWIn extends Input<str, iPWIn> {
   validate(value: string) {
     var
       i = this.p,
-      // key = i.key,
       errs: Error[] = [];
-
 
     if (i.req && !value)
       errs.push(req());
@@ -992,12 +1093,15 @@ export class PWIn extends Input<str, iPWIn> {
   }
 }
 
+/** Custom input configuration setup parameters. */
 export interface iCustomIn<V, O> extends pInput<V> {
   submit?: CustomIn<V, O>["submit"];
-  isDef?: CustomIn<V, O>["isDef"];// (this: CustomIn<V> & O, value?: V, def?: V): bool
+  isDef?: CustomIn<V, O>["isDef"];
   validate?: CustomIn<V, O>["validate"];
   fill?: CustomIn<V, O>["fill"];
 }
+
+/** Custom developer defined components controls extender wrapper. */
 export class CustomIn<V = any, O = {}> extends Input<V> {
   constructor(i: iCustomIn<V, O>, public view?: (this: CustomIn<V> & O) => One) {
     super(i);
@@ -1007,26 +1111,20 @@ export class CustomIn<V = any, O = {}> extends Input<V> {
     if (i.fill) this.fill = i.fill;
   }
 }
-// export interface iOutputIn extends iInput{
-// } 
-// export class OutputIn extends Input{
-//   constructor(i:iOutputIn){
-//     super(i);
-//   }
-//   view() {
-//     return div()
-//   }
-// }
-//------------
+
 interface iCompostIn extends pInput<Dic>, InputContainer {
   sub?: bool | "array";
   bots?: Bot<CompostIn>[];
   labelSz?: int;
-  row?: bool
+  row?: bool;
 }
+
+/**
+ * Composite group inputs fields class controller mapping multiple sub-fields.
+ */
 export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
   #f: Form;
-  get form() { return this.#f }
+  get form() { return this.#f; }
   set form(v) {
     this.#f = v;
     for (let i of this.inputs)
@@ -1034,17 +1132,16 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
   }
   subfield(input: Input, container: InputContainer): G;
   subfield(input: Input) {
-    return g(input)//.field(container);
+    return g(input);
   }
   constructor(p: iCompostIn, inputs?: Input<any>[]) {
     p.value = null;
     super(p);
     for (let input of this.inputs = filter(inputs))
       input.onset(["value", "off"], () => {
-        // input.visited && this.setErrors(input.name, input.invalid);
         let f = this.form;
         let e = this.subfield(input, f.p).attr("edited", !input.isDef());
-        f.p.offFN?.(e, !!input.p.off)
+        f.p.offFN?.(e, !!input.p.off);
         f.emit("input", input);
         this.set(["value"]);
         if (p.bots)
@@ -1056,7 +1153,7 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
     setupbots(this);
   }
   inputs?: Input<any>[];
-  get def() { return arrayToDic(this.inputs, v => [v.name as str, v.def]) }
+  get def() { return arrayToDic(this.inputs, v => [v.name as str, v.def]); }
   get value() { return arrayToDic(this.inputs, v => [v.name as str, v.value]); }
   set value(v: Dic) {
     this.inputs.forEach(i => i.name in v && (i.value = v ? v[i.name as str] : i.null));
@@ -1068,9 +1165,10 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
     return g("span", "_ join", this.inputs);
   }
   fill(value: Dic, setAsDefault?: bool) {
-    if (this.p.sub)
-      if (!(value = value[this.p.name as str]))
-        return;
+    if (this.p.sub) {
+      value = value[this.p.name as str];
+      if (!value) return;
+    }
     for (let i of this.inputs)
       i.fill(value, setAsDefault);
   }
@@ -1109,13 +1207,22 @@ export class CompostIn extends Input<Dic, iCompostIn> implements FieldGroup {
     return true;
   }
 }
+
+/**
+ * Field set border groups constructor.
+ * @param title Fields set label title.
+ * @param inputs Form controls list.
+ * @param form Form container instance settings.
+ * @param sz Sizing columns distribution.
+ */
 export function fieldGroup(title: Label, inputs: Input[], form?: Form, sz?: int) {
   return g("fieldset", "_ formg", [
-    //TODO: remove sub element in label
     g("legend", 0, label(title)),
     inputs.map(i => i.field(form.p, sz))
   ]);
 }
+
+/** Grouped composite fields fieldset class controller container. */
 export class GroupIn extends CompostIn {
   view(): G { throw 1; }
   subfield(input: Input, container: InputContainer) {
@@ -1125,10 +1232,9 @@ export class GroupIn extends CompostIn {
   field(container: InputContainer) {
     let { p, inputs } = this;
     return this.$ ||= g("fieldset", "_ formg " + (p.row ? "row" : ""), [
-      //TODO: remove sub element in label
       g("legend", 0, label(p.text)),
       inputs.map(i => this.subfield(i, container))
-    ]);//fieldGroup(this.p.text, this.inputs, form, this.p.labelSz);
+    ]);
   }
   observeVisited(handler: (input: Input) => any) {
     for (let i of this.inputs)

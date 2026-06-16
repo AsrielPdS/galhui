@@ -4,62 +4,122 @@ import { assign, type bool, def, type float, isA, isB, isN, isO, type str, toStr
 import { HAlign } from "./galhui.js";
 import { filterDic } from "./util.js";
 
-
-/** Return an RGBA CSS color string. */
+/**
+ * Returns an RGBA CSS color string.
+ * @param r Red component (0-255 or float)
+ * @param g Green component (0-255 or float)
+ * @param b Blue component (0-255 or float)
+ * @param a Alpha component (0-1)
+ */
 export const rgba = (r: float, g: float, b: float, a: float) => `rgba(${r},${g},${b},${a})`;
-/** Return an RGB CSS color string. */
+
+/**
+ * Returns an RGB CSS color string.
+ * @param r Red component (0-255 or float)
+ * @param g Green component (0-255 or float)
+ * @param b Blue component (0-255 or float)
+ */
 export const rgb = (r: float, g: float, b: float) => `rgb(${r},${g},${b})`;
-/** Normalize a font-weight value or return "bold" when true. */
+
+/**
+ * Normalizes a font-weight value or returns "bold" when true.
+ * @param v The boolean or fontWeight value.
+ */
 export function bold(v: bool | Property.FontWeight) {
   return v ? isB(v) ? "bold" : v : null;
 }
-/** Normalize a font-style value or return "italic" when true. */
+
+/**
+ * Normalizes a font-style value or returns "italic" when true.
+ * @param v The boolean or fontStyle value.
+ */
 export function italic(v: bool | Property.FontStyle) {
   return v ? isB(v) ? "italic" : v : null;
 }
-export const
-  font = (v: Font) => v && (isN(v) ?
-    { fontSize: v + "rem" } :
-    v.f ?
-      { font: `${toStr(italic(v.i))} ${toStr(bold(v.b))} ${v.s}rem ${v.f}` } :
-      { fontSize: v.s && (v.s + "rem"), fontWeight: bold(v.b), fontStyle: italic(v.i) }
-  ),
-  bord = (b: Border) => b && `${b.w || 1}px ${b.s || "solid"} ${b.c}`,
-  bords = (b: Borders): Style => b &&
-    (isA(b) ? {
-      borderTop: bord(b[0]),
-      borderRight: bord(b[1]),
-      borderBottom: bord(def(b[2], b[0])),
-      borderLeft: bord(def(b[3], b[1]))
-    } : { border: bord(b) }),
-  block = (v: TBlock): Style => v && filterDic({
-    color: v.fg,
-    padding: spc(v.pad),
-    margin: spc(v.mrg),
-    borderRadius: spc(v.rad),
-    ...bords(v.brd),
-    background: v.bg,
-    ...font(v.f)
-  });
+
+/**
+ * Creates style rules for a font configuration.
+ * Can be a number (rem size) or a Font object.
+ */
+export const font = (v: Font) => v && (isN(v) ?
+  { fontSize: v + "rem" } :
+  v.f ?
+    { font: `${toStr(italic(v.i))} ${toStr(bold(v.b))} ${v.s}rem ${v.f}` } :
+    { fontSize: v.s && (v.s + "rem"), fontWeight: bold(v.b), fontStyle: italic(v.i) }
+),
+/**
+ * Normalizes a Border object to a CSS border string.
+ */
+bord = (b: Border) => b && `${b.w || 1}px ${b.s || "solid"} ${b.c}`,
+/**
+ * Normalizes a Borders specification to style rules.
+ */
+bords = (b: Borders): Style => b &&
+  (isA(b) ? {
+    borderTop: bord(b[0]),
+    borderRight: bord(b[1]),
+    borderBottom: bord(def(b[2], b[0])),
+    borderLeft: bord(def(b[3], b[1]))
+  } : { border: bord(b) }),
+/**
+ * Creates style rules for a TBlock block configuration (padding, margin, colors, borders, fonts).
+ */
+block = (v: TBlock): Style => v && filterDic({
+  color: v.fg,
+  padding: spc(v.pad),
+  margin: spc(v.mrg),
+  borderRadius: spc(v.rad),
+  ...bords(v.brd),
+  background: v.bg,
+  ...font(v.f)
+});
+
+/**
+ * Creates a CSS border string.
+ * @param color The border color.
+ * @param size The border size in pixels. Defaults to 1.
+ */
 export const border = (color: str, size = 1) => `${size}px solid ${color}`;
 
+/**
+ * Formats a space parameter (like margin or padding) into a CSS space string.
+ * @param v The space configuration.
+ * @param unit The unit to use. Defaults to "em".
+ */
 export const spc = (v: SpaceFull, unit = "em") => v == null ? null : (isN(v) ? v + unit : v.map(v => v + unit).join(" "));
 
-/** Create a style object for background and foreground colors. */
+/**
+ * Creates a style object for background and foreground colors.
+ * @param bg The CSS background property.
+ * @param fg The CSS color property.
+ */
 export const bfg = (bg: Property.Background, fg: Property.Color): Style => ({
   background: bg, color: fg
 });
+
+/**
+ * Creates a style object with margin and padding.
+ * @param mrg Margin value(s).
+ * @param pad Padding value(s).
+ */
 export const box = (mrg: SpaceFull, pad: SpaceFull): Style => ({
   margin: spc(mrg), padding: spc(pad)
 });
 
-
 /** Chainable function used to add styles; carries accumulated CSS in `css`. */
 export type StyleFnAdd<T> = ((style?: StyleFn<T> | Styles) => StyleFnAdd<T>) & { css?: str };
+
 /** A style function that receives a style context and returns styles. */
 export type StyleFn<T> = (ctx: StyleCtx<T>) => Styles;
+
 /** Context passed to a `StyleFn`, extended with `StyleFnAdd` helpers. */
 export type StyleCtx<T> = T & StyleFnAdd<T>;
+
+/**
+ * Creates a style context object that aggregates styles.
+ * @param options Base options for the context.
+ * @param sep The CSS separator to use.
+ */
 export function styleCtx<T = any>(options: T, sep?: CSSSep) {
   let
     list: StyleFn<T>[] = [],
@@ -87,7 +147,6 @@ interface Border {
   c?: Property.Color;
 }
 type Borders = Border | [Border, Border] | [Border, Border, Border] | [Border, Border, Border, Border];
-//  ( ? b.map(bord).join(' ') : );
 interface TBlock {
   /** Foreground color */
   fg?: Property.Color;
@@ -102,7 +161,7 @@ interface TBlock {
   /** Background */
   bg?: Property.Background;
   /** Font options */
-  f?: Font
+  f?: Font;
 }
 type Font = float | {
   /**size */
@@ -113,7 +172,7 @@ type Font = float | {
   b?: bool | Property.FontWeight;
   /**italic */
   i?: bool | Property.FontStyle;
-}
+};
 interface Stateble extends TBlock {
   /** active*/
   on?: TBlock;
@@ -136,7 +195,8 @@ const state = (v: Stateble): Style => v && filterDic({
   ":hover": v.h && block(v.h),
   ":visited": v.v && block(v.v),
   ":active,:focus": v.on && block(v.on),
-});/**horizontal space */
+});
+/**horizontal space */
 const hs = (v: SpaceFull) => isN(v) ? v : v[1];
 /**vertical space */
 const vs = (v: SpaceFull) => isN(v) ? v : v[0];
