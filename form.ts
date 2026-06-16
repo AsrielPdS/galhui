@@ -7,11 +7,7 @@ import type { Icon, Label, SingleSelectBase, Size, TextInputTp, iSingleSelectBas
 import { $, C, busy, cancel, close, confirm, errorMessage, ibt, icon, icons, label, menuitem, modal, selectRoot, setValue, tip, w } from "./galhui.js";
 import { anyProp, arrayToDic, date, dateTime, month } from "./util.js";
 
-// export type Error = {
-//   tp?: str;
-//   info?: str;
-//   params?: Dic<Key>;
-// } | str;
+/** A form error: a renderable, a DOM node (`G`) or a plain string. */
 export type Error = Render | G | str;
 
 interface FieldGroup {
@@ -20,11 +16,14 @@ interface FieldGroup {
 }
 /**coisas executadas quando alguma ação acontece dentro do form */
 type BotCallback<T extends FieldGroup> = (src: Dic<any>, form: T) => any;
+/** Bot: list of source keys plus callback invoked when sources change. */
 export type Bot<T extends FieldGroup = FieldGroup> = PropertyKey[] & {
   srcs: Dic; call: BotCallback<T>
 };
+/** Create a `Bot` from a list of source keys and a callback. */
 export const bot = <T extends FieldGroup = FieldGroup>(src: PropertyKey[], call: BotCallback<T>): Bot<T> =>
   assign(src, { srcs: {}, call });
+/** Known validation error types. */
 export const enum ErrorType {
   required = "req",
   numberTooBig = "number_too_big",
@@ -41,13 +40,13 @@ export const enum ErrorType {
   unsubmited = "unsubmited"
 }
 interface EError extends Render { tp: ErrorType, params?: Dic }
+/** Create an error object with a type and an optional message. */
 export const error = (tp: ErrorType, msg?: str, params?: Dic): EError =>
   ({ tp, params, render: () => msg })
+/** Shortcut for a required-field error. */
 export const req = () => error(ErrorType.required, w.required);
+/** Map of error renderers. */
 export type Errors = Dic<() => any>;
-
-// export const errors: Errors = {};
-//export const inputs: Dic<{ new(i: IInput, ctx?: IInputContext): Input; }> = {};
 
 interface FormEvents extends AnyDic<any[]> {
   input: [Input];
@@ -56,6 +55,7 @@ interface FormEvents extends AnyDic<any[]> {
   submit: [data: Dic];
   cancel: [];
 }
+/** Initialize bots for a form/container: capture source values and schedule callback. */
 export function setupbots(container: Form | CompostIn) {
   if (container.p.bots)
     for (let bot of container.p.bots) {
@@ -64,23 +64,7 @@ export function setupbots(container: Form | CompostIn) {
         srcs[field] = container.input(field).value;
       setTimeout(bot.call, 0, srcs, container);
     }
-  // if (bots) {
-  //   // let calc = (input?: Input | void) => input ?
-  //   //   srcs[input.name] = input.value :
-  //   //   cb(srcs, container);
-  //   for (let bot of bots) {
-  //     let srcs: AnyDic = {}, cb = bot.at(-1) as BotCallback<T>;
-
-  //     container.on("input", (input) => bot.includes(input.name) && calc(cb, input));
-  //     // for (let i = 0; i < bot.length - 1; i++) {
-  //     //   let src = bot[i] as str;
-  //     //   let inp = container.input(src);
-  //     //   srcs[src] = inp.value;
-  //     //   inp.onset(["value", "off"], calc);
-  //     // }
-  //     setTimeout(calc, 0, cb);
-  //   }
-  // }
+  // legacy bot handling removed
 }
 export interface iFormBase {
   /**@default "form" */
@@ -92,6 +76,7 @@ export interface iFormBase {
   offFN?: (e: G, isOff: bool) => void;
 }
 /** */
+/** Base form component providing common form behaviors and utilities. */
 export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> extends Component<T, Ev> {
   inputs: Input[];
   constructor(i: T, inputs: (Input | falsy)[]);
@@ -209,6 +194,7 @@ export class FormBase<T extends iFormBase = any, Ev extends FormEvents = any> ex
     return r;
   }
 }
+/** Async version of `data()` that awaits input submit handlers. */
 export async function dataAsync(form: FormBase, edited?: bool, req?: bool) {
   let inputs = form.inputs;
 
@@ -236,7 +222,9 @@ function renderErrors(inputs: Input[], errs: Dic<Error[]>) {
   return result;
 }
 
+/** Toggle the `off` class on element to hide. */
 export const onOffHide = (e: G, isOff: bool) => e.c("off", isOff);
+/** Toggle the `off` class on element to disable. */
 export const onOffDisable = (e: G, isOff: bool) => e.c("off", isOff);
 export interface InputContainer {
   outline?: bool;
@@ -249,6 +237,7 @@ export interface iForm extends iFormBase, InputContainer {
   errorDiv?: G;
   bots?: Bot<Form>[];
 }
+/** Concrete form implementation with input management and validation. */
 export class Form extends FormBase<iForm> implements FieldGroup {
   errDiv: G;
 
@@ -301,7 +290,7 @@ export class Form extends FormBase<iForm> implements FieldGroup {
 
 // export function mdform(hd: Label, inputs: Input[], cb?: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Promise<Dic>
 // export function mdform(hd: Label, form: FormBase, cb?: (dt: Dic, form: FormBase) => Task<unk>, confirm?: S<HTMLButtonElement>, noCancel?: bool, sz?: Size): Promise<Dic>
-/**modal form */
+/** Open a modal form and resolve with submitted data, or `null` on cancel. */
 export function mdform<T = Dic>(hd: Label, form: Input[] | FormBase, cb?: (dt: Dic, form: FormBase) => Task<T | void>, ok = confirm(), noCancel?: bool, sz?: Size) {
   if (isA(form))
     form = new Form(form);
@@ -404,7 +393,8 @@ export function value(e: HTMLFormElement) {
   }
   return r;
 }
-// export const text = (v: str) => v && (v[0].toUpperCase() + v.slice(1).replace(/_/g, ' '));
+// legacy: simple text humanizer removed
+/** Humanize a key: map via `w` or convert underscores to spaces and capitalize. */
 export const up = (v: str): str => v && def(w[v], (v[0].toUpperCase() + v.slice(1).replace(/_/g, ' ')));
 export interface pInput<V = unknown, D = V> extends Field {
   //tp: Key;

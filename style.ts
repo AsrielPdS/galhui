@@ -5,11 +5,15 @@ import { HAlign } from "./galhui.js";
 import { filterDic } from "./util.js";
 
 
+/** Return an RGBA CSS color string. */
 export const rgba = (r: float, g: float, b: float, a: float) => `rgba(${r},${g},${b},${a})`;
+/** Return an RGB CSS color string. */
 export const rgb = (r: float, g: float, b: float) => `rgb(${r},${g},${b})`;
+/** Normalize a font-weight value or return "bold" when true. */
 export function bold(v: bool | Property.FontWeight) {
   return v ? isB(v) ? "bold" : v : null;
 }
+/** Normalize a font-style value or return "italic" when true. */
 export function italic(v: bool | Property.FontStyle) {
   return v ? isB(v) ? "italic" : v : null;
 }
@@ -37,12 +41,11 @@ export const
     background: v.bg,
     ...font(v.f)
   });
-// export const c = (...cls: str[]) => cc(...cls);
 export const border = (color: str, size = 1) => `${size}px solid ${color}`;
 
 export const spc = (v: SpaceFull, unit = "em") => v == null ? null : (isN(v) ? v + unit : v.map(v => v + unit).join(" "));
 
-/**back & fore ground */
+/** Create a style object for background and foreground colors. */
 export const bfg = (bg: Property.Background, fg: Property.Color): Style => ({
   background: bg, color: fg
 });
@@ -51,8 +54,11 @@ export const box = (mrg: SpaceFull, pad: SpaceFull): Style => ({
 });
 
 
+/** Chainable function used to add styles; carries accumulated CSS in `css`. */
 export type StyleFnAdd<T> = ((style?: StyleFn<T> | Styles) => StyleFnAdd<T>) & { css?: str };
+/** A style function that receives a style context and returns styles. */
 export type StyleFn<T> = (ctx: StyleCtx<T>) => Styles;
+/** Context passed to a `StyleFn`, extended with `StyleFnAdd` helpers. */
 export type StyleCtx<T> = T & StyleFnAdd<T>;
 export function styleCtx<T = any>(options: T, sep?: CSSSep) {
   let
@@ -73,29 +79,29 @@ export function styleCtx<T = any>(options: T, sep?: CSSSep) {
 type Space = float | [x: float, y: float];
 type SpaceFull = Space | [t: float, h: float, b: float] | [t: float, l: float, b: float, r: float];
 interface Border {
-  /**width */
+  /** Width in pixels */
   w?: float;
-  /**style */
+  /** Border style */
   s?: Property.BorderStyle;
-  /**color */
+  /** Border color */
   c?: Property.Color;
 }
 type Borders = Border | [Border, Border] | [Border, Border, Border] | [Border, Border, Border, Border];
 //  ( ? b.map(bord).join(' ') : );
 interface TBlock {
-  /**foreground*/
+  /** Foreground color */
   fg?: Property.Color;
-  /** margin  in rem */
+  /** Margin in rem */
   mrg?: SpaceFull;
-  /** padding  in rem */
+  /** Padding in rem */
   pad?: SpaceFull;
-  /** border radius in rem */
+  /** Border radius in rem */
   rad?: float;
-  /** border  in px */
+  /** Border specification */
   brd?: Borders;
-  /** background*/
+  /** Background */
   bg?: Property.Background;
-  /**font */
+  /** Font options */
   f?: Font
 }
 type Font = float | {
